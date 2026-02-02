@@ -89,7 +89,7 @@ export default function Branding() {
 
                         {/* Sidebar Color Picker */}
                         <div className="space-y-2">
-                            <Label htmlFor="sidebarColor" className="text-[10px] uppercase tracking-widest font-normal text-muted-foreground">Cor do Menu Superior (Apenas Preview)</Label>
+                            <Label htmlFor="sidebarColor" className="text-[10px] uppercase tracking-widest font-normal text-muted-foreground">Cor do Menu Superior</Label>
                             <div className="flex gap-4">
                                 <input
                                     type="color"
@@ -106,7 +106,7 @@ export default function Branding() {
                                 />
                             </div>
                             <p className="text-[10px] text-muted-foreground font-light">
-                                Atualmente o menu superior é Dark fixo para manter o padrão SaaS Premium.
+                                Personalize a cor de fundo da barra de navegação superior.
                             </p>
                         </div>
 

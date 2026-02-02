@@ -50,13 +50,22 @@ export default function Reports() {
   const handleExportXLSX = () => {
     const exportData = filteredData.map((item) => ({
       'Razão Social': item.razaoSocial,
-      'Nome Fantasia': item.nomeFantasia,
-      'CNPJ': item.cnpj,
-      'Email': item.email,
-      'Telefone': item.telefone,
+      'CNPJ / CPF': item.cnpj,
       'Regime Tributário': regimeLabels[item.regimeTributario],
+      'Data de Entrada': item.dataEntrada ? new Date(item.dataEntrada).toLocaleDateString('pt-BR') : '',
       'CCM': item.ccm || '',
-      'Inscrição Estadual': item.ie || '',
+      'Senha Prefeitura': item.ccmSenha || '',
+      'Inscr. Estadual (IE)': item.ie || '',
+      'Senha SEFAZ / Posto': item.sefazSenha || '',
+      'Código de Acesso / Senha (Simples)': item.simplesNacionalSenha || '',
+      'Código de Acesso (ECAC)': item.ecacCodigoAcesso || '',
+      'Senha e-CAC': item.ecacSenha || '',
+      'Certificado Digital (Tipo)': item.certificadoDigitalTipo || '',
+      'Data de Vencimento': item.certificadoDigitalVencimento ? new Date(item.certificadoDigitalVencimento).toLocaleDateString('pt-BR') : '',
+      'Senha do Certificado': item.certificadoDigitalSenha || '',
+      'E-mail Principal': item.email,
+      'Telefone / WhatsApp': item.telefone,
+      'Status Operacional': item.isActive ? 'Ativo' : 'Inativo',
     }));
 
     const wb = XLSX.utils.book_new();
@@ -64,12 +73,12 @@ export default function Reports() {
 
     // Ajustar largura das colunas
     const colWidths = Object.keys(exportData[0] || {}).map(key => ({
-      wch: Math.max(key.length + 5, 20)
+      wch: Math.max(key.length + 5, 25)
     }));
     ws['!cols'] = colWidths;
 
     XLSX.utils.book_append_sheet(wb, ws, 'Clientes');
-    XLSX.writeFile(wb, `relatorio_clientes_${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.writeFile(wb, `relatorio_clientes_completo_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   const handlePrint = () => {

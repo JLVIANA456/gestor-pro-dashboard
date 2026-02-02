@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Search, User, LayoutDashboard, Users, FileText, Palette, Building2, Menu, X } from 'lucide-react';
+import { Search, LayoutDashboard, Users, FileText, Palette, Building2, Menu, X } from 'lucide-react';
 import { useNavigate, NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
 import { useBranding } from '@/context/BrandingContext';
 
 const navigation = [
@@ -24,7 +23,7 @@ export function Header() {
   }, [location.pathname]);
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 h-16 border-b border-white/5 bg-[#0F172A] text-white/90 backdrop-blur-xl transition-all duration-300 no-print">
+    <header className="fixed inset-x-0 top-0 z-50 h-16 border-b border-sidebar-border bg-sidebar text-sidebar-foreground backdrop-blur-xl transition-all duration-300 no-print">
       <div className="mx-auto max-w-[1600px] flex h-full items-center justify-between px-4 md:px-8">
         <div className="flex items-center gap-8">
           {/* Logo Section */}
@@ -37,10 +36,10 @@ export function Header() {
               )}
             </div>
             <div className="hidden lg:block">
-              <h1 className="text-sm font-light tracking-wide text-white">
+              <h1 className="text-sm font-light tracking-wide text-sidebar-foreground">
                 {officeName}
               </h1>
-              <p className="text-[10px] font-normal text-white/40 uppercase tracking-[0.2em] leading-none mt-0.5">Gestão Pro</p>
+              <p className="text-[10px] font-normal text-sidebar-muted uppercase tracking-[0.2em] leading-none mt-0.5">Gestão Pro</p>
             </div>
           </div>
 
@@ -55,13 +54,13 @@ export function Header() {
                   className={cn(
                     'flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-normal uppercase tracking-[0.15em] transition-all duration-300',
                     isActive
-                      ? 'bg-white/10 text-white shadow-sm ring-1 ring-white/10'
-                      : 'text-white/50 hover:bg-white/5 hover:text-white'
+                      ? 'bg-sidebar-foreground/10 text-sidebar-foreground shadow-sm ring-1 ring-sidebar-foreground/10'
+                      : 'text-sidebar-foreground/50 hover:bg-sidebar-foreground/5 hover:text-sidebar-foreground'
                   )}
                 >
                   <item.icon className={cn(
                     'h-4 w-4 transition-colors',
-                    isActive ? 'text-primary' : 'text-white/40'
+                    isActive ? 'text-primary' : 'text-sidebar-muted/40'
                   )} />
                   <span>{item.name}</span>
                 </NavLink>
@@ -72,25 +71,25 @@ export function Header() {
 
         {/* Right Section: Search & User */}
         <div className="flex items-center gap-3">
-          <div className="hidden sm:flex h-9 w-9 items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 cursor-pointer transition-colors border border-white/5 shadow-sm">
-            <Search className="h-4 w-4 text-white/60" />
+          <div className="hidden sm:flex h-9 w-9 items-center justify-center rounded-xl bg-sidebar-foreground/5 hover:bg-sidebar-foreground/10 cursor-pointer transition-colors border border-sidebar-border shadow-sm">
+            <Search className="h-4 w-4 text-sidebar-foreground/60" />
           </div>
 
-          <div className="hidden sm:block h-6 w-px bg-white/10 mx-2" />
+          <div className="hidden sm:block h-6 w-px bg-sidebar-border mx-2" />
 
-          <div className="flex items-center gap-3 rounded-2xl bg-white/5 pl-1.5 pr-4 py-1.5 border border-white/5 hover:border-white/20 transition-all cursor-pointer group shadow-sm">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-[12px] font-normal text-primary-foreground ring-2 ring-white/5 shadow-inner">
+          <div className="flex items-center gap-3 rounded-2xl bg-sidebar-foreground/5 pl-1.5 pr-4 py-1.5 border border-sidebar-border hover:border-sidebar-foreground/20 transition-all cursor-pointer group shadow-sm">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-[12px] font-normal text-primary-foreground ring-2 ring-sidebar-foreground/5 shadow-inner">
               J
             </div>
             <div className="hidden sm:block">
-              <p className="text-[11px] font-light text-white/90 leading-none">Jefferson</p>
-              <p className="text-[9px] font-normal text-white/40 uppercase tracking-[0.2em] leading-none mt-1">Administrador</p>
+              <p className="text-[11px] font-light text-sidebar-foreground leading-none">Jefferson</p>
+              <p className="text-[9px] font-normal text-sidebar-muted uppercase tracking-[0.2em] leading-none mt-1">Administrador</p>
             </div>
           </div>
 
           {/* Mobile Menu Button */}
           <button
-            className="flex md:hidden h-10 w-10 items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all ml-2"
+            className="flex md:hidden h-10 w-10 items-center justify-center rounded-xl bg-sidebar-foreground/5 hover:bg-sidebar-foreground/10 border border-sidebar-border transition-all ml-2"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
             {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -100,7 +99,7 @@ export function Header() {
 
       {/* Mobile Navigation Drawer */}
       <div className={cn(
-        'absolute inset-x-0 top-16 bg-[#0F172A] border-b border-white/10 transition-all duration-300 md:hidden overflow-hidden',
+        'absolute inset-x-0 top-16 bg-sidebar border-b border-sidebar-border transition-all duration-300 md:hidden overflow-hidden',
         isMenuOpen ? 'max-h-64 opacity-100 py-4' : 'max-h-0 opacity-0 py-0'
       )}>
         <nav className="flex flex-col px-4 gap-1">
@@ -112,10 +111,10 @@ export function Header() {
                 to={item.href}
                 className={cn(
                   'flex items-center gap-4 rounded-xl px-4 py-4 text-sm font-light uppercase tracking-[0.2em]',
-                  isActive ? 'bg-white/10 text-white' : 'text-white/50'
+                  isActive ? 'bg-sidebar-foreground/10 text-sidebar-foreground' : 'text-sidebar-foreground/50'
                 )}
               >
-                <item.icon className={cn('h-5 w-5', isActive ? 'text-primary' : 'text-white/30')} />
+                <item.icon className={cn('h-5 w-5', isActive ? 'text-primary' : 'text-sidebar-muted/30')} />
                 {item.name}
               </NavLink>
             );
@@ -125,4 +124,3 @@ export function Header() {
     </header>
   );
 }
-
