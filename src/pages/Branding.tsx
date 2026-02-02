@@ -38,7 +38,7 @@ export default function Branding() {
         setLocalColor('#E11D48');
         setLocalSidebarColor('#000000');
         setLocalName('GestorPro');
-        setLocalLogo('');
+        setLocalLogo('/favicon.png');
         toast.info('Configurações resetadas para o padrão.');
     };
 

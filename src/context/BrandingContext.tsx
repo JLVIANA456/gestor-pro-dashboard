@@ -28,7 +28,7 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
     });
 
     const [logoUrl, setLogoUrl] = useState<string | null>(() => {
-        return localStorage.getItem('gestorpro_logo_url');
+        return localStorage.getItem('gestorpro_logo_url') || '/favicon.png';
     });
 
     const [officeName, setOfficeName] = useState(() => {
@@ -81,7 +81,7 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
     const resetBranding = () => {
         setPrimaryColor(DEFAULT_COLOR);
         setSidebarColor('#000000');
-        setLogoUrl(null);
+        setLogoUrl('/favicon.png');
         setOfficeName(DEFAULT_NAME);
     };
 
