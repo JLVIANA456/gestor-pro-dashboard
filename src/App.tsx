@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
 import Reports from "./pages/Reports";
 import Branding from "./pages/Branding";
+import Email from "./pages/Email";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
               <Route path="/clientes" element={<Clients />} />
               <Route path="/relatorios" element={<Reports />} />
               <Route path="/personalizar" element={<Branding />} />
+              <Route path="/email" element={<Email />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </MainLayout>

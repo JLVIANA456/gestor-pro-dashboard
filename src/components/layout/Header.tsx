@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, Users, FileText, Palette, Building2, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, Palette, Mail, Building2, Menu, X } from 'lucide-react';
 import { useNavigate, NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useBranding } from '@/context/BrandingContext';
@@ -8,6 +8,7 @@ const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Clientes', href: '/clientes', icon: Users },
   { name: 'Relatórios', href: '/relatorios', icon: FileText },
+  { name: 'E-mail', href: '/email', icon: Mail },
   { name: 'Personalizar', href: '/personalizar', icon: Palette },
 ];
 
