@@ -12,59 +12,61 @@ export function ClientFlowCard({ ativos, entradas, saidas, loading }: ClientFlow
     const currentMonth = new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
     return (
-        <div className="rounded-lg bg-card p-6 shadow-card animate-slide-in-up stagger-1 h-full">
-            <div className="flex items-center justify-between mb-6">
+        <div className="rounded-2xl bg-card p-6 border border-border/50 shadow-card animate-slide-in-up stagger-1 h-full transition-all duration-300 hover:shadow-card-hover">
+            <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/5">
                         <Users className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                        <h3 className="font-semibold text-foreground">Fluxo de Clientes</h3>
-                        <p className="text-xs text-muted-foreground capitalize">{currentMonth}</p>
+                        <h3 className="font-light text-foreground tracking-wide text-lg">Fluxo de Clientes</h3>
+                        <p className="text-[10px] text-muted-foreground capitalize font-normal tracking-widest">{currentMonth}</p>
                     </div>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-8 sm:grid-cols-3 mb-8">
                 {/* Ativos */}
-                <div className="space-y-1">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Clientes Ativos</p>
+                <div className="space-y-2">
+                    <p className="text-[10px] font-normal text-muted-foreground uppercase tracking-[0.2em]">Clientes Ativos</p>
                     <div className="flex items-baseline gap-2">
-                        <span className="text-3xl font-light text-foreground">{loading ? '...' : ativos}</span>
+                        <span className="text-4xl font-light text-foreground tracking-tighter">{loading ? '...' : ativos}</span>
                     </div>
                 </div>
 
                 {/* Entradas */}
-                <div className="space-y-1">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Altas (Entradas)</p>
-                    <div className="flex items-center gap-2">
-                        <span className="text-3xl font-light text-emerald-600">{loading ? '...' : entradas}</span>
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100">
+                <div className="space-y-2">
+                    <p className="text-[10px] font-normal text-muted-foreground uppercase tracking-[0.2em]">Altas (Entradas)</p>
+                    <div className="flex items-center gap-3">
+                        <span className="text-4xl font-light text-emerald-500 tracking-tighter">{loading ? '...' : entradas}</span>
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-50/50 border border-emerald-100/50">
                             <ArrowUpRight className="h-3 w-3 text-emerald-600" />
                         </div>
                     </div>
                 </div>
 
                 {/* Saídas */}
-                <div className="space-y-1">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Baixas (Saídas)</p>
-                    <div className="flex items-center gap-2">
-                        <span className="text-3xl font-light text-rose-600">{loading ? '...' : saidas}</span>
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-rose-100">
+                <div className="space-y-2">
+                    <p className="text-[10px] font-normal text-muted-foreground uppercase tracking-[0.2em]">Baixas (Saídas)</p>
+                    <div className="flex items-center gap-3">
+                        <span className="text-4xl font-light text-rose-500 tracking-tighter">{loading ? '...' : saidas}</span>
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-rose-50/50 border border-rose-100/50">
                             <ArrowDownRight className="h-3 w-3 text-rose-600" />
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="mt-6 pt-6 border-t border-border">
-                <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Saldo do Mês</span>
+            <div className="pt-6 border-t border-border/50">
+                <div className="flex items-center justify-between">
+                    <span className="text-xs font-light text-muted-foreground uppercase tracking-[0.15em]">Saldo do Mês</span>
                     <span className={cn(
-                        "font-semibold",
-                        entradas - saidas >= 0 ? "text-emerald-600" : "text-rose-600"
+                        "text-xs font-normal px-3 py-1 rounded-full uppercase tracking-wider",
+                        entradas - saidas >= 0
+                            ? "bg-emerald-50 text-emerald-700 border border-emerald-100/50"
+                            : "bg-rose-50 text-rose-700 border border-rose-100/50"
                     )}>
-                        {entradas - saidas > 0 ? '+' : ''}{entradas - saidas} novos clientes
+                        {entradas - saidas > 0 ? '+' : ''}{entradas - saidas} novos
                     </span>
                 </div>
             </div>

@@ -16,11 +16,20 @@ export interface Client {
   nomeFantasia: string;
   cnpj: string;
   ccm?: string;
+  ccmSenha?: string;
   ie?: string;
+  ieSenha?: string;
   regimeTributario: TaxRegime;
   email: string;
   telefone: string;
   senhaPrefeitura?: string;
+  sefazSenha?: string;
+  simplesNacionalSenha?: string;
+  ecacCodigoAcesso?: string;
+  ecacSenha?: string;
+  certificadoDigitalTipo?: string;
+  certificadoDigitalVencimento?: string;
+  certificadoDigitalSenha?: string;
   quadroSocietario: Socio[];
   dataEntrada: string;
   dataSaida?: string;
@@ -33,11 +42,20 @@ interface DbClient {
   nome_fantasia: string;
   cnpj: string;
   ccm: string | null;
+  ccm_senha: string | null;
   ie: string | null;
+  ie_senha: string | null;
   regime_tributario: TaxRegime;
   email: string;
   telefone: string;
   senha_prefeitura: string | null;
+  sefaz_senha: string | null;
+  simples_nacional_senha: string | null;
+  ecac_codigo_acesso: string | null;
+  ecac_senha: string | null;
+  certificado_digital_tipo: string | null;
+  certificado_digital_vencimento: string | null;
+  certificado_digital_senha: string | null;
   quadro_societario: Socio[];
   data_entrada: string;
   data_saida: string | null;
@@ -53,11 +71,20 @@ const mapDbToClient = (db: DbClient): Client => ({
   nomeFantasia: db.nome_fantasia,
   cnpj: db.cnpj,
   ccm: db.ccm ?? undefined,
+  ccmSenha: db.ccm_senha ?? undefined,
   ie: db.ie ?? undefined,
+  ieSenha: db.ie_senha ?? undefined,
   regimeTributario: db.regime_tributario,
   email: db.email,
   telefone: db.telefone,
   senhaPrefeitura: db.senha_prefeitura ?? undefined,
+  sefazSenha: db.sefaz_senha ?? undefined,
+  simplesNacionalSenha: db.simples_nacional_senha ?? undefined,
+  ecacCodigoAcesso: db.ecac_codigo_acesso ?? undefined,
+  ecacSenha: db.ecac_senha ?? undefined,
+  certificadoDigitalTipo: db.certificado_digital_tipo ?? undefined,
+  certificadoDigitalVencimento: db.certificado_digital_vencimento ?? undefined,
+  certificadoDigitalSenha: db.certificado_digital_senha ?? undefined,
   quadroSocietario: db.quadro_societario ?? [],
   dataEntrada: db.data_entrada,
   dataSaida: db.data_saida ?? undefined,
@@ -70,11 +97,20 @@ const mapClientToDb = (client: Omit<Client, 'id'> & { id?: string }) => ({
   nome_fantasia: client.nomeFantasia || client.razaoSocial,
   cnpj: client.cnpj,
   ccm: client.ccm || null,
+  ccm_senha: client.ccmSenha || null,
   ie: client.ie || null,
+  ie_senha: client.ieSenha || null,
   regime_tributario: client.regimeTributario,
   email: client.email,
   telefone: client.telefone,
   senha_prefeitura: client.senhaPrefeitura || null,
+  sefaz_senha: client.sefazSenha || null,
+  simples_nacional_senha: client.simplesNacionalSenha || null,
+  ecac_codigo_acesso: client.ecacCodigoAcesso || null,
+  ecac_senha: client.ecacSenha || null,
+  certificado_digital_tipo: client.certificadoDigitalTipo || null,
+  certificado_digital_vencimento: client.certificadoDigitalVencimento || null,
+  certificado_digital_senha: client.certificadoDigitalSenha || null,
   quadro_societario: client.quadroSocietario as unknown as Record<string, unknown>[],
   data_entrada: client.dataEntrada || new Date().toISOString().split('T')[0],
   data_saida: (client.dataSaida && client.dataSaida.trim() !== '') ? client.dataSaida : null,

@@ -38,12 +38,20 @@ interface FormData {
   nomeFantasia: string;
   cnpj: string;
   ccm: string;
+  ccmSenha: string;
   ie: string;
+  ieSenha: string;
   regimeTributario: TaxRegime | '';
   email: string;
   telefone: string;
   senhaPrefeitura: string;
-  senhaEstadual: string;
+  sefazSenha: string;
+  simplesNacionalSenha: string;
+  ecacCodigoAcesso: string;
+  ecacSenha: string;
+  certificadoDigitalTipo: string;
+  certificadoDigitalVencimento: string;
+  certificadoDigitalSenha: string;
   dataEntrada: string;
   dataSaida: string;
   isActive: boolean;
@@ -54,12 +62,20 @@ const initialFormData: FormData = {
   nomeFantasia: '',
   cnpj: '',
   ccm: '',
+  ccmSenha: '',
   ie: '',
+  ieSenha: '',
   regimeTributario: '',
   email: '',
   telefone: '',
   senhaPrefeitura: '',
-  senhaEstadual: '',
+  sefazSenha: '',
+  simplesNacionalSenha: '',
+  ecacCodigoAcesso: '',
+  ecacSenha: '',
+  certificadoDigitalTipo: '',
+  certificadoDigitalVencimento: '',
+  certificadoDigitalSenha: '',
   dataEntrada: new Date().toISOString().split('T')[0],
   dataSaida: '',
   isActive: true,
@@ -78,12 +94,20 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
         nomeFantasia: client.nomeFantasia,
         cnpj: client.cnpj,
         ccm: client.ccm || '',
+        ccmSenha: client.ccmSenha || '',
         ie: client.ie || '',
+        ieSenha: client.ieSenha || '',
         regimeTributario: client.regimeTributario,
         email: client.email,
         telefone: client.telefone,
         senhaPrefeitura: client.senhaPrefeitura || '',
-        senhaEstadual: '',
+        sefazSenha: client.sefazSenha || '',
+        simplesNacionalSenha: client.simplesNacionalSenha || '',
+        ecacCodigoAcesso: client.ecacCodigoAcesso || '',
+        ecacSenha: client.ecacSenha || '',
+        certificadoDigitalTipo: client.certificadoDigitalTipo || '',
+        certificadoDigitalVencimento: client.certificadoDigitalVencimento || '',
+        certificadoDigitalSenha: client.certificadoDigitalSenha || '',
         dataEntrada: client.dataEntrada || new Date().toISOString().split('T')[0],
         dataSaida: client.dataSaida || '',
         isActive: client.isActive ?? true,
@@ -98,7 +122,7 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
     }
   }, [client, open]);
 
-  const handleInputChange = (field: keyof FormData, value: string) => {
+  const handleInputChange = (field: keyof FormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -145,11 +169,20 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
       nomeFantasia: formData.nomeFantasia || formData.razaoSocial,
       cnpj: formData.cnpj,
       ccm: formData.ccm || undefined,
+      ccmSenha: formData.ccmSenha || undefined,
       ie: formData.ie || undefined,
+      ieSenha: formData.ieSenha || undefined,
       regimeTributario: formData.regimeTributario as TaxRegime,
       email: formData.email,
       telefone: formData.telefone,
       senhaPrefeitura: formData.senhaPrefeitura || undefined,
+      sefazSenha: formData.sefazSenha || undefined,
+      simplesNacionalSenha: formData.simplesNacionalSenha || undefined,
+      ecacCodigoAcesso: formData.ecacCodigoAcesso || undefined,
+      ecacSenha: formData.ecacSenha || undefined,
+      certificadoDigitalTipo: formData.certificadoDigitalTipo || undefined,
+      certificadoDigitalVencimento: formData.certificadoDigitalVencimento || undefined,
+      certificadoDigitalSenha: formData.certificadoDigitalSenha || undefined,
       quadroSocietario: socios.filter(s => s.nome && s.cpf),
       dataEntrada: formData.dataEntrada,
       dataSaida: formData.dataSaida || undefined,
@@ -163,239 +196,248 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-card border-border">
+      <DialogContent className="max-w-4xl max-h-[95vh] overflow-y-auto bg-card border-border">
         <DialogHeader>
-          <DialogTitle className="text-xl font-light text-foreground">
-            {isEditing ? 'Editar Cliente' : 'Novo Cliente'}
+          <DialogTitle className="text-2xl font-light text-foreground">
+            {isEditing ? 'Editar Registro do Cliente' : 'Cadastrar Novo Cliente'}
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6 py-4">
-          {/* Dados Básicos */}
-          <div className="space-y-4">
-            <h3 className="font-semibold text-foreground border-b border-border pb-2">Dados Básicos</h3>
+        <form onSubmit={handleSubmit} className="space-y-8 py-6">
+          {/* Seção 1: Identificação Corporativa */}
+          <div className="space-y-6">
+            <h3 className="text-xs font-normal text-muted-foreground uppercase tracking-[0.2em] border-b border-border/50 pb-2">1. Identificação Corporativa</h3>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="razaoSocial">Razão Social *</Label>
+                <Label className="text-xs font-normal">Razão Social *</Label>
                 <Input
-                  id="razaoSocial"
-                  placeholder="Razão Social da Empresa"
-                  className="rounded-xl"
+                  placeholder="Nome oficial da empresa"
+                  className="rounded-xl h-11 font-light"
                   value={formData.razaoSocial}
                   onChange={(e) => handleInputChange('razaoSocial', e.target.value)}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="nomeFantasia">Nome Fantasia</Label>
+                <Label className="text-xs font-normal">Nome Fantasia</Label>
                 <Input
-                  id="nomeFantasia"
-                  placeholder="Nome Fantasia"
-                  className="rounded-xl"
+                  placeholder="Nome comercial"
+                  className="rounded-xl h-11 font-light"
                   value={formData.nomeFantasia}
                   onChange={(e) => handleInputChange('nomeFantasia', e.target.value)}
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
               <div className="space-y-2">
-                <Label htmlFor="cnpj">CNPJ *</Label>
+                <Label className="text-xs font-normal">CNPJ / CPF *</Label>
                 <Input
-                  id="cnpj"
                   placeholder="00.000.000/0000-00"
-                  className="rounded-xl"
+                  className="rounded-xl h-11 font-light"
                   value={formData.cnpj}
                   onChange={(e) => handleInputChange('cnpj', e.target.value)}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="ccm">CCM</Label>
-                <Input
-                  id="ccm"
-                  placeholder="Código Municipal"
-                  className="rounded-xl"
-                  value={formData.ccm}
-                  onChange={(e) => handleInputChange('ccm', e.target.value)}
-                />
+                <Label className="text-xs font-normal">Regime Tributário *</Label>
+                <Select
+                  value={formData.regimeTributario}
+                  onValueChange={(value) => handleInputChange('regimeTributario', value)}
+                >
+                  <SelectTrigger className="rounded-xl h-11 font-light">
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border">
+                    <SelectItem value="simples" className="font-light">Simples Nacional</SelectItem>
+                    <SelectItem value="presumido" className="font-light">Lucro Presumido</SelectItem>
+                    <SelectItem value="real" className="font-light">Lucro Real</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="ie">Inscrição Estadual</Label>
+                <Label className="text-xs font-normal">Data de Entrada *</Label>
                 <Input
-                  id="ie"
-                  placeholder="IE"
-                  className="rounded-xl"
-                  value={formData.ie}
-                  onChange={(e) => handleInputChange('ie', e.target.value)}
+                  type="date"
+                  className="rounded-xl h-11 font-light"
+                  value={formData.dataEntrada}
+                  onChange={(e) => handleInputChange('dataEntrada', e.target.value)}
+                  required
                 />
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="regimeTributario">Regime Tributário *</Label>
-              <Select
-                value={formData.regimeTributario}
-                onValueChange={(value) => handleInputChange('regimeTributario', value)}
-                required
-              >
-                <SelectTrigger className="rounded-xl">
-                  <SelectValue placeholder="Selecione o regime" />
-                </SelectTrigger>
-                <SelectContent className="bg-card border-border">
-                  <SelectItem value="simples">Simples Nacional</SelectItem>
-                  <SelectItem value="presumido">Lucro Presumido</SelectItem>
-                  <SelectItem value="real">Lucro Real</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </div>
 
-          {/* Contato */}
-          <div className="space-y-4">
-            <h3 className="font-semibold text-foreground border-b border-border pb-2">Contato</h3>
+          {/* Seção 2: Dados Fiscais & Senhas */}
+          <div className="space-y-6">
+            <h3 className="text-xs font-normal text-muted-foreground uppercase tracking-[0.2em] border-b border-border/50 pb-2">2. Fiscal & Credenciais</h3>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div className="p-4 rounded-2xl bg-muted/20 border border-border/50 space-y-4">
+                <h4 className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Prefeitura</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label className="text-[10px]">CCM</Label>
+                    <Input value={formData.ccm} onChange={(e) => handleInputChange('ccm', e.target.value)} className="h-9 text-sm rounded-lg" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px]">Senha Prefeitura</Label>
+                    <Input type="password" value={formData.senhaPrefeitura} onChange={(e) => handleInputChange('senhaPrefeitura', e.target.value)} className="h-9 text-sm rounded-lg" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-muted/20 border border-border/50 space-y-4">
+                <h4 className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Estado (SEFAZ)</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label className="text-[10px]">Inscr. Estadual (IE)</Label>
+                    <Input value={formData.ie} onChange={(e) => handleInputChange('ie', e.target.value)} className="h-9 text-sm rounded-lg" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px]">Senha SEFAZ / Posto</Label>
+                    <Input type="password" value={formData.sefazSenha} onChange={(e) => handleInputChange('sefazSenha', e.target.value)} className="h-9 text-sm rounded-lg" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+              <div className="p-4 rounded-2xl bg-muted/20 border border-border/50 space-y-4">
+                <h4 className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Simples Nacional</h4>
+                <div className="space-y-2">
+                  <Label className="text-[10px]">Código de Acesso / Senha</Label>
+                  <Input type="password" value={formData.simplesNacionalSenha} onChange={(e) => handleInputChange('simplesNacionalSenha', e.target.value)} className="h-9 text-sm rounded-lg" />
+                </div>
+              </div>
+
+              <div className="md:col-span-2 p-4 rounded-2xl bg-muted/20 border border-border/50 space-y-4">
+                <h4 className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Portal e-CAC (Receita Federal)</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label className="text-[10px]">Código de Acesso</Label>
+                    <Input value={formData.ecacCodigoAcesso} onChange={(e) => handleInputChange('ecacCodigoAcesso', e.target.value)} className="h-9 text-sm rounded-lg" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px]">Senha e-CAC</Label>
+                    <Input type="password" value={formData.ecacSenha} onChange={(e) => handleInputChange('ecacSenha', e.target.value)} className="h-9 text-sm rounded-lg" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Seção 3: Certificado Digital */}
+          <div className="space-y-6">
+            <h3 className="text-xs font-normal text-muted-foreground uppercase tracking-[0.2em] border-b border-border/50 pb-2">3. Certificado Digital</h3>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-3 p-4 rounded-2xl bg-primary/[0.02] border border-primary/10">
               <div className="space-y-2">
-                <Label htmlFor="email">Email *</Label>
+                <Label className="text-xs font-normal">Tipo</Label>
+                <Select value={formData.certificadoDigitalTipo} onValueChange={(v) => handleInputChange('certificadoDigitalTipo', v)}>
+                  <SelectTrigger className="h-10 rounded-xl">
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="A1">A1 (Arquivo)</SelectItem>
+                    <SelectItem value="A3-TOKEN">A3 (Token)</SelectItem>
+                    <SelectItem value="A3-CARTAO">A3 (Cartão)</SelectItem>
+                    <SelectItem value="Nuvem">Nuvem (BirdId/SafeId)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-normal">Data de Vencimento</Label>
+                <Input type="date" className="h-10 rounded-xl font-light" value={formData.certificadoDigitalVencimento} onChange={(e) => handleInputChange('certificadoDigitalVencimento', e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-normal">Senha do Certificado</Label>
+                <Input type="password" placeholder="••••••••" className="h-10 rounded-xl font-light" value={formData.certificadoDigitalSenha} onChange={(e) => handleInputChange('certificadoDigitalSenha', e.target.value)} />
+              </div>
+            </div>
+          </div>
+
+          {/* Seção 4: Contato & Status */}
+          <div className="space-y-6">
+            <h3 className="text-xs font-normal text-muted-foreground uppercase tracking-[0.2em] border-b border-border/50 pb-2">4. Comunicação & Status</h3>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+              <div className="space-y-2">
+                <Label className="text-xs font-normal">E-mail Principal *</Label>
                 <Input
-                  id="email"
                   type="email"
-                  placeholder="email@empresa.com.br"
-                  className="rounded-xl"
+                  placeholder="empresa@exemplo.com"
+                  className="rounded-xl h-11 font-light"
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="telefone">Telefone</Label>
+                <Label className="text-xs font-normal">Telefone / WhatsApp</Label>
                 <Input
-                  id="telefone"
-                  placeholder="(11) 99999-9999"
-                  className="rounded-xl"
+                  placeholder="(00) 00000-0000"
+                  className="rounded-xl h-11 font-light"
                   value={formData.telefone}
                   onChange={(e) => handleInputChange('telefone', e.target.value)}
                 />
               </div>
-            </div>
-          </div>
-
-          {/* Status e Datas */}
-          <div className="space-y-4">
-            <h3 className="font-semibold text-foreground border-b border-border pb-2">Status e Datas</h3>
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div className="space-y-2">
-                <Label htmlFor="isActive">Status do Cliente</Label>
+                <Label className="text-xs font-normal">Status Operacional</Label>
                 <Select
                   value={formData.isActive ? 'true' : 'false'}
                   onValueChange={(value) => handleInputChange('isActive', (value === 'true') as any)}
                 >
-                  <SelectTrigger className="rounded-xl">
+                  <SelectTrigger className="rounded-xl h-11 font-light">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-card border-border">
                     <SelectItem value="true">Ativo</SelectItem>
-                    <SelectItem value="false">Inativo</SelectItem>
+                    <SelectItem value="false">Inativo / Encerrado</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="dataEntrada">Data de Entrada *</Label>
-                <Input
-                  id="dataEntrada"
-                  type="date"
-                  className="rounded-xl"
-                  value={formData.dataEntrada}
-                  onChange={(e) => handleInputChange('dataEntrada', e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="dataSaida">Data de Saída</Label>
-                <Input
-                  id="dataSaida"
-                  type="date"
-                  className="rounded-xl"
-                  value={formData.dataSaida}
-                  onChange={(e) => handleInputChange('dataSaida', e.target.value)}
-                  disabled={formData.isActive}
-                />
-              </div>
             </div>
           </div>
 
-
-          {/* Senhas */}
-          <div className="space-y-4">
-            <h3 className="font-semibold text-foreground border-b border-border pb-2">Senhas de Acesso</h3>
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="senhaPrefeitura">Senha Prefeitura</Label>
-                <Input
-                  id="senhaPrefeitura"
-                  type="password"
-                  placeholder="••••••••"
-                  className="rounded-xl"
-                  value={formData.senhaPrefeitura}
-                  onChange={(e) => handleInputChange('senhaPrefeitura', e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="senhaEstadual">Senha SEFAZ</Label>
-                <Input
-                  id="senhaEstadual"
-                  type="password"
-                  placeholder="••••••••"
-                  className="rounded-xl"
-                  value={formData.senhaEstadual}
-                  onChange={(e) => handleInputChange('senhaEstadual', e.target.value)}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Quadro Societário */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between border-b border-border pb-2">
-              <h3 className="font-semibold text-foreground">Quadro Societário</h3>
-              <Button type="button" variant="outline" size="sm" onClick={addSocio}>
-                <Plus className="mr-2 h-4 w-4" />
+          {/* Seção 5: Sócios */}
+          <div className="space-y-6">
+            <div className="flex items-center justify-between border-b border-border/50 pb-2">
+              <h3 className="text-xs font-normal text-muted-foreground uppercase tracking-[0.2em]">5. Quadro Societário</h3>
+              <Button type="button" variant="ghost" size="sm" onClick={addSocio} className="text-primary hover:text-primary hover:bg-primary/5 rounded-xl h-8 px-3 text-[10px] font-bold uppercase tracking-widest">
+                <Plus className="mr-2 h-3 w-3" />
                 Adicionar Sócio
               </Button>
             </div>
 
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-4">
               {socios.map((socio, index) => (
-                <div key={index} className="flex gap-4 items-end rounded-xl bg-muted p-4">
+                <div key={index} className="group relative flex gap-4 items-end rounded-2xl bg-muted/30 p-5 border border-border/50 transition-all hover:bg-muted/50">
                   <div className="flex-1 space-y-2">
-                    <Label>Nome</Label>
+                    <Label className="text-[10px] uppercase font-normal text-muted-foreground">Nome do Sócio</Label>
                     <Input
                       value={socio.nome}
                       onChange={(e) => updateSocio(index, 'nome', e.target.value)}
-                      placeholder="Nome do sócio"
-                      className="rounded-xl bg-card"
+                      placeholder="Nome completo"
+                      className="rounded-xl bg-card border-border/50"
                     />
                   </div>
-                  <div className="flex-1 space-y-2">
-                    <Label>CPF</Label>
+                  <div className="w-48 space-y-2">
+                    <Label className="text-[10px] uppercase font-normal text-muted-foreground">CPF</Label>
                     <Input
                       value={socio.cpf}
                       onChange={(e) => updateSocio(index, 'cpf', e.target.value)}
                       placeholder="000.000.000-00"
-                      className="rounded-xl bg-card"
+                      className="rounded-xl bg-card border-border/50"
                     />
                   </div>
                   <div className="w-24 space-y-2">
-                    <Label>%</Label>
+                    <Label className="text-[10px] uppercase font-normal text-muted-foreground">Quota %</Label>
                     <Input
                       type="number"
                       value={socio.participacao}
                       onChange={(e) => updateSocio(index, 'participacao', Number(e.target.value))}
-                      className="rounded-xl bg-card"
+                      className="rounded-xl bg-card border-border/50"
                     />
                   </div>
                   {socios.length > 1 && (
@@ -404,7 +446,7 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
                       variant="ghost"
                       size="icon"
                       onClick={() => removeSocio(index)}
-                      className="text-destructive hover:text-destructive"
+                      className="h-10 w-10 text-destructive/40 hover:text-destructive hover:bg-destructive/5 rounded-xl transition-colors"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -414,13 +456,13 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex justify-end gap-3 pt-4 border-t border-border">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          {/* Footer Actions */}
+          <div className="flex justify-end gap-3 pt-8 border-t border-border/50">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="rounded-xl px-8 h-12 font-light text-sm">
               Cancelar
             </Button>
-            <Button type="submit">
-              {isEditing ? 'Salvar Alterações' : 'Salvar Cliente'}
+            <Button type="submit" className="rounded-xl px-8 h-12 font-light shadow-lg shadow-primary/20">
+              {isEditing ? 'Atualizar Registro' : 'Finalizar Cadastro'}
             </Button>
           </div>
         </form>

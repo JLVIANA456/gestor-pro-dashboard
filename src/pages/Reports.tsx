@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { 
-  Download, 
-  Printer, 
-  Filter, 
+import {
+  Download,
+  Printer,
+  Filter,
   Building2,
   FileSpreadsheet,
   Loader2
@@ -34,9 +34,9 @@ const regimeLabels: Record<TaxRegime, string> = {
 };
 
 const regimeStyles: Record<TaxRegime, string> = {
-  simples: 'bg-emerald-100 text-emerald-700',
-  presumido: 'bg-blue-100 text-blue-700',
-  real: 'bg-amber-100 text-amber-700',
+  simples: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+  presumido: 'bg-blue-50 text-blue-700 border-blue-100',
+  real: 'bg-violet-50 text-violet-700 border-violet-100',
 };
 
 export default function Reports() {
@@ -61,13 +61,13 @@ export default function Reports() {
 
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(exportData);
-    
+
     // Ajustar largura das colunas
     const colWidths = Object.keys(exportData[0] || {}).map(key => ({
       wch: Math.max(key.length + 5, 20)
     }));
     ws['!cols'] = colWidths;
-    
+
     XLSX.utils.book_append_sheet(wb, ws, 'Clientes');
     XLSX.writeFile(wb, `relatorio_clientes_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
@@ -91,78 +91,83 @@ export default function Reports() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between animate-slide-in-up">
         <div>
-          <h1 className="text-2xl font-light text-foreground">Relatórios</h1>
-          <p className="text-muted-foreground">Visualização consolidada de clientes</p>
+          <h1 className="text-3xl font-light tracking-tight text-foreground">Relatórios</h1>
+          <p className="text-xs font-normal text-muted-foreground uppercase tracking-[0.2em] mt-1">Análise detalhada e consolidada</p>
         </div>
         <div className="flex gap-3 no-print">
-          <Button variant="outline" onClick={handleExportXLSX}>
-            <Download className="mr-2 h-4 w-4" />
-            Exportar Excel
+          <Button variant="outline" onClick={handleExportXLSX} className="rounded-xl border-border/50 hover:bg-muted/50 font-light text-xs uppercase tracking-wider">
+            <Download className="mr-2 h-4 w-4 opacity-60" />
+            Excel
           </Button>
-          <Button variant="outline" onClick={handlePrint}>
-            <Printer className="mr-2 h-4 w-4" />
+          <Button variant="outline" onClick={handlePrint} className="rounded-xl border-border/50 hover:bg-muted/50 font-light text-xs uppercase tracking-wider">
+            <Printer className="mr-2 h-4 w-4 opacity-60" />
             Imprimir
           </Button>
         </div>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 animate-slide-in-up stagger-1">
-        <div className="rounded-lg bg-card p-6 shadow-card">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-              <Building2 className="h-5 w-5 text-primary" />
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 animate-slide-in-up stagger-1">
+        <div className="rounded-2xl bg-card p-6 border border-border/50 shadow-card">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/5 border border-primary/10">
+              <Building2 className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Total de Clientes</p>
-              <p className="text-2xl font-light text-foreground">{totalClients}</p>
+              <p className="text-[10px] font-normal text-muted-foreground uppercase tracking-[0.2em]">Total de Clientes</p>
+              <p className="text-4xl font-light text-foreground tracking-tighter">{totalClients}</p>
             </div>
           </div>
         </div>
-        <div className="rounded-lg bg-card p-6 shadow-card no-print">
-          <div className="flex items-center gap-3">
-            <Filter className="h-5 w-5 text-muted-foreground" />
-            <Select value={filterRegime} onValueChange={(value: TaxRegime | 'all') => setFilterRegime(value)}>
-              <SelectTrigger className="flex-1 rounded-xl">
-                <SelectValue placeholder="Filtrar por regime" />
-              </SelectTrigger>
-              <SelectContent className="bg-card border-border">
-                <SelectItem value="all">Todos os Regimes</SelectItem>
-                <SelectItem value="simples">Simples Nacional</SelectItem>
-                <SelectItem value="presumido">Lucro Presumido</SelectItem>
-                <SelectItem value="real">Lucro Real</SelectItem>
-              </SelectContent>
-            </Select>
+        <div className="rounded-2xl bg-card p-6 border border-border/50 shadow-card no-print">
+          <div className="flex items-center gap-4 h-full">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/30 border border-border/10">
+              <Filter className="h-6 w-6 text-muted-foreground/60" />
+            </div>
+            <div className="flex-1">
+              <p className="text-[10px] font-normal text-muted-foreground uppercase tracking-[0.2em] mb-2">Filtrar por Regime</p>
+              <Select value={filterRegime} onValueChange={(value: TaxRegime | 'all') => setFilterRegime(value)}>
+                <SelectTrigger className="w-full rounded-xl border-border/50 h-10 font-light">
+                  <SelectValue placeholder="Filtrar por regime" />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border p-1 rounded-xl shadow-elevated">
+                  <SelectItem value="all" className="rounded-lg font-light">Todos os Regimes</SelectItem>
+                  <SelectItem value="simples" className="rounded-lg font-light">Simples Nacional</SelectItem>
+                  <SelectItem value="presumido" className="rounded-lg font-light">Lucro Presumido</SelectItem>
+                  <SelectItem value="real" className="rounded-lg font-light">Lucro Real</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Data Table */}
-      <div className="rounded-lg bg-card shadow-card overflow-hidden animate-slide-in-up stagger-2">
+      <div className="rounded-2xl border border-border/50 bg-card shadow-card overflow-hidden animate-slide-in-up stagger-2">
         <Table>
           <TableHeader>
-            <TableRow className="border-border hover:bg-transparent">
-              <TableHead className="font-semibold text-foreground">Razão Social</TableHead>
-              <TableHead className="font-semibold text-foreground">Nome Fantasia</TableHead>
-              <TableHead className="font-semibold text-foreground">CNPJ</TableHead>
-              <TableHead className="font-semibold text-foreground">Email</TableHead>
-              <TableHead className="font-semibold text-foreground">Regime Tributário</TableHead>
+            <TableRow className="border-border hover:bg-transparent bg-muted/10">
+              <TableHead className="font-normal text-[10px] uppercase tracking-[0.2em] text-muted-foreground h-12">Razão Social</TableHead>
+              <TableHead className="font-normal text-[10px] uppercase tracking-[0.2em] text-muted-foreground h-12">Nome Fantasia</TableHead>
+              <TableHead className="font-normal text-[10px] uppercase tracking-[0.2em] text-muted-foreground h-12">CNPJ</TableHead>
+              <TableHead className="font-normal text-[10px] uppercase tracking-[0.2em] text-muted-foreground h-12">Email</TableHead>
+              <TableHead className="font-normal text-[10px] uppercase tracking-[0.2em] text-muted-foreground h-12">Regime</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredData.map((item, index) => (
-              <TableRow 
-                key={item.id} 
-                className="border-border hover:bg-muted/50"
+              <TableRow
+                key={item.id}
+                className="border-border hover:bg-primary/[0.01] transition-colors"
                 style={{ animationDelay: `${index * 30}ms` }}
               >
-                <TableCell className="font-medium text-foreground">{item.razaoSocial}</TableCell>
-                <TableCell className="text-muted-foreground">{item.nomeFantasia}</TableCell>
-                <TableCell className="text-muted-foreground">{item.cnpj}</TableCell>
-                <TableCell className="text-muted-foreground">{item.email}</TableCell>
-                <TableCell>
+                <TableCell className="font-normal text-foreground py-4">{item.razaoSocial}</TableCell>
+                <TableCell className="text-sm font-light text-muted-foreground py-4">{item.nomeFantasia}</TableCell>
+                <TableCell className="text-sm font-mono font-light text-muted-foreground py-4">{item.cnpj}</TableCell>
+                <TableCell className="text-sm font-light text-muted-foreground py-4">{item.email}</TableCell>
+                <TableCell className="py-4">
                   <span className={cn(
-                    'inline-flex rounded-lg px-3 py-1 text-xs font-medium',
+                    'inline-block px-3 py-1 rounded-full text-[10px] font-normal uppercase tracking-[0.15em] border',
                     regimeStyles[item.regimeTributario]
                   )}>
                     {regimeLabels[item.regimeTributario]}

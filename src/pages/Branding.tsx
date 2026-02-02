@@ -43,28 +43,30 @@ export default function Branding() {
     };
 
     return (
-        <div className="space-y-6 animate-slide-in-up">
+        <div className="space-y-8 animate-slide-in-up">
             <div>
-                <h1 className="text-2xl font-light text-foreground">Customização de Marca</h1>
-                <p className="text-muted-foreground">Personalize a identidade visual do seu escritório</p>
+                <h1 className="text-3xl font-light tracking-tight text-foreground">Customização de Marca</h1>
+                <p className="text-xs font-normal text-muted-foreground uppercase tracking-[0.2em] mt-1">Personalize a identidade visual e fortaleça sua marca no sistema</p>
             </div>
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 {/* Settings Card */}
-                <Card className="border-border shadow-card">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Palette className="h-5 w-5 text-primary" />
+                <Card className="border-border/50 shadow-card rounded-2xl overflow-hidden">
+                    <CardHeader className="border-b border-border/30 bg-muted/5">
+                        <CardTitle className="flex items-center gap-3 text-lg font-light tracking-wide">
+                            <div className="p-2 rounded-xl bg-primary/5">
+                                <Palette className="h-5 w-5 text-primary" />
+                            </div>
                             Identidade Visual
                         </CardTitle>
-                        <CardDescription>
-                            Ajuste as cores e logos do sistema
+                        <CardDescription className="font-light">
+                            Ajuste as cores e logos para criar uma experiência única
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-6">
+                    <CardContent className="space-y-6 pt-6">
                         {/* Primary Color Picker */}
                         <div className="space-y-2">
-                            <Label htmlFor="color">Cor de Destaque (Principal)</Label>
+                            <Label htmlFor="color" className="text-[10px] uppercase tracking-widest font-normal text-muted-foreground">Cor de Destaque (Principal)</Label>
                             <div className="flex gap-4">
                                 <input
                                     type="color"
@@ -77,17 +79,17 @@ export default function Branding() {
                                     value={localColor}
                                     onChange={(e) => setLocalColor(e.target.value)}
                                     placeholder="#000000"
-                                    className="font-mono"
+                                    className="font-mono font-light h-10"
                                 />
                             </div>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-[10px] text-muted-foreground font-light">
                                 Esta cor será aplicada em botões, ícones ativos e elementos de destaque.
                             </p>
                         </div>
 
                         {/* Sidebar Color Picker */}
                         <div className="space-y-2">
-                            <Label htmlFor="sidebarColor">Cor do Menu Lateral (Sidebar)</Label>
+                            <Label htmlFor="sidebarColor" className="text-[10px] uppercase tracking-widest font-normal text-muted-foreground">Cor do Menu Superior (Apenas Preview)</Label>
                             <div className="flex gap-4">
                                 <input
                                     type="color"
@@ -100,52 +102,55 @@ export default function Branding() {
                                     value={localSidebarColor}
                                     onChange={(e) => setLocalSidebarColor(e.target.value)}
                                     placeholder="#000000"
-                                    className="font-mono"
+                                    className="font-mono font-light h-10"
                                 />
                             </div>
-                            <p className="text-xs text-muted-foreground">
-                                Esta cor define o fundo do menu de navegação lateral.
+                            <p className="text-[10px] text-muted-foreground font-light">
+                                Atualmente o menu superior é Dark fixo para manter o padrão SaaS Premium.
                             </p>
                         </div>
 
                         {/* Office Name */}
                         <div className="space-y-2">
-                            <Label htmlFor="name">Nome do Escritório</Label>
+                            <Label htmlFor="name" className="text-[10px] uppercase tracking-widest font-normal text-muted-foreground">Nome do Escritório</Label>
                             <div className="flex gap-2">
-                                <Building2 className="h-4 w-4 mt-3 text-muted-foreground" />
+                                <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-muted/30">
+                                    <Building2 className="h-4 w-4 text-muted-foreground/60" />
+                                </div>
                                 <Input
                                     id="name"
                                     value={localName}
                                     onChange={(e) => setLocalName(e.target.value)}
                                     placeholder="Ex: Contabilidade Silva"
+                                    className="font-light h-10"
                                 />
                             </div>
                         </div>
 
                         {/* Logo URL */}
                         <div className="space-y-2">
-                            <Label htmlFor="logo">Link da Logo (URL)</Label>
+                            <Label htmlFor="logo" className="text-[10px] uppercase tracking-widest font-normal text-muted-foreground">Link da Logo (URL)</Label>
                             <div className="flex gap-2">
-                                <Upload className="h-4 w-4 mt-3 text-muted-foreground" />
+                                <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-muted/30">
+                                    <Upload className="h-4 w-4 text-muted-foreground/60" />
+                                </div>
                                 <Input
                                     id="logo"
                                     value={localLogo}
                                     onChange={(e) => setLocalLogo(e.target.value)}
                                     placeholder="https://exemplo.com/sua-logo.png"
+                                    className="font-light h-10"
                                 />
                             </div>
-                            <p className="text-xs text-muted-foreground">
-                                Recomendado: Logo com fundo transparente (PNG/SVG) e proporção quadrada ou retangular pequena.
-                            </p>
                         </div>
 
-                        <div className="flex gap-3 pt-4">
-                            <Button onClick={handleSave} className="flex-1">
-                                <Check className="mr-2 h-4 w-4" />
-                                Salvar Alterações
+                        <div className="flex gap-4 pt-6">
+                            <Button onClick={handleSave} className="flex-1 rounded-xl h-11 font-light text-xs uppercase tracking-widest shadow-sm shadow-primary/10">
+                                <Check className="mr-2 h-4 w-4 opacity-70" />
+                                Salvar
                             </Button>
-                            <Button variant="outline" onClick={handleReset}>
-                                <RotateCcw className="mr-2 h-4 w-4" />
+                            <Button variant="outline" onClick={handleReset} className="rounded-xl h-11 border-border/50 font-light text-xs uppercase tracking-widest">
+                                <RotateCcw className="mr-2 h-4 w-4 opacity-70" />
                                 Resetar
                             </Button>
                         </div>
@@ -153,11 +158,11 @@ export default function Branding() {
                 </Card>
 
                 {/* Preview Card */}
-                <Card className="border-border shadow-card bg-muted/30">
-                    <CardHeader>
-                        <CardTitle>Pré-visualização</CardTitle>
-                        <CardDescription>
-                            Veja como sua marca aparecerá no sidebar
+                <Card className="border-border/50 shadow-card bg-muted/5 rounded-2xl overflow-hidden">
+                    <CardHeader className="border-b border-border/30 bg-card/50">
+                        <CardTitle className="text-lg font-light tracking-wide">Preview em Tempo Real</CardTitle>
+                        <CardDescription className="font-light">
+                            Visualize como sua marca aparece no sistema
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="flex items-center justify-center py-10">

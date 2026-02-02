@@ -1,90 +1,128 @@
 import { useState, useEffect } from 'react';
-import { Search, User } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Search, User, LayoutDashboard, Users, FileText, Palette, Building2, Menu, X } from 'lucide-react';
+import { useNavigate, NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import { useBranding } from '@/context/BrandingContext';
 
-interface HeaderProps {
-  sidebarCollapsed?: boolean;
-}
+const navigation = [
+  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+  { name: 'Clientes', href: '/clientes', icon: Users },
+  { name: 'Relatórios', href: '/relatorios', icon: FileText },
+  { name: 'Personalizar', href: '/personalizar', icon: Palette },
+];
 
-interface ClientSuggestion {
-  id: string;
-  name: string;
-  cnpj: string;
-}
-
-export function Header({ sidebarCollapsed }: HeaderProps) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [suggestions, setSuggestions] = useState<ClientSuggestion[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+export function Header() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const location = useLocation();
   const navigate = useNavigate();
+  const { logoUrl, officeName } = useBranding();
 
-  // Buscar clientes do banco quando digitar
+  // Fechar menu mobile ao trocar de rota
   useEffect(() => {
-    const searchClients = async () => {
-      if (!searchQuery || searchQuery.length < 2) {
-        setSuggestions([]);
-        return;
-      }
-
-      setIsLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('clients')
-          .select('id, nome_fantasia, cnpj')
-          .or(`nome_fantasia.ilike.%${searchQuery}%,razao_social.ilike.%${searchQuery}%,cnpj.ilike.%${searchQuery}%`)
-          .limit(5);
-
-        if (error) throw error;
-
-        setSuggestions(
-          data?.map(c => ({
-            id: c.id,
-            name: c.nome_fantasia,
-            cnpj: c.cnpj,
-          })) || []
-        );
-      } catch (error) {
-        console.error('Erro ao buscar clientes:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    const debounce = setTimeout(searchClients, 300);
-    return () => clearTimeout(debounce);
-  }, [searchQuery]);
-
-  const handleSelectClient = (clientId: string) => {
-    setSearchQuery('');
-    setSuggestions([]);
-    setShowSuggestions(false);
-    navigate(`/clientes?view=${clientId}`);
-  };
+    setIsMenuOpen(false);
+  }, [location.pathname]);
 
   return (
-    <header className={cn(
-      'fixed right-0 top-0 z-30 h-20 border-b border-border bg-card/80 backdrop-blur-sm transition-all duration-300 no-print',
-      sidebarCollapsed ? 'left-20' : 'left-64'
-    )}>
-      <div className="flex h-full items-center justify-between px-8">
-        {/* Spacer to keep user info to the right */}
-        <div />
-
-        {/* User */}
-        <div className="flex items-center gap-3 rounded-xl bg-muted px-4 py-2">
-
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground">
-            J
+    <header className="fixed inset-x-0 top-0 z-50 h-16 border-b border-white/5 bg-[#0F172A] text-white/90 backdrop-blur-xl transition-all duration-300 no-print">
+      <div className="mx-auto max-w-[1600px] flex h-full items-center justify-between px-4 md:px-8">
+        <div className="flex items-center gap-8">
+          {/* Logo Section */}
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary overflow-hidden shadow-lg shadow-primary/20 ring-1 ring-white/10">
+              {logoUrl ? (
+                <img src={logoUrl} alt="Logo" className="h-full w-full object-contain p-1" />
+              ) : (
+                <Building2 className="h-5 w-5 text-primary-foreground" />
+              )}
+            </div>
+            <div className="hidden lg:block">
+              <h1 className="text-sm font-light tracking-wide text-white">
+                {officeName}
+              </h1>
+              <p className="text-[10px] font-normal text-white/40 uppercase tracking-[0.2em] leading-none mt-0.5">Gestão Pro</p>
+            </div>
           </div>
-          <div className="hidden sm:block">
-            <p className="text-sm font-medium text-foreground">Jefferson</p>
-            <p className="text-xs text-muted-foreground">Contador</p>
-          </div>
+
+          {/* Navigation Links (Desktop) */}
+          <nav className="hidden md:flex items-center gap-2">
+            {navigation.map((item) => {
+              const isActive = location.pathname === item.href;
+              return (
+                <NavLink
+                  key={item.name}
+                  to={item.href}
+                  className={cn(
+                    'flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-normal uppercase tracking-[0.15em] transition-all duration-300',
+                    isActive
+                      ? 'bg-white/10 text-white shadow-sm ring-1 ring-white/10'
+                      : 'text-white/50 hover:bg-white/5 hover:text-white'
+                  )}
+                >
+                  <item.icon className={cn(
+                    'h-4 w-4 transition-colors',
+                    isActive ? 'text-primary' : 'text-white/40'
+                  )} />
+                  <span>{item.name}</span>
+                </NavLink>
+              );
+            })}
+          </nav>
         </div>
+
+        {/* Right Section: Search & User */}
+        <div className="flex items-center gap-3">
+          <div className="hidden sm:flex h-9 w-9 items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 cursor-pointer transition-colors border border-white/5 shadow-sm">
+            <Search className="h-4 w-4 text-white/60" />
+          </div>
+
+          <div className="hidden sm:block h-6 w-px bg-white/10 mx-2" />
+
+          <div className="flex items-center gap-3 rounded-2xl bg-white/5 pl-1.5 pr-4 py-1.5 border border-white/5 hover:border-white/20 transition-all cursor-pointer group shadow-sm">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-[12px] font-normal text-primary-foreground ring-2 ring-white/5 shadow-inner">
+              J
+            </div>
+            <div className="hidden sm:block">
+              <p className="text-[11px] font-light text-white/90 leading-none">Jefferson</p>
+              <p className="text-[9px] font-normal text-white/40 uppercase tracking-[0.2em] leading-none mt-1">Administrador</p>
+            </div>
+          </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            className="flex md:hidden h-10 w-10 items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all ml-2"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+          >
+            {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Navigation Drawer */}
+      <div className={cn(
+        'absolute inset-x-0 top-16 bg-[#0F172A] border-b border-white/10 transition-all duration-300 md:hidden overflow-hidden',
+        isMenuOpen ? 'max-h-64 opacity-100 py-4' : 'max-h-0 opacity-0 py-0'
+      )}>
+        <nav className="flex flex-col px-4 gap-1">
+          {navigation.map((item) => {
+            const isActive = location.pathname === item.href;
+            return (
+              <NavLink
+                key={item.name}
+                to={item.href}
+                className={cn(
+                  'flex items-center gap-4 rounded-xl px-4 py-4 text-sm font-light uppercase tracking-[0.2em]',
+                  isActive ? 'bg-white/10 text-white' : 'text-white/50'
+                )}
+              >
+                <item.icon className={cn('h-5 w-5', isActive ? 'text-primary' : 'text-white/30')} />
+                {item.name}
+              </NavLink>
+            );
+          })}
+        </nav>
       </div>
     </header>
   );
 }
+

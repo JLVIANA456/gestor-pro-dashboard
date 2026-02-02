@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { 
-  Plus, 
-  Search, 
-  Filter, 
-  Upload, 
-  MoreHorizontal, 
+import {
+  Plus,
+  Search,
+  Filter,
+  Upload,
+  MoreHorizontal,
   Building2,
   Edit,
   Trash2,
@@ -33,9 +33,9 @@ const regimeLabels: Record<TaxRegime, string> = {
 };
 
 const regimeStyles: Record<TaxRegime, string> = {
-  simples: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  presumido: 'bg-blue-100 text-blue-700 border-blue-200',
-  real: 'bg-amber-100 text-amber-700 border-amber-200',
+  simples: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+  presumido: 'bg-blue-50 text-blue-700 border-blue-100',
+  real: 'bg-violet-50 text-violet-700 border-violet-100',
 };
 
 export default function Clients() {
@@ -44,7 +44,7 @@ export default function Clients() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRegime, setFilterRegime] = useState<TaxRegime | 'all'>('all');
   const [selectedClients, setSelectedClients] = useState<string[]>([]);
-  
+
   // Dialog states
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
@@ -141,15 +141,15 @@ export default function Clients() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between animate-slide-in-up">
         <div>
-          <h1 className="text-2xl font-light text-foreground">Clientes</h1>
-          <p className="text-muted-foreground">Gerencie sua carteira de clientes</p>
+          <h1 className="text-3xl font-light tracking-tight text-foreground">Clientes</h1>
+          <p className="text-xs font-normal text-muted-foreground uppercase tracking-[0.2em] mt-1">Gerencie e visualize sua carteira de clientes</p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" onClick={() => setIsImportOpen(true)}>
-            <Upload className="mr-2 h-4 w-4" />
-            Importar CSV
+          <Button variant="outline" onClick={() => setIsImportOpen(true)} className="rounded-xl border-border/50 hover:bg-muted/50 font-light text-xs uppercase tracking-wider">
+            <Upload className="mr-2 h-4 w-4 opacity-60" />
+            Importar
           </Button>
-          <Button onClick={handleNewClient}>
+          <Button onClick={handleNewClient} className="rounded-xl shadow-sm shadow-primary/10 font-light text-xs uppercase tracking-widest">
             <Plus className="mr-2 h-4 w-4" />
             Novo Cliente
           </Button>
@@ -157,97 +157,94 @@ export default function Clients() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center animate-slide-in-up stagger-1">
+      <div className="flex flex-col gap-6 md:flex-row md:items-center animate-slide-in-up stagger-1">
         {/* Search */}
         <div className="relative flex-1">
-          <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/40" />
           <input
             type="text"
-            placeholder="Buscar por razão social, CNPJ..."
+            placeholder="Buscar por razão social, CNPJ ou nome fantástico..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-11 w-full rounded-xl border border-border bg-card pl-11 pr-4 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="h-12 w-full rounded-2xl border border-border/50 bg-card pl-12 pr-4 text-sm font-light placeholder:text-muted-foreground/30 focus:border-primary/30 focus:outline-none focus:ring-4 focus:ring-primary/[0.02] shadow-sm transition-all"
           />
         </div>
 
         {/* Regime Filter */}
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          <div className="flex gap-2">
-            {(['all', 'simples', 'presumido', 'real'] as const).map((regime) => (
-              <button
-                key={regime}
-                onClick={() => setFilterRegime(regime)}
-                className={cn(
-                  'rounded-lg px-4 py-2 text-sm font-medium transition-all',
-                  filterRegime === regime
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                )}
-              >
-                {regime === 'all' ? 'Todos' : regimeLabels[regime]}
-              </button>
-            ))}
-          </div>
+        <div className="flex items-center gap-1 p-1 bg-muted/20 rounded-2xl border border-border/50 overflow-x-auto no-scrollbar">
+          {(['all', 'simples', 'presumido', 'real'] as const).map((regime) => (
+            <button
+              key={regime}
+              onClick={() => setFilterRegime(regime)}
+              className={cn(
+                'whitespace-nowrap rounded-xl px-4 py-2 text-[10px] font-normal uppercase tracking-[0.15em] transition-all',
+                filterRegime === regime
+                  ? 'bg-card text-primary shadow-sm border border-border/10'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-card/30'
+              )}
+            >
+              {regime === 'all' ? 'Ver Todos' : regimeLabels[regime]}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* Bulk Actions */}
       {selectedClients.length > 0 && (
-        <div className="flex items-center gap-4 rounded-xl bg-primary/10 p-4 animate-slide-in-up">
-          <span className="text-sm font-medium text-foreground">
-            {selectedClients.length} cliente(s) selecionado(s)
+        <div className="flex items-center gap-4 rounded-2xl bg-primary/5 p-4 border border-primary/10 animate-slide-in-up">
+          <span className="text-xs font-light text-foreground uppercase tracking-wider">
+            {selectedClients.length} selecionado(s)
           </span>
-          <Button variant="destructive" size="sm" onClick={handleBulkDelete}>
-            <Trash2 className="mr-2 h-4 w-4" />
-            Excluir Selecionados
+          <Button variant="destructive" size="sm" onClick={handleBulkDelete} className="rounded-xl font-light text-xs uppercase tracking-widest px-4 h-9">
+            <Trash2 className="mr-2 h-3 w-3" />
+            Excluir
           </Button>
         </div>
       )}
 
       {/* Clients Grid */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 animate-slide-in-up stagger-2">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 animate-slide-in-up stagger-2">
         {filteredClients.map((client, index) => (
           <div
             key={client.id}
             className={cn(
-              'group relative rounded-lg border bg-card p-6 shadow-card transition-all hover:shadow-card-hover',
-              selectedClients.includes(client.id) && 'border-primary ring-2 ring-primary/20'
+              'group relative rounded-2xl border border-border/50 bg-card p-6 shadow-card transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1',
+              selectedClients.includes(client.id) && 'border-primary/50 ring-4 ring-primary/[0.03]'
             )}
             style={{ animationDelay: `${index * 50}ms` }}
           >
             {/* Selection Checkbox */}
-            <div className="absolute left-4 top-4">
+            <div className="absolute left-5 top-5 z-10">
               <input
                 type="checkbox"
                 checked={selectedClients.includes(client.id)}
                 onChange={() => toggleSelect(client.id)}
-                className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                className="h-4 w-4 rounded-md border-border text-primary focus:ring-primary/10 cursor-pointer opacity-40 hover:opacity-100 transition-opacity"
               />
             </div>
 
             {/* Actions Menu */}
-            <div className="absolute right-4 top-4 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="absolute right-5 top-5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted transition-colors">
-                    <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                  <button className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted/20 hover:bg-muted transition-colors border border-border/30">
+                    <MoreHorizontal className="h-4 w-4 text-muted-foreground/60" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-card border-border">
-                  <DropdownMenuItem onClick={() => handleView(client)}>
-                    <Eye className="mr-2 h-4 w-4" />
+                <DropdownMenuContent align="end" className="bg-card border-border p-1 rounded-xl shadow-elevated">
+                  <DropdownMenuItem onClick={() => handleView(client)} className="rounded-lg gap-2 cursor-pointer font-light text-xs uppercase tracking-wider">
+                    <Eye className="h-4 w-4 text-primary/60" />
                     Visualizar
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleEdit(client)}>
-                    <Edit className="mr-2 h-4 w-4" />
+                  <DropdownMenuItem onClick={() => handleEdit(client)} className="rounded-lg gap-2 cursor-pointer font-light text-xs uppercase tracking-wider">
+                    <Edit className="h-4 w-4 text-blue-500/60" />
                     Editar
                   </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    className="text-destructive focus:text-destructive"
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive rounded-lg gap-2 cursor-pointer font-light text-xs uppercase tracking-wider"
                     onClick={() => handleDeleteClick(client)}
                   >
-                    <Trash2 className="mr-2 h-4 w-4" />
+                    <Trash2 className="h-4 w-4 opacity-70" />
                     Excluir
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -255,33 +252,44 @@ export default function Clients() {
             </div>
 
             {/* Content */}
-            <div className="pt-4">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted">
-                  <Building2 className="h-6 w-6 text-muted-foreground" />
+            <div className="flex flex-col h-full cursor-pointer" onClick={() => handleView(client)}>
+              <div className="flex items-center gap-4 mb-6 pt-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/30 border border-border/10 shadow-sm group-hover:bg-primary/5 group-hover:border-primary/10 transition-colors">
+                  <Building2 className="h-6 w-6 text-muted-foreground/40 group-hover:text-primary/60 transition-colors" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h3 className="font-semibold text-foreground truncate">{client.nomeFantasia}</h3>
-                  <p className="text-xs text-muted-foreground truncate">{client.razaoSocial}</p>
+                  <h3 className="font-light text-lg text-foreground truncate group-hover:text-primary transition-colors leading-tight">
+                    {client.nomeFantasia || client.razaoSocial}
+                  </h3>
+                  <p className="text-[9px] font-normal text-muted-foreground uppercase tracking-[0.15em] mt-1.5">
+                    ID: {client.cnpj.substring(0, 8)}
+                  </p>
                 </div>
               </div>
 
-              <div className="space-y-2 mb-4">
-                <p className="text-sm text-muted-foreground">
-                  <span className="font-medium text-foreground">CNPJ:</span> {client.cnpj}
-                </p>
-                <p className="text-sm text-muted-foreground truncate">
-                  <span className="font-medium text-foreground">Email:</span> {client.email}
-                </p>
+              <div className="space-y-4 mb-8 flex-1">
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[10px] font-normal text-muted-foreground uppercase tracking-[0.2em]">Cnpj / Cpf</span>
+                  <p className="text-sm font-light text-foreground">{client.cnpj}</p>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[10px] font-normal text-muted-foreground uppercase tracking-[0.2em]">E-mail corporativo</span>
+                  <p className="text-sm font-light text-foreground truncate opacity-80">{client.email}</p>
+                </div>
               </div>
 
-              <div
-                className={cn(
-                  'inline-flex items-center rounded-lg border px-3 py-1 text-xs font-medium',
-                  regimeStyles[client.regimeTributario]
-                )}
-              >
-                {regimeLabels[client.regimeTributario]}
+              <div className="pt-4 border-t border-border/20 flex items-center justify-between">
+                <div
+                  className={cn(
+                    'px-3 py-1 rounded-full text-[9px] font-normal uppercase tracking-[0.15em] border transition-colors',
+                    regimeStyles[client.regimeTributario]
+                  )}
+                >
+                  {regimeLabels[client.regimeTributario]}
+                </div>
+                <div className="text-primary text-[10px] font-light uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all flex items-center gap-1">
+                  Detalhes <Eye className="h-3 w-3" />
+                </div>
               </div>
             </div>
           </div>
@@ -297,20 +305,20 @@ export default function Clients() {
       )}
 
       {/* Dialogs */}
-      <ClientFormDialog 
-        open={isFormOpen} 
-        onOpenChange={setIsFormOpen} 
+      <ClientFormDialog
+        open={isFormOpen}
+        onOpenChange={setIsFormOpen}
         client={selectedClient}
         onSave={handleSaveClient}
       />
-      <ClientViewDialog 
-        open={isViewOpen} 
-        onOpenChange={setIsViewOpen} 
+      <ClientViewDialog
+        open={isViewOpen}
+        onOpenChange={setIsViewOpen}
         client={selectedClient}
       />
-      <DeleteConfirmDialog 
-        open={isDeleteOpen} 
-        onOpenChange={setIsDeleteOpen} 
+      <DeleteConfirmDialog
+        open={isDeleteOpen}
+        onOpenChange={setIsDeleteOpen}
         client={selectedClient}
         onConfirm={handleDeleteConfirm}
       />

@@ -9,40 +9,48 @@ export default function Dashboard() {
   const { stats, loading } = useClientStats();
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-slide-in-up">
       {/* Greeting */}
       <GreetingCard />
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <StatsCard
-          title="Total de Clientes"
-          value={stats.total}
-          icon={Users}
-          variant="default"
-          delay={0}
-        />
-        <StatsCard
-          title="Simples Nacional"
-          value={stats.simples}
-          icon={Building}
-          variant="simples"
-          delay={50}
-        />
-        <StatsCard
-          title="Lucro Presumido"
-          value={stats.presumido}
-          icon={FileCheck}
-          variant="presumido"
-          delay={100}
-        />
-        <StatsCard
-          title="Lucro Real"
-          value={stats.real}
-          icon={AlertTriangle}
-          variant="real"
-          delay={150}
-        />
+      {/* Greeting and Top Stats */}
+      <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-light tracking-tight text-foreground">Visão Geral</h1>
+            <p className="text-xs font-normal text-muted-foreground uppercase tracking-[0.2em] mt-1">Status e métricas em tempo real</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <StatsCard
+            title="Total Clientes"
+            value={stats.total}
+            icon={Users}
+            delay={0}
+          />
+          <StatsCard
+            title="Simples Nacional"
+            value={stats.simples}
+            icon={Building}
+            variant="simples"
+            delay={100}
+          />
+          <StatsCard
+            title="Lucro Presumido"
+            value={stats.presumido}
+            icon={FileCheck}
+            variant="presumido"
+            delay={200}
+          />
+          <StatsCard
+            title="Lucro Real"
+            value={stats.real}
+            icon={AlertTriangle}
+            variant="real"
+            delay={300}
+          />
+        </div>
       </div>
 
       {/* Flow and Links */}
