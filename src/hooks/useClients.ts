@@ -35,6 +35,11 @@ export interface Client {
   dataSaida?: string;
   motivoSaida?: string;
   isActive: boolean;
+  responsavelDp?: string;
+  responsavelFiscal?: string;
+  responsavelContabil?: string;
+  responsavelFinanceiro?: string;
+  responsavelQualidade?: string;
 }
 
 interface DbClient {
@@ -62,6 +67,11 @@ interface DbClient {
   data_saida: string | null;
   motivo_saida: string | null;
   is_active: boolean;
+  responsavel_dp: string | null;
+  responsavel_fiscal: string | null;
+  responsavel_contabil: string | null;
+  responsavel_financeiro: string | null;
+  responsavel_qualidade: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -92,6 +102,11 @@ const mapDbToClient = (db: DbClient): Client => ({
   dataSaida: db.data_saida ?? undefined,
   motivoSaida: db.motivo_saida ?? undefined,
   isActive: db.is_active ?? true,
+  responsavelDp: db.responsavel_dp ?? undefined,
+  responsavelFiscal: db.responsavel_fiscal ?? undefined,
+  responsavelContabil: db.responsavel_contabil ?? undefined,
+  responsavelFinanceiro: db.responsavel_financeiro ?? undefined,
+  responsavelQualidade: db.responsavel_qualidade ?? undefined,
 });
 
 // Mapeia do frontend para o formato do banco
@@ -119,6 +134,11 @@ const mapClientToDb = (client: Omit<Client, 'id'> & { id?: string }) => ({
   data_saida: (client.dataSaida && client.dataSaida.trim() !== '') ? client.dataSaida : null,
   motivo_saida: (client.motivoSaida && client.motivoSaida.trim() !== '') ? client.motivoSaida : null,
   is_active: client.isActive === undefined ? true : client.isActive,
+  responsavel_dp: client.responsavelDp || null,
+  responsavel_fiscal: client.responsavelFiscal || null,
+  responsavel_contabil: client.responsavelContabil || null,
+  responsavel_financeiro: client.responsavelFinanceiro || null,
+  responsavel_qualidade: client.responsavelQualidade || null,
 });
 
 

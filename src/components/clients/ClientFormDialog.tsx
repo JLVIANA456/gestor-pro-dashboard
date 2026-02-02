@@ -55,8 +55,20 @@ interface FormData {
   dataEntrada: string;
   dataSaida: string;
   motivoSaida: string;
+
   isActive: boolean;
+  responsavelDp: string;
+  responsavelFiscal: string;
+  responsavelContabil: string;
+  responsavelFinanceiro: string;
+  responsavelQualidade: string;
 }
+
+const EMPLOYEES_DP = ['Nathalie Correia', 'Ana Vitória'];
+const EMPLOYEES_FISCAL = ['Fernanda A. Francisco', 'Beatriz Paterlini', 'Atila Mayara'];
+const EMPLOYEES_CONTABIL = ['Natiele M. Santos', 'Lucas S. Pereira', 'Filipe B. Oliveira'];
+const EMPLOYEES_QUALIDADE = ['Gabriel Tenani'];
+const EMPLOYEES_FINANCEIRO = [] as string[];
 
 const initialFormData: FormData = {
   razaoSocial: '',
@@ -80,7 +92,13 @@ const initialFormData: FormData = {
   dataEntrada: new Date().toISOString().split('T')[0],
   dataSaida: '',
   motivoSaida: '',
+
   isActive: true,
+  responsavelDp: '',
+  responsavelFiscal: '',
+  responsavelContabil: '',
+  responsavelFinanceiro: '',
+  responsavelQualidade: '',
 };
 
 export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientFormDialogProps) {
@@ -113,7 +131,13 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
         dataEntrada: client.dataEntrada || new Date().toISOString().split('T')[0],
         dataSaida: client.dataSaida || '',
         motivoSaida: client.motivoSaida || '',
+
         isActive: client.isActive ?? true,
+        responsavelDp: client.responsavelDp || '',
+        responsavelFiscal: client.responsavelFiscal || '',
+        responsavelContabil: client.responsavelContabil || '',
+        responsavelFinanceiro: client.responsavelFinanceiro || '',
+        responsavelQualidade: client.responsavelQualidade || '',
       });
       setSocios(client.quadroSocietario.length > 0
         ? client.quadroSocietario
@@ -215,7 +239,13 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
       dataEntrada: formData.dataEntrada,
       dataSaida: formData.dataSaida || undefined,
       motivoSaida: formData.motivoSaida || undefined,
+
       isActive: formData.isActive,
+      responsavelDp: formData.responsavelDp || undefined,
+      responsavelFiscal: formData.responsavelFiscal || undefined,
+      responsavelContabil: formData.responsavelContabil || undefined,
+      responsavelFinanceiro: formData.responsavelFinanceiro || undefined,
+      responsavelQualidade: formData.responsavelQualidade || undefined,
     };
 
     onSave(clientData);
@@ -454,10 +484,92 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
             </div>
           </div>
 
-          {/* Seção 5: Sócios */}
+          {/* Seção 5: Responsáveis Técnicos */}
+          <div className="space-y-6">
+            <h3 className="text-xs font-normal text-muted-foreground uppercase tracking-[0.2em] border-b border-border/50 pb-2">5. Responsáveis Técnicos</h3>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-3 p-4 rounded-2xl bg-secondary/20 border border-border/50">
+
+              <div className="space-y-2">
+                <Label className="text-xs font-normal">Departamento Pessoal</Label>
+                <Select value={formData.responsavelDp} onValueChange={(v) => handleInputChange('responsavelDp', v)}>
+                  <SelectTrigger className="h-10 rounded-xl">
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EMPLOYEES_DP.map(name => (
+                      <SelectItem key={name} value={name}>{name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs font-normal">Departamento Fiscal</Label>
+                <Select value={formData.responsavelFiscal} onValueChange={(v) => handleInputChange('responsavelFiscal', v)}>
+                  <SelectTrigger className="h-10 rounded-xl">
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EMPLOYEES_FISCAL.map(name => (
+                      <SelectItem key={name} value={name}>{name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs font-normal">Departamento Contábil</Label>
+                <Select value={formData.responsavelContabil} onValueChange={(v) => handleInputChange('responsavelContabil', v)}>
+                  <SelectTrigger className="h-10 rounded-xl">
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EMPLOYEES_CONTABIL.map(name => (
+                      <SelectItem key={name} value={name}>{name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs font-normal">Departamento Financeiro</Label>
+                <Select value={formData.responsavelFinanceiro} onValueChange={(v) => handleInputChange('responsavelFinanceiro', v)}>
+                  <SelectTrigger className="h-10 rounded-xl">
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EMPLOYEES_FINANCEIRO.length > 0 ? (
+                      EMPLOYEES_FINANCEIRO.map(name => (
+                        <SelectItem key={name} value={name}>{name}</SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="none" disabled>Nenhum funcionário cadastrado</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs font-normal">Departamento Qualidade</Label>
+                <Select value={formData.responsavelQualidade} onValueChange={(v) => handleInputChange('responsavelQualidade', v)}>
+                  <SelectTrigger className="h-10 rounded-xl">
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EMPLOYEES_QUALIDADE.map(name => (
+                      <SelectItem key={name} value={name}>{name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+            </div>
+          </div>
+
+          {/* Seção 6: Sócios */}
           <div className="space-y-6">
             <div className="flex items-center justify-between border-b border-border/50 pb-2">
-              <h3 className="text-xs font-normal text-muted-foreground uppercase tracking-[0.2em]">5. Quadro Societário</h3>
+              <h3 className="text-xs font-normal text-muted-foreground uppercase tracking-[0.2em]">6. Quadro Societário</h3>
               <Button type="button" variant="ghost" size="sm" onClick={addSocio} className="text-primary hover:text-primary hover:bg-primary/5 rounded-xl h-8 px-3 text-[10px] font-bold uppercase tracking-widest">
                 <Plus className="mr-2 h-3 w-3" />
                 Adicionar Sócio
