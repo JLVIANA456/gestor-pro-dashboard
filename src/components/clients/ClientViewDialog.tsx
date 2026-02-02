@@ -119,6 +119,15 @@ export function ClientViewDialog({ open, onOpenChange, client }: ClientViewDialo
                 </div>
               </div>
               <DataField label="Data de Entrada" value={client.dataEntrada ? new Date(client.dataEntrada).toLocaleDateString('pt-BR') : '---'} />
+              <DataField label="Data de Saída" value={client.dataSaida ? new Date(client.dataSaida).toLocaleDateString('pt-BR') : '---'} />
+              {client.motivoSaida && (
+                <div className="col-span-full animate-slide-in-up">
+                  <div className="space-y-1.5 p-4 rounded-xl bg-destructive/5 border border-destructive/10">
+                    <p className="text-[10px] text-destructive uppercase tracking-widest font-bold">Motivo da Saída / Baixa</p>
+                    <p className="font-light text-foreground text-sm">{client.motivoSaida}</p>
+                  </div>
+                </div>
+              )}
             </div>
           </section>
 

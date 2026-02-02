@@ -60,6 +60,7 @@ export default function Dashboard() {
             ativos={stats.ativos}
             entradas={stats.entradasMes}
             saidas={stats.saidasMes}
+            recentExits={stats.recentExits}
             loading={loading}
           />
         </div>

@@ -33,6 +33,7 @@ export interface Client {
   quadroSocietario: Socio[];
   dataEntrada: string;
   dataSaida?: string;
+  motivoSaida?: string;
   isActive: boolean;
 }
 
@@ -59,6 +60,7 @@ interface DbClient {
   quadro_societario: Socio[];
   data_entrada: string;
   data_saida: string | null;
+  motivo_saida: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -88,6 +90,7 @@ const mapDbToClient = (db: DbClient): Client => ({
   quadroSocietario: db.quadro_societario ?? [],
   dataEntrada: db.data_entrada,
   dataSaida: db.data_saida ?? undefined,
+  motivoSaida: db.motivo_saida ?? undefined,
   isActive: db.is_active ?? true,
 });
 
@@ -114,6 +117,7 @@ const mapClientToDb = (client: Omit<Client, 'id'> & { id?: string }) => ({
   quadro_societario: client.quadroSocietario as unknown as Record<string, unknown>[],
   data_entrada: client.dataEntrada || new Date().toISOString().split('T')[0],
   data_saida: (client.dataSaida && client.dataSaida.trim() !== '') ? client.dataSaida : null,
+  motivo_saida: (client.motivoSaida && client.motivoSaida.trim() !== '') ? client.motivoSaida : null,
   is_active: client.isActive === undefined ? true : client.isActive,
 });
 

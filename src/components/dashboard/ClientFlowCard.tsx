@@ -5,10 +5,16 @@ interface ClientFlowCardProps {
     ativos: number;
     entradas: number;
     saidas: number;
+    recentExits?: Array<{
+        id: string;
+        nome: string;
+        motivo: string;
+        dataSaida: string;
+    }>;
     loading?: boolean;
 }
 
-export function ClientFlowCard({ ativos, entradas, saidas, loading }: ClientFlowCardProps) {
+export function ClientFlowCard({ ativos, entradas, saidas, recentExits = [], loading }: ClientFlowCardProps) {
     const currentMonth = new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
     return (
@@ -58,8 +64,8 @@ export function ClientFlowCard({ ativos, entradas, saidas, loading }: ClientFlow
             </div>
 
             <div className="pt-6 border-t border-border/50">
-                <div className="flex items-center justify-between">
-                    <span className="text-xs font-light text-muted-foreground uppercase tracking-[0.15em]">Saldo do Mês</span>
+                <div className="flex items-center justify-between mb-6">
+                    <span className="text-xs font-light text-muted-foreground uppercase tracking-[0.15em]">Saldo</span>
                     <span className={cn(
                         "text-xs font-normal px-3 py-1 rounded-full uppercase tracking-wider",
                         entradas - saidas >= 0
@@ -69,6 +75,26 @@ export function ClientFlowCard({ ativos, entradas, saidas, loading }: ClientFlow
                         {entradas - saidas > 0 ? '+' : ''}{entradas - saidas} novos
                     </span>
                 </div>
+
+                {/* Lista de Saídas Recentes */}
+                {recentExits.length > 0 && (
+                    <div className="space-y-3">
+                        <p className="text-[10px] font-bold text-rose-500 uppercase tracking-widest">Baixas Recentes</p>
+                        <div className="space-y-2">
+                            {recentExits.map((exit) => (
+                                <div key={exit.id} className="flex items-start justify-between p-3 rounded-xl bg-rose-50/30 border border-rose-100/50">
+                                    <div>
+                                        <p className="text-xs font-medium text-foreground">{exit.nome}</p>
+                                        <p className="text-[10px] text-muted-foreground mt-0.5">{exit.motivo}</p>
+                                    </div>
+                                    <span className="text-[10px] text-rose-400 font-mono">
+                                        {new Date(exit.dataSaida).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

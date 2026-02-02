@@ -34,6 +34,8 @@ const expectedColumns = [
   { key: 'regimeTributario', label: 'Regime Tributário', required: true },
   { key: 'ccm', label: 'CCM', required: false },
   { key: 'ie', label: 'Inscrição Estadual', required: false },
+  { key: 'dataEntrada', label: 'Data de Entrada', required: false },
+  { key: 'dataSaida', label: 'Data de Saída', required: false },
 ];
 
 const templateHeaders = [
@@ -46,6 +48,8 @@ const templateHeaders = [
   'CCM',
   'Inscrição Estadual',
   'Senha Prefeitura',
+  'Data de Entrada',
+  'Data de Saída',
 ];
 
 const templateExample = [
@@ -58,6 +62,8 @@ const templateExample = [
   '1234567',
   '123456789',
   'senha123',
+  '2024-01-01',
+  '',
 ];
 
 interface ParsedClient {
@@ -70,6 +76,9 @@ interface ParsedClient {
   ccm?: string;
   ie?: string;
   senhaPrefeitura?: string;
+  dataEntrada: string;
+  dataSaida?: string;
+  isActive: boolean;
   quadroSocietario: { nome: string; cpf: string; participacao: number }[];
   isValid: boolean;
   errors: string[];
@@ -103,11 +112,11 @@ export function CSVImportDialog({ open, onOpenChange, onImport }: CSVImportDialo
     const wb = XLSX.utils.book_new();
     const wsData = [templateHeaders, templateExample];
     const ws = XLSX.utils.aoa_to_sheet(wsData);
-    
+
     // Ajustar largura das colunas
     const colWidths = templateHeaders.map(h => ({ wch: Math.max(h.length + 5, 20) }));
     ws['!cols'] = colWidths;
-    
+
     XLSX.utils.book_append_sheet(wb, ws, 'Modelo');
     XLSX.writeFile(wb, 'modelo_importacao_clientes.xlsx');
   };
@@ -122,7 +131,7 @@ export function CSVImportDialog({ open, onOpenChange, onImport }: CSVImportDialo
 
   const parseFile = async (file: File) => {
     const reader = new FileReader();
-    
+
     reader.onload = (e) => {
       try {
         const data = new Uint8Array(e.target?.result as ArrayBuffer);
@@ -130,15 +139,15 @@ export function CSVImportDialog({ open, onOpenChange, onImport }: CSVImportDialo
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         const jsonData = XLSX.utils.sheet_to_json<Record<string, string>>(worksheet, { header: 1 });
-        
+
         if (jsonData.length > 0) {
           const headers = Object.values(jsonData[0] as Record<string, string>).map(String);
           setCsvColumns(headers);
-          
+
           // Auto-mapear colunas
           const autoMapping: Record<string, string> = {};
           expectedColumns.forEach(col => {
-            const match = headers.find(h => 
+            const match = headers.find(h =>
               h.toLowerCase().includes(col.label.toLowerCase()) ||
               col.label.toLowerCase().includes(h.toLowerCase())
             );
@@ -147,7 +156,7 @@ export function CSVImportDialog({ open, onOpenChange, onImport }: CSVImportDialo
             }
           });
           setColumnMapping(autoMapping);
-          
+
           // Converter para array de objetos
           const rows = jsonData.slice(1).map((row: unknown) => {
             const obj: Record<string, string> = {};
@@ -163,7 +172,7 @@ export function CSVImportDialog({ open, onOpenChange, onImport }: CSVImportDialo
         console.error('Erro ao ler arquivo:', error);
       }
     };
-    
+
     reader.readAsArrayBuffer(file);
   };
 
@@ -180,41 +189,41 @@ export function CSVImportDialog({ open, onOpenChange, onImport }: CSVImportDialo
 
   const validateAndParseData = async () => {
     setIsValidating(true);
-    
+
     // Buscar CNPJs mais recentes do banco
     const { data: currentClients } = await supabase.from('clients').select('cnpj');
     const dbCnpjs = new Set(currentClients?.map(c => c.cnpj) || []);
-    
+
     // Rastrear CNPJs já vistos na planilha atual
     const seenCnpjs = new Set<string>();
-    
+
     const parsed: ParsedClient[] = rawData.map(row => {
       const errors: string[] = [];
-      
+
       const razaoSocial = row[columnMapping.razaoSocial] || '';
       const cnpj = row[columnMapping.cnpj] || '';
       const email = row[columnMapping.email] || '';
       const regimeStr = row[columnMapping.regimeTributario] || 'simples';
-      
+
       // Validações de campos obrigatórios
       if (!razaoSocial) errors.push('Razão Social obrigatória');
       if (!cnpj) errors.push('CNPJ obrigatório');
       if (!email) errors.push('Email obrigatório');
-      
+
       // Validação de CNPJ duplicado no banco
       if (cnpj && dbCnpjs.has(cnpj)) {
         errors.push('CNPJ já cadastrado no sistema');
       }
-      
+
       // Validação de CNPJ duplicado na própria planilha
       if (cnpj && seenCnpjs.has(cnpj)) {
         errors.push('CNPJ duplicado na planilha');
       }
-      
+
       if (cnpj) {
         seenCnpjs.add(cnpj);
       }
-      
+
       return {
         razaoSocial,
         nomeFantasia: row[columnMapping.nomeFantasia] || razaoSocial,
@@ -225,12 +234,15 @@ export function CSVImportDialog({ open, onOpenChange, onImport }: CSVImportDialo
         ccm: row[columnMapping.ccm] || undefined,
         ie: row[columnMapping.ie] || undefined,
         senhaPrefeitura: row['Senha Prefeitura'] || undefined,
+        dataEntrada: row[columnMapping.dataEntrada] || new Date().toISOString().split('T')[0],
+        dataSaida: row[columnMapping.dataSaida] || undefined,
+        isActive: true,
         quadroSocietario: [],
         isValid: errors.length === 0,
         errors,
       };
     });
-    
+
     setParsedData(parsed);
     setIsValidating(false);
     setStep('preview');
@@ -240,7 +252,7 @@ export function CSVImportDialog({ open, onOpenChange, onImport }: CSVImportDialo
     const validClients = parsedData
       .filter(c => c.isValid)
       .map(({ isValid, errors, ...client }) => client);
-    
+
     onImport?.(validClients);
     handleClose();
   };
@@ -350,8 +362,8 @@ export function CSVImportDialog({ open, onOpenChange, onImport }: CSVImportDialo
                         <span className="text-xs text-primary">*</span>
                       )}
                     </div>
-                    <Select 
-                      value={columnMapping[col.key] || ''} 
+                    <Select
+                      value={columnMapping[col.key] || ''}
                       onValueChange={(value) => handleMapping(col.key, value)}
                     >
                       <SelectTrigger className="flex-1 rounded-xl">

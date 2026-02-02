@@ -54,6 +54,7 @@ interface FormData {
   certificadoDigitalSenha: string;
   dataEntrada: string;
   dataSaida: string;
+  motivoSaida: string;
   isActive: boolean;
 }
 
@@ -78,6 +79,7 @@ const initialFormData: FormData = {
   certificadoDigitalSenha: '',
   dataEntrada: new Date().toISOString().split('T')[0],
   dataSaida: '',
+  motivoSaida: '',
   isActive: true,
 };
 
@@ -110,6 +112,7 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
         certificadoDigitalSenha: client.certificadoDigitalSenha || '',
         dataEntrada: client.dataEntrada || new Date().toISOString().split('T')[0],
         dataSaida: client.dataSaida || '',
+        motivoSaida: client.motivoSaida || '',
         isActive: client.isActive ?? true,
       });
       setSocios(client.quadroSocietario.length > 0
@@ -123,7 +126,27 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
   }, [client, open]);
 
   const handleInputChange = (field: keyof FormData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
+
+      // Auto-update status based on exit date
+      if (field === 'dataSaida') {
+        if (value) {
+          newData.isActive = false;
+        } else {
+          newData.isActive = true;
+          newData.motivoSaida = '';
+        }
+      }
+
+      // Auto-clear exit date if set to active manually
+      if (field === 'isActive' && value === true) {
+        newData.dataSaida = '';
+        newData.motivoSaida = '';
+      }
+
+      return newData;
+    });
   };
 
   const addSocio = () => {
@@ -163,6 +186,11 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
       return;
     }
 
+    if (!formData.isActive && !formData.motivoSaida) {
+      toast.error('Motivo da saída é obrigatório para clientes inativos');
+      return;
+    }
+
     const clientData = {
       ...(client?.id && { id: client.id }),
       razaoSocial: formData.razaoSocial,
@@ -186,6 +214,7 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
       quadroSocietario: socios.filter(s => s.nome && s.cpf),
       dataEntrada: formData.dataEntrada,
       dataSaida: formData.dataSaida || undefined,
+      motivoSaida: formData.motivoSaida || undefined,
       isActive: formData.isActive,
     };
 
@@ -230,7 +259,7 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
               <div className="space-y-2">
                 <Label className="text-xs font-normal">CNPJ / CPF *</Label>
                 <Input
@@ -267,7 +296,32 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
                   required
                 />
               </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-normal">Data de Saída</Label>
+                <Input
+                  type="date"
+                  className="rounded-xl h-11 font-light"
+                  value={formData.dataSaida}
+                  onChange={(e) => handleInputChange('dataSaida', e.target.value)}
+                />
+              </div>
             </div>
+
+            {/* Motivo da Saída (Condicional) */}
+            {formData.dataSaida && (
+              <div className="animate-slide-in-up">
+                <div className="space-y-2">
+                  <Label className="text-xs font-normal text-destructive">Motivo da Saída / Baixa *</Label>
+                  <Input
+                    placeholder="Descreva o motivo do cancelamento ou baixa..."
+                    className="rounded-xl h-11 font-light border-destructive/30 focus:border-destructive/50 focus:ring-destructive/10"
+                    value={formData.motivoSaida}
+                    onChange={(e) => handleInputChange('motivoSaida', e.target.value)}
+                    required={!formData.isActive}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Seção 2: Dados Fiscais & Senhas */}
