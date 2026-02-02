@@ -1,4 +1,4 @@
-import { Building2, Mail, Phone, User, FileText, Key } from 'lucide-react';
+import { Building2, Mail, Phone, User, FileText, Key, Eye, EyeOff } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -7,6 +7,7 @@ import {
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import type { Client, TaxRegime } from '@/hooks/useClients';
+import React, { useState } from 'react';
 
 interface ClientViewDialogProps {
   open: boolean;
@@ -21,10 +22,33 @@ const regimeLabels: Record<TaxRegime, string> = {
 };
 
 const regimeStyles: Record<TaxRegime, string> = {
-  simples: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  presumido: 'bg-blue-100 text-blue-700 border-blue-200',
-  real: 'bg-amber-100 text-amber-700 border-amber-200',
+  simples: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+  presumido: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+  real: 'bg-violet-500/10 text-violet-500 border-violet-500/20',
 };
+
+function PasswordDisplay({ value }: { value?: string }) {
+  const [show, setShow] = useState(false);
+
+  if (!value) return <p className="font-light text-foreground text-sm italic opacity-40 uppercase tracking-tighter">Vazio</p>;
+
+  return (
+    <div className="flex items-center gap-3">
+      {show ? (
+        <p className="font-mono text-sm text-foreground/80">{value}</p>
+      ) : (
+        <p className="font-mono text-sm tracking-[0.2em] text-foreground/50">••••••••</p>
+      )}
+      <button
+        onClick={() => setShow(!show)}
+        className="p-1 rounded-md hover:bg-muted/50 text-muted-foreground/40 hover:text-primary transition-colors focus:outline-none"
+        title={show ? "Ocultar" : "Mostrar"}
+      >
+        {show ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+      </button>
+    </div>
+  );
+}
 
 export function ClientViewDialog({ open, onOpenChange, client }: ClientViewDialogProps) {
   if (!client) return null;
@@ -41,7 +65,7 @@ export function ClientViewDialog({ open, onOpenChange, client }: ClientViewDialo
       <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-normal">{label}</p>
       <div className="flex items-center gap-2 min-h-[1.5rem]">
         {isPassword ? (
-          <p className="font-mono text-sm tracking-[0.3em] text-foreground/80">••••••••</p>
+          <PasswordDisplay value={value} />
         ) : (
           <p className="font-light text-foreground text-sm break-all">{value || '---'}</p>
         )}
@@ -107,7 +131,7 @@ export function ClientViewDialog({ open, onOpenChange, client }: ClientViewDialo
                 <h4 className="text-[11px] font-bold text-foreground/70 uppercase tracking-wider">Acesso Municipal (Prefeitura)</h4>
                 <div className="grid grid-cols-2 gap-6 p-5 rounded-2xl bg-muted/20 border border-border/50">
                   <DataField label="CCM" value={client.ccm} />
-                  <DataField label="Senha Prefeitura" isPassword />
+                  <DataField label="Senha Prefeitura" value={client.ccmSenha || client.senhaPrefeitura} isPassword />
                 </div>
               </div>
 
@@ -116,7 +140,7 @@ export function ClientViewDialog({ open, onOpenChange, client }: ClientViewDialo
                 <h4 className="text-[11px] font-bold text-foreground/70 uppercase tracking-wider">Acesso Estadual (SEFAZ)</h4>
                 <div className="grid grid-cols-2 gap-6 p-5 rounded-2xl bg-muted/20 border border-border/50">
                   <DataField label="Inscr. Estadual (IE)" value={client.ie} />
-                  <DataField label="Senha SEFAZ / Posto" isPassword />
+                  <DataField label="Senha SEFAZ / Posto" value={client.sefazSenha} isPassword />
                 </div>
               </div>
 
@@ -124,7 +148,7 @@ export function ClientViewDialog({ open, onOpenChange, client }: ClientViewDialo
               <div className="space-y-6">
                 <h4 className="text-[11px] font-bold text-foreground/70 uppercase tracking-wider">Simples Nacional</h4>
                 <div className="p-5 rounded-2xl bg-muted/20 border border-border/50">
-                  <DataField label="Código de Acesso / Senha" isPassword />
+                  <DataField label="Código de Acesso / Senha" value={client.simplesNacionalSenha} isPassword />
                 </div>
               </div>
 
@@ -133,7 +157,7 @@ export function ClientViewDialog({ open, onOpenChange, client }: ClientViewDialo
                 <h4 className="text-[11px] font-bold text-foreground/70 uppercase tracking-wider">Portal e-CAC (Receita Federal)</h4>
                 <div className="grid grid-cols-2 gap-6 p-5 rounded-2xl bg-muted/20 border border-border/50">
                   <DataField label="Código de Acesso" value={client.ecacCodigoAcesso} />
-                  <DataField label="Senha e-CAC" isPassword />
+                  <DataField label="Senha e-CAC" value={client.ecacSenha} isPassword />
                 </div>
               </div>
             </div>
@@ -155,7 +179,7 @@ export function ClientViewDialog({ open, onOpenChange, client }: ClientViewDialo
                   </p>
                 </div>
               </div>
-              <DataField label="Senha do Certificado" isPassword />
+              <DataField label="Senha do Certificado" value={client.certificadoDigitalSenha} isPassword />
             </div>
           </section>
 

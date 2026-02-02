@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, LayoutDashboard, Users, FileText, Palette, Building2, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, Palette, Building2, Menu, X } from 'lucide-react';
 import { useNavigate, NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useBranding } from '@/context/BrandingContext';
@@ -69,14 +69,8 @@ export function Header() {
           </nav>
         </div>
 
-        {/* Right Section: Search & User */}
+        {/* Right Section: User */}
         <div className="flex items-center gap-3">
-          <div className="hidden sm:flex h-9 w-9 items-center justify-center rounded-xl bg-sidebar-foreground/5 hover:bg-sidebar-foreground/10 cursor-pointer transition-colors border border-sidebar-border shadow-sm">
-            <Search className="h-4 w-4 text-sidebar-foreground/60" />
-          </div>
-
-          <div className="hidden sm:block h-6 w-px bg-sidebar-border mx-2" />
-
           <div className="flex items-center gap-3 rounded-2xl bg-sidebar-foreground/5 pl-1.5 pr-4 py-1.5 border border-sidebar-border hover:border-sidebar-foreground/20 transition-all cursor-pointer group shadow-sm">
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-[12px] font-normal text-primary-foreground ring-2 ring-sidebar-foreground/5 shadow-inner">
               J
