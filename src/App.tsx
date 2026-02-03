@@ -7,6 +7,7 @@ import { MainLayout } from "./components/layout/MainLayout";
 import { BrandingProvider } from "./context/BrandingContext";
 import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
+import Accounting from "./pages/Accounting";
 import Reports from "./pages/Reports";
 import Branding from "./pages/Branding";
 import Email from "./pages/Email";
@@ -25,6 +26,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/clientes" element={<Clients />} />
+              <Route path="/contabilidade" element={<Accounting />} />
               <Route path="/relatorios" element={<Reports />} />
               <Route path="/personalizar" element={<Branding />} />
               <Route path="/email" element={<Email />} />
