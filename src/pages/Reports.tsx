@@ -48,24 +48,32 @@ export default function Reports() {
   );
 
   const handleExportXLSX = () => {
+    // Dados principais dos clientes
     const exportData = filteredData.map((item) => ({
       'Razão Social': item.razaoSocial,
+      'Nome Fantasia': item.nomeFantasia || '',
       'CNPJ / CPF': item.cnpj,
       'Regime Tributário': regimeLabels[item.regimeTributario],
       'Data de Entrada': item.dataEntrada ? new Date(item.dataEntrada).toLocaleDateString('pt-BR') : '',
+      'Data de Saída': item.dataSaida ? new Date(item.dataSaida).toLocaleDateString('pt-BR') : '',
       'CCM': item.ccm || '',
-      'Senha Prefeitura': item.ccmSenha || '',
+      'Senha Prefeitura': item.ccmSenha || item.senhaPrefeitura || '',
       'Inscr. Estadual (IE)': item.ie || '',
       'Senha SEFAZ / Posto': item.sefazSenha || '',
-      'Código de Acesso / Senha (Simples)': item.simplesNacionalSenha || '',
+      'Código de Acesso / Senha': item.simplesNacionalSenha || '',
       'Código de Acesso (ECAC)': item.ecacCodigoAcesso || '',
       'Senha e-CAC': item.ecacSenha || '',
-      'Certificado Digital (Tipo)': item.certificadoDigitalTipo || '',
+      'Certificado Digital Tipo': item.certificadoDigitalTipo || '',
       'Data de Vencimento': item.certificadoDigitalVencimento ? new Date(item.certificadoDigitalVencimento).toLocaleDateString('pt-BR') : '',
       'Senha do Certificado': item.certificadoDigitalSenha || '',
       'E-mail Principal': item.email,
       'Telefone / WhatsApp': item.telefone,
       'Status Operacional': item.isActive ? 'Ativo' : 'Inativo',
+      'Departamento Pessoal': item.responsavelDp || '',
+      'Departamento Fiscal': item.responsavelFiscal || '',
+      'Departamento Contábil': item.responsavelContabil || '',
+      'Departamento Financeiro': item.responsavelFinanceiro || '',
+      'Departamento Qualidade': item.responsavelQualidade || '',
     }));
 
     const wb = XLSX.utils.book_new();
@@ -78,6 +86,32 @@ export default function Reports() {
     ws['!cols'] = colWidths;
 
     XLSX.utils.book_append_sheet(wb, ws, 'Clientes');
+
+    // Criar aba de Sócios
+    const sociosData: any[] = [];
+    filteredData.forEach((item) => {
+      if (item.quadroSocietario && item.quadroSocietario.length > 0) {
+        item.quadroSocietario.forEach((socio) => {
+          sociosData.push({
+            'CNPJ do Cliente': item.cnpj,
+            'Razão Social': item.razaoSocial,
+            'Nome do Sócio': socio.nome,
+            'CPF': socio.cpf,
+            'Quota %': socio.participacao,
+          });
+        });
+      }
+    });
+
+    if (sociosData.length > 0) {
+      const wsSocios = XLSX.utils.json_to_sheet(sociosData);
+      const socioColWidths = Object.keys(sociosData[0] || {}).map(key => ({
+        wch: Math.max(key.length + 5, 20)
+      }));
+      wsSocios['!cols'] = socioColWidths;
+      XLSX.utils.book_append_sheet(wb, wsSocios, 'Sócios');
+    }
+
     XLSX.writeFile(wb, `relatorio_clientes_completo_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
