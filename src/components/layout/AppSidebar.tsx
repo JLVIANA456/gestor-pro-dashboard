@@ -7,7 +7,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Building2,
-  Palette
+  Palette,
+  Calculator
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useBranding } from '@/context/BrandingContext';
@@ -15,6 +16,7 @@ import { useBranding } from '@/context/BrandingContext';
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Clientes', href: '/clientes', icon: Users },
+  { name: 'Contabilidade', href: '/contabilidade', icon: Calculator },
   { name: 'Relatórios', href: '/relatorios', icon: FileText },
   { name: 'Personalizar', href: '/personalizar', icon: Palette },
 ];

@@ -14,6 +14,59 @@ export type Database = {
   }
   public: {
     Tables: {
+      accounting_progress: {
+        Row: {
+          client_id: string
+          colaborador_responsavel: string
+          conciliacao_contabil: boolean
+          controle_anual: boolean
+          controle_aplicacao_financeira: boolean
+          controle_lucros: boolean
+          created_at: string
+          empresa_encerrada: boolean
+          id: string
+          mes_ano: string
+          pendencias: string | null
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          colaborador_responsavel: string
+          conciliacao_contabil?: boolean
+          controle_anual?: boolean
+          controle_aplicacao_financeira?: boolean
+          controle_lucros?: boolean
+          created_at?: string
+          empresa_encerrada?: boolean
+          id?: string
+          mes_ano: string
+          pendencias?: string | null
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          colaborador_responsavel?: string
+          conciliacao_contabil?: boolean
+          controle_anual?: boolean
+          controle_aplicacao_financeira?: boolean
+          controle_lucros?: boolean
+          created_at?: string
+          empresa_encerrada?: boolean
+          id?: string
+          mes_ano?: string
+          pendencias?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_progress_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           ccm: string | null
