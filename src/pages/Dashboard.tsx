@@ -1,6 +1,5 @@
 import { Users, FileCheck, Building, AlertTriangle } from 'lucide-react';
 import { GreetingCard } from '@/components/dashboard/GreetingCard';
-import { ClientFlowCard } from '@/components/dashboard/ClientFlowCard';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { ExternalLinksCard } from '@/components/dashboard/ExternalLinksCard';
 import { useClientStats } from '@/hooks/useClientStats';
@@ -53,20 +52,9 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Flow and Links */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-1">
-          <ClientFlowCard
-            ativos={stats.ativos}
-            entradas={stats.entradasMes}
-            saidas={stats.saidasMes}
-            recentExits={stats.recentExits}
-            loading={loading}
-          />
-        </div>
-        <div className="lg:col-span-2">
-          <ExternalLinksCard />
-        </div>
+      {/* Links Externos */}
+      <div className="grid grid-cols-1 gap-6">
+        <ExternalLinksCard />
       </div>
     </div>
   );
