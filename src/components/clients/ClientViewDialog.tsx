@@ -1,4 +1,4 @@
-import { Building2, Mail, Phone, User, FileText, Key, Eye, EyeOff, Users } from 'lucide-react';
+import { Building2, Mail, Phone, User, FileText, Key, Eye, EyeOff } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -225,53 +225,25 @@ export function ClientViewDialog({ open, onOpenChange, client }: ClientViewDialo
             </div>
           </section>
 
-          {/* 5. Responsáveis por Departamento */}
+          {/* 5. Quadro Societário */}
           <section>
-            <SectionTitle icon={Users}>5. Responsáveis por Departamento</SectionTitle>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <div className="p-5 rounded-2xl bg-muted/20 border border-border/50">
-                <DataField label="Departamento Pessoal" value={client.responsavelDp} />
-              </div>
-              <div className="p-5 rounded-2xl bg-muted/20 border border-border/50">
-                <DataField label="Departamento Fiscal" value={client.responsavelFiscal} />
-              </div>
-              <div className="p-5 rounded-2xl bg-muted/20 border border-border/50">
-                <DataField label="Departamento Contábil" value={client.responsavelContabil} />
-              </div>
-              <div className="p-5 rounded-2xl bg-muted/20 border border-border/50">
-                <DataField label="Departamento Financeiro" value={client.responsavelFinanceiro} />
-              </div>
-              <div className="p-5 rounded-2xl bg-muted/20 border border-border/50">
-                <DataField label="Departamento Qualidade" value={client.responsavelQualidade} />
-              </div>
-            </div>
-          </section>
-
-          {/* 6. Quadro Societário */}
-          <section>
-            <SectionTitle icon={User}>6. Quadro Societário</SectionTitle>
-            {client.quadroSocietario && client.quadroSocietario.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {client.quadroSocietario.map((socio, index) => (
-                  <div key={index} className="group relative flex items-center gap-4 p-5 rounded-2xl border border-border/50 bg-card hover:border-primary/20 hover:shadow-sm transition-all">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/5 text-primary text-xs font-bold ring-1 ring-primary/10">
-                      {socio.nome.charAt(0)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-light text-foreground truncate group-hover:text-primary transition-colors">{socio.nome}</p>
-                      <p className="text-[9px] text-muted-foreground font-normal uppercase tracking-widest mt-0.5">{socio.cpf}</p>
-                    </div>
-                    <div className="text-xs font-normal text-primary bg-primary/5 px-2 py-1 rounded-lg">
-                      {socio.participacao}%
-                    </div>
+            <SectionTitle icon={User}>5. Quadro Societário</SectionTitle>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {client.quadroSocietario.map((socio, index) => (
+                <div key={index} className="group relative flex items-center gap-4 p-5 rounded-2xl border border-border/50 bg-card hover:border-primary/20 hover:shadow-sm transition-all">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/5 text-primary text-xs font-bold ring-1 ring-primary/10">
+                    {socio.nome.charAt(0)}
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="p-6 rounded-2xl bg-muted/10 border border-border/30 text-center">
-                <p className="text-sm text-muted-foreground">Nenhum sócio cadastrado</p>
-              </div>
-            )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-light text-foreground truncate group-hover:text-primary transition-colors">{socio.nome}</p>
+                    <p className="text-[9px] text-muted-foreground font-normal uppercase tracking-widest mt-0.5">{socio.cpf}</p>
+                  </div>
+                  <div className="text-xs font-normal text-primary bg-primary/5 px-2 py-1 rounded-lg">
+                    {socio.participacao}%
+                  </div>
+                </div>
+              ))}
+            </div>
           </section>
         </div>
       </DialogContent>
