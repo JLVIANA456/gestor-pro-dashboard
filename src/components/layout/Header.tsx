@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, Users, FileText, Palette, Mail, Building2, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, Palette, Mail, Building2, Menu, X, Search, Calculator } from 'lucide-react';
 import { useNavigate, NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useBranding } from '@/context/BrandingContext';
+import { supabase } from '@/integrations/supabase/client';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Clientes', href: '/clientes', icon: Users },
   { name: 'Relatórios', href: '/relatorios', icon: FileText },
   { name: 'E-mail', href: '/email', icon: Mail },
+  { name: 'Departamentos', href: '/departamentos/contabil', icon: Calculator },
   { name: 'Personalizar', href: '/personalizar', icon: Palette },
 ];
 
@@ -47,7 +49,8 @@ export function Header() {
           {/* Navigation Links (Desktop) */}
           <nav className="hidden md:flex items-center gap-2">
             {navigation.map((item) => {
-              const isActive = location.pathname === item.href;
+              const isActive = location.pathname === item.href || 
+                (item.href.startsWith('/departamentos') && location.pathname.startsWith('/departamentos'));
               return (
                 <NavLink
                   key={item.name}
@@ -99,7 +102,8 @@ export function Header() {
       )}>
         <nav className="flex flex-col px-4 gap-1">
           {navigation.map((item) => {
-            const isActive = location.pathname === item.href;
+            const isActive = location.pathname === item.href || 
+              (item.href.startsWith('/departamentos') && location.pathname.startsWith('/departamentos'));
             return (
               <NavLink
                 key={item.name}
