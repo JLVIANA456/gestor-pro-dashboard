@@ -57,7 +57,10 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-1">
           <ClientFlowCard
-            total={stats.total}
+            ativos={stats.ativos}
+            entradas={stats.entradasMes}
+            saidas={stats.saidasMes}
+            recentExits={stats.recentExits}
             loading={loading}
           />
         </div>

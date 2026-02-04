@@ -11,10 +11,6 @@ import Reports from "./pages/Reports";
 import Branding from "./pages/Branding";
 import Email from "./pages/Email";
 import NotFound from "./pages/NotFound";
-import FiscalDepartment from "./pages/departments/Fiscal";
-import ContabilDepartment from "./pages/departments/Contabil";
-import PessoalDepartment from "./pages/departments/Pessoal";
-import QualidadeDepartment from "./pages/departments/Qualidade";
 
 const queryClient = new QueryClient();
 
@@ -32,10 +28,6 @@ const App = () => (
               <Route path="/relatorios" element={<Reports />} />
               <Route path="/personalizar" element={<Branding />} />
               <Route path="/email" element={<Email />} />
-              <Route path="/departamentos/fiscal" element={<FiscalDepartment />} />
-              <Route path="/departamentos/contabil" element={<ContabilDepartment />} />
-              <Route path="/departamentos/pessoal" element={<PessoalDepartment />} />
-              <Route path="/departamentos/qualidade" element={<QualidadeDepartment />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </MainLayout>
@@ -46,3 +38,4 @@ const App = () => (
 );
 
 export default App;
+

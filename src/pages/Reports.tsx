@@ -4,7 +4,7 @@ import {
   Printer,
   Filter,
   Building2,
-  Calculator,
+  FileSpreadsheet,
   Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -23,10 +23,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { useClients, type TaxRegime } from '@/hooks/useClients';
-import { useAccountingProgress } from '@/hooks/useAccountingProgress';
 import * as XLSX from 'xlsx';
 
 const regimeLabels: Record<TaxRegime, string> = {
@@ -42,16 +40,14 @@ const regimeStyles: Record<TaxRegime, string> = {
 };
 
 export default function Reports() {
-  const { clients, loading: clientsLoading } = useClients();
-  const { clientsWithProgress, loading: progressLoading } = useAccountingProgress();
+  const { clients, loading } = useClients();
   const [filterRegime, setFilterRegime] = useState<TaxRegime | 'all'>('all');
-  const [activeTab, setActiveTab] = useState('clientes');
 
   const filteredData = clients.filter(
     (item) => filterRegime === 'all' || item.regimeTributario === filterRegime
   );
 
-  const handleExportClientesXLSX = () => {
+  const handleExportXLSX = () => {
     const exportData = filteredData.map((item) => ({
       'Razão Social': item.razaoSocial,
       'CNPJ / CPF': item.cnpj,
@@ -75,6 +71,7 @@ export default function Reports() {
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(exportData);
 
+    // Ajustar largura das colunas
     const colWidths = Object.keys(exportData[0] || {}).map(key => ({
       wch: Math.max(key.length + 5, 25)
     }));
@@ -84,54 +81,11 @@ export default function Reports() {
     XLSX.writeFile(wb, `relatorio_clientes_completo_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
-  const handleExportProgressoXLSX = () => {
-    const exportData = clientsWithProgress
-      .filter(c => c.progress)
-      .map((item) => ({
-        'Razão Social': item.razaoSocial,
-        'CNPJ': item.cnpj,
-        'Colaborador Responsável': item.progress?.colaboradorResponsavel || '',
-        'Mês/Ano de Fechamento': item.progress?.mesAno || '',
-        'Conciliação Contábil': item.progress?.conciliacaoContabil ? 'SIM' : 'NÃO',
-        'Controle de Lucros': item.progress?.controleLucros ? 'SIM' : 'NÃO',
-        'Controle Aplicação Financeira': item.progress?.controleAplicacaoFinanceira ? 'SIM' : 'NÃO',
-        'Controle Anual': item.progress?.controleAnual ? 'SIM' : 'NÃO',
-        'Empresa Encerrada': item.progress?.empresaEncerrada ? 'SIM' : 'NÃO',
-        'Pendências': item.progress?.pendencias || '',
-        'Data da Última Atualização': item.progress?.updatedAt 
-          ? new Date(item.progress.updatedAt).toLocaleDateString('pt-BR', { 
-              day: '2-digit', 
-              month: '2-digit', 
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            }) 
-          : '',
-      }));
-
-    if (exportData.length === 0) {
-      return;
-    }
-
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(exportData);
-
-    const colWidths = Object.keys(exportData[0]).map(key => ({
-      wch: Math.max(key.length + 5, 20)
-    }));
-    ws['!cols'] = colWidths;
-
-    XLSX.utils.book_append_sheet(wb, ws, 'Progresso Contábil');
-    XLSX.writeFile(wb, `relatorio_progresso_contabil_${new Date().toISOString().split('T')[0]}.xlsx`);
-  };
-
   const handlePrint = () => {
     window.print();
   };
 
-  const loading = clientsLoading || progressLoading;
   const totalClients = filteredData.length;
-  const totalProgress = clientsWithProgress.filter(c => c.progress).length;
 
   if (loading) {
     return (
@@ -149,242 +103,104 @@ export default function Reports() {
           <h1 className="text-3xl font-light tracking-tight text-foreground">Relatórios</h1>
           <p className="text-xs font-normal text-muted-foreground uppercase tracking-[0.2em] mt-1">Análise detalhada e consolidada</p>
         </div>
+        <div className="flex gap-3 no-print">
+          <Button variant="outline" onClick={handleExportXLSX} className="rounded-xl border-border/50 hover:bg-muted/50 font-light text-xs uppercase tracking-wider">
+            <Download className="mr-2 h-4 w-4 opacity-60" />
+            Excel
+          </Button>
+          <Button variant="outline" onClick={handlePrint} className="rounded-xl border-border/50 hover:bg-muted/50 font-light text-xs uppercase tracking-wider">
+            <Printer className="mr-2 h-4 w-4 opacity-60" />
+            Imprimir
+          </Button>
+        </div>
       </div>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="bg-muted/30 rounded-xl p-1">
-          <TabsTrigger value="clientes" className="rounded-lg data-[state=active]:bg-background">
-            <Building2 className="h-4 w-4 mr-2" />
-            Clientes
-          </TabsTrigger>
-          <TabsTrigger value="progresso" className="rounded-lg data-[state=active]:bg-background">
-            <Calculator className="h-4 w-4 mr-2" />
-            Progresso Contábil
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Clientes Tab */}
-        <TabsContent value="clientes" className="space-y-6 mt-6">
-          <div className="flex gap-3 no-print">
-            <Button variant="outline" onClick={handleExportClientesXLSX} className="rounded-xl border-border/50 hover:bg-muted/50 font-light text-xs uppercase tracking-wider">
-              <Download className="mr-2 h-4 w-4 opacity-60" />
-              Excel
-            </Button>
-            <Button variant="outline" onClick={handlePrint} className="rounded-xl border-border/50 hover:bg-muted/50 font-light text-xs uppercase tracking-wider">
-              <Printer className="mr-2 h-4 w-4 opacity-60" />
-              Imprimir
-            </Button>
-          </div>
-
-          {/* Summary Cards */}
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 animate-slide-in-up stagger-1">
-            <div className="rounded-2xl bg-card p-6 border border-border/50 shadow-card">
-              <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/5 border border-primary/10">
-                  <Building2 className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <p className="text-[10px] font-normal text-muted-foreground uppercase tracking-[0.2em]">Total de Clientes</p>
-                  <p className="text-4xl font-light text-foreground tracking-tighter">{totalClients}</p>
-                </div>
-              </div>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 animate-slide-in-up stagger-1">
+        <div className="rounded-2xl bg-card p-6 border border-border/50 shadow-card">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/5 border border-primary/10">
+              <Building2 className="h-6 w-6 text-primary" />
             </div>
-            <div className="rounded-2xl bg-card p-6 border border-border/50 shadow-card no-print">
-              <div className="flex items-center gap-4 h-full">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/30 border border-border/10">
-                  <Filter className="h-6 w-6 text-muted-foreground/60" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-[10px] font-normal text-muted-foreground uppercase tracking-[0.2em] mb-2">Filtrar por Regime</p>
-                  <Select value={filterRegime} onValueChange={(value: TaxRegime | 'all') => setFilterRegime(value)}>
-                    <SelectTrigger className="w-full rounded-xl border-border/50 h-10 font-light">
-                      <SelectValue placeholder="Filtrar por regime" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-card border-border p-1 rounded-xl shadow-elevated">
-                      <SelectItem value="all" className="rounded-lg font-light">Todos os Regimes</SelectItem>
-                      <SelectItem value="simples" className="rounded-lg font-light">Simples Nacional</SelectItem>
-                      <SelectItem value="presumido" className="rounded-lg font-light">Lucro Presumido</SelectItem>
-                      <SelectItem value="real" className="rounded-lg font-light">Lucro Real</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+            <div>
+              <p className="text-[10px] font-normal text-muted-foreground uppercase tracking-[0.2em]">Total de Clientes</p>
+              <p className="text-4xl font-light text-foreground tracking-tighter">{totalClients}</p>
             </div>
           </div>
-
-          {/* Data Table */}
-          <div className="rounded-2xl border border-border/50 bg-card shadow-card overflow-hidden animate-slide-in-up stagger-2">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-border hover:bg-transparent bg-muted/10">
-                  <TableHead className="font-normal text-[10px] uppercase tracking-[0.2em] text-muted-foreground h-12">Razão Social</TableHead>
-                  <TableHead className="font-normal text-[10px] uppercase tracking-[0.2em] text-muted-foreground h-12">Nome Fantasia</TableHead>
-                  <TableHead className="font-normal text-[10px] uppercase tracking-[0.2em] text-muted-foreground h-12">CNPJ</TableHead>
-                  <TableHead className="font-normal text-[10px] uppercase tracking-[0.2em] text-muted-foreground h-12">Email</TableHead>
-                  <TableHead className="font-normal text-[10px] uppercase tracking-[0.2em] text-muted-foreground h-12">Regime</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredData.map((item, index) => (
-                  <TableRow
-                    key={item.id}
-                    className="border-border hover:bg-primary/[0.01] transition-colors"
-                    style={{ animationDelay: `${index * 30}ms` }}
-                  >
-                    <TableCell className="font-normal text-foreground py-4">{item.razaoSocial}</TableCell>
-                    <TableCell className="text-sm font-light text-muted-foreground py-4">{item.nomeFantasia}</TableCell>
-                    <TableCell className="text-sm font-mono font-light text-muted-foreground py-4">{item.cnpj}</TableCell>
-                    <TableCell className="text-sm font-light text-muted-foreground py-4">{item.email}</TableCell>
-                    <TableCell className="py-4">
-                      <span className={cn(
-                        'inline-block px-3 py-1 rounded-full text-[10px] font-normal uppercase tracking-[0.15em] border',
-                        regimeStyles[item.regimeTributario]
-                      )}>
-                        {regimeLabels[item.regimeTributario]}
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-
-          {filteredData.length === 0 && (
-            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-16">
-              <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="font-semibold text-foreground mb-1">Nenhum cliente encontrado</h3>
-              <p className="text-sm text-muted-foreground">Adicione clientes para visualizar o relatório.</p>
+        </div>
+        <div className="rounded-2xl bg-card p-6 border border-border/50 shadow-card no-print">
+          <div className="flex items-center gap-4 h-full">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/30 border border-border/10">
+              <Filter className="h-6 w-6 text-muted-foreground/60" />
             </div>
-          )}
-        </TabsContent>
-
-        {/* Progresso Contábil Tab */}
-        <TabsContent value="progresso" className="space-y-6 mt-6">
-          <div className="flex gap-3 no-print">
-            <Button 
-              variant="outline" 
-              onClick={handleExportProgressoXLSX} 
-              disabled={totalProgress === 0}
-              className="rounded-xl border-border/50 hover:bg-muted/50 font-light text-xs uppercase tracking-wider"
-            >
-              <Download className="mr-2 h-4 w-4 opacity-60" />
-              Excel
-            </Button>
-            <Button variant="outline" onClick={handlePrint} className="rounded-xl border-border/50 hover:bg-muted/50 font-light text-xs uppercase tracking-wider">
-              <Printer className="mr-2 h-4 w-4 opacity-60" />
-              Imprimir
-            </Button>
-          </div>
-
-          {/* Summary Card */}
-          <div className="rounded-2xl bg-card p-6 border border-border/50 shadow-card max-w-md">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/5 border border-primary/10">
-                <Calculator className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <p className="text-[10px] font-normal text-muted-foreground uppercase tracking-[0.2em]">Empresas com Progresso</p>
-                <p className="text-4xl font-light text-foreground tracking-tighter">{totalProgress}</p>
-              </div>
+            <div className="flex-1">
+              <p className="text-[10px] font-normal text-muted-foreground uppercase tracking-[0.2em] mb-2">Filtrar por Regime</p>
+              <Select value={filterRegime} onValueChange={(value: TaxRegime | 'all') => setFilterRegime(value)}>
+                <SelectTrigger className="w-full rounded-xl border-border/50 h-10 font-light">
+                  <SelectValue placeholder="Filtrar por regime" />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border p-1 rounded-xl shadow-elevated">
+                  <SelectItem value="all" className="rounded-lg font-light">Todos os Regimes</SelectItem>
+                  <SelectItem value="simples" className="rounded-lg font-light">Simples Nacional</SelectItem>
+                  <SelectItem value="presumido" className="rounded-lg font-light">Lucro Presumido</SelectItem>
+                  <SelectItem value="real" className="rounded-lg font-light">Lucro Real</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* Data Table */}
-          <div className="rounded-2xl border border-border/50 bg-card shadow-card overflow-hidden animate-slide-in-up stagger-2">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-border hover:bg-transparent bg-muted/10">
-                  <TableHead className="font-normal text-[10px] uppercase tracking-[0.2em] text-muted-foreground h-12">Razão Social</TableHead>
-                  <TableHead className="font-normal text-[10px] uppercase tracking-[0.2em] text-muted-foreground h-12">CNPJ</TableHead>
-                  <TableHead className="font-normal text-[10px] uppercase tracking-[0.2em] text-muted-foreground h-12">Colaborador</TableHead>
-                  <TableHead className="font-normal text-[10px] uppercase tracking-[0.2em] text-muted-foreground h-12">Mês/Ano</TableHead>
-                  <TableHead className="font-normal text-[10px] uppercase tracking-[0.2em] text-muted-foreground h-12 text-center">Conciliação</TableHead>
-                  <TableHead className="font-normal text-[10px] uppercase tracking-[0.2em] text-muted-foreground h-12 text-center">Lucros</TableHead>
-                  <TableHead className="font-normal text-[10px] uppercase tracking-[0.2em] text-muted-foreground h-12 text-center">Aplicação</TableHead>
-                  <TableHead className="font-normal text-[10px] uppercase tracking-[0.2em] text-muted-foreground h-12 text-center">Anual</TableHead>
-                  <TableHead className="font-normal text-[10px] uppercase tracking-[0.2em] text-muted-foreground h-12 text-center">Encerrada</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {clientsWithProgress
-                  .filter(c => c.progress)
-                  .map((item, index) => (
-                    <TableRow
-                      key={item.id}
-                      className={cn(
-                        "border-border hover:bg-primary/[0.01] transition-colors",
-                        item.progress?.empresaEncerrada && "bg-destructive/5"
-                      )}
-                      style={{ animationDelay: `${index * 30}ms` }}
-                    >
-                      <TableCell className="font-normal text-foreground py-4">{item.razaoSocial}</TableCell>
-                      <TableCell className="text-sm font-mono font-light text-muted-foreground py-4">{item.cnpj}</TableCell>
-                      <TableCell className="text-sm font-light text-muted-foreground py-4">{item.progress?.colaboradorResponsavel}</TableCell>
-                      <TableCell className="text-sm font-light text-muted-foreground py-4">
-                        {item.progress?.mesAno ? new Date(item.progress.mesAno + '-01').toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }) : '-'}
-                      </TableCell>
-                      <TableCell className="text-center py-4">
-                        <span className={cn(
-                          "text-xs font-medium",
-                          item.progress?.conciliacaoContabil ? "text-primary" : "text-muted-foreground/50"
-                        )}>
-                          {item.progress?.conciliacaoContabil ? 'SIM' : 'NÃO'}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-center py-4">
-                        <span className={cn(
-                          "text-xs font-medium",
-                          item.progress?.controleLucros ? "text-primary" : "text-muted-foreground/50"
-                        )}>
-                          {item.progress?.controleLucros ? 'SIM' : 'NÃO'}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-center py-4">
-                        <span className={cn(
-                          "text-xs font-medium",
-                          item.progress?.controleAplicacaoFinanceira ? "text-primary" : "text-muted-foreground/50"
-                        )}>
-                          {item.progress?.controleAplicacaoFinanceira ? 'SIM' : 'NÃO'}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-center py-4">
-                        <span className={cn(
-                          "text-xs font-medium",
-                          item.progress?.controleAnual ? "text-primary" : "text-muted-foreground/50"
-                        )}>
-                          {item.progress?.controleAnual ? 'SIM' : 'NÃO'}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-center py-4">
-                        <span className={cn(
-                          "text-xs font-medium",
-                          item.progress?.empresaEncerrada ? "text-destructive" : "text-muted-foreground/50"
-                        )}>
-                          {item.progress?.empresaEncerrada ? 'SIM' : 'NÃO'}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
-            </Table>
-          </div>
+      {/* Data Table */}
+      <div className="rounded-2xl border border-border/50 bg-card shadow-card overflow-hidden animate-slide-in-up stagger-2">
+        <Table>
+          <TableHeader>
+            <TableRow className="border-border hover:bg-transparent bg-muted/10">
+              <TableHead className="font-normal text-[10px] uppercase tracking-[0.2em] text-muted-foreground h-12">Razão Social</TableHead>
+              <TableHead className="font-normal text-[10px] uppercase tracking-[0.2em] text-muted-foreground h-12">Nome Fantasia</TableHead>
+              <TableHead className="font-normal text-[10px] uppercase tracking-[0.2em] text-muted-foreground h-12">CNPJ</TableHead>
+              <TableHead className="font-normal text-[10px] uppercase tracking-[0.2em] text-muted-foreground h-12">Email</TableHead>
+              <TableHead className="font-normal text-[10px] uppercase tracking-[0.2em] text-muted-foreground h-12">Regime</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredData.map((item, index) => (
+              <TableRow
+                key={item.id}
+                className="border-border hover:bg-primary/[0.01] transition-colors"
+                style={{ animationDelay: `${index * 30}ms` }}
+              >
+                <TableCell className="font-normal text-foreground py-4">{item.razaoSocial}</TableCell>
+                <TableCell className="text-sm font-light text-muted-foreground py-4">{item.nomeFantasia}</TableCell>
+                <TableCell className="text-sm font-mono font-light text-muted-foreground py-4">{item.cnpj}</TableCell>
+                <TableCell className="text-sm font-light text-muted-foreground py-4">{item.email}</TableCell>
+                <TableCell className="py-4">
+                  <span className={cn(
+                    'inline-block px-3 py-1 rounded-full text-[10px] font-normal uppercase tracking-[0.15em] border',
+                    regimeStyles[item.regimeTributario]
+                  )}>
+                    {regimeLabels[item.regimeTributario]}
+                  </span>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
 
-          {totalProgress === 0 && (
-            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-16">
-              <Calculator className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="font-semibold text-foreground mb-1">Nenhum progresso registrado</h3>
-              <p className="text-sm text-muted-foreground">Acesse o Departamento Contábil para registrar o progresso.</p>
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+      {filteredData.length === 0 && (
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-16">
+          <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
+          <h3 className="font-semibold text-foreground mb-1">Nenhum cliente encontrado</h3>
+          <p className="text-sm text-muted-foreground">Adicione clientes para visualizar o relatório.</p>
+        </div>
+      )}
 
       {/* Print Header (hidden on screen) */}
       <div className="hidden print-only">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold">GestorPro - Relatório</h1>
-          <p className="text-sm text-muted-foreground">Gerado em: {new Date().toLocaleString('pt-BR')}</p>
+          <h1 className="text-2xl font-bold">GestorPro - Relatório de Clientes</h1>
+          <p className="text-sm text-gray-600">Gerado em: {new Date().toLocaleString('pt-BR')}</p>
         </div>
       </div>
     </div>
