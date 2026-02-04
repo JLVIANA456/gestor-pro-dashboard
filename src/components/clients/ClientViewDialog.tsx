@@ -225,9 +225,21 @@ export function ClientViewDialog({ open, onOpenChange, client }: ClientViewDialo
             </div>
           </section>
 
-          {/* 5. Quadro Societário */}
+          {/* 5. Responsáveis Técnicos */}
           <section>
-            <SectionTitle icon={User}>5. Quadro Societário</SectionTitle>
+            <SectionTitle icon={User}>5. Responsáveis Técnicos</SectionTitle>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 p-6 rounded-2xl bg-secondary/20 border border-border/50">
+              <DataField label="Departamento Pessoal" value={client.responsavelDp} />
+              <DataField label="Departamento Fiscal" value={client.responsavelFiscal} />
+              <DataField label="Departamento Contábil" value={client.responsavelContabil} />
+              <DataField label="Departamento Financeiro" value={client.responsavelFinanceiro} />
+              <DataField label="Departamento Qualidade" value={client.responsavelQualidade} />
+            </div>
+          </section>
+
+          {/* 6. Quadro Societário */}
+          <section>
+            <SectionTitle icon={User}>6. Quadro Societário</SectionTitle>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {client.quadroSocietario.map((socio, index) => (
                 <div key={index} className="group relative flex items-center gap-4 p-5 rounded-2xl border border-border/50 bg-card hover:border-primary/20 hover:shadow-sm transition-all">

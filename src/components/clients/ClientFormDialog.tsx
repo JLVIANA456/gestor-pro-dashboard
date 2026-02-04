@@ -68,7 +68,7 @@ const EMPLOYEES_DP = ['Nathalie Correia', 'Ana Vitória'];
 const EMPLOYEES_FISCAL = ['Fernanda A. Francisco', 'Beatriz Paterlini', 'Atila Mayara'];
 const EMPLOYEES_CONTABIL = ['Natiele M. Santos', 'Lucas S. Pereira', 'Filipe B. Oliveira'];
 const EMPLOYEES_QUALIDADE = ['Gabriel Tenani'];
-const EMPLOYEES_FINANCEIRO = [] as string[];
+const EMPLOYEES_FINANCEIRO = ['Juliana Borim Viana'];
 
 const initialFormData: FormData = {
   razaoSocial: '',
