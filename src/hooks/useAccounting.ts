@@ -144,10 +144,72 @@ export function useAccounting() {
     }
   }
 
+  const updateClosing = async (id: string, closingData: Omit<AccountingClosing, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      let dateToSend = closingData.mesAnoFechamento;
+      if (dateToSend.length === 7) dateToSend += '-01';
+
+      const dbData = { ...mapAccountingToDb(closingData), mes_ano_fechamento: dateToSend };
+
+      const { data, error } = await (supabase
+        .from('accounting_closings' as any)
+        .update(dbData)
+        .eq('id', id)
+        .select()
+        .single()) as any;
+
+      if (error) throw error;
+
+      toast.success('Fechamento atualizado com sucesso!');
+      return mapDbToAccounting(data as unknown as DbAccountingClosing);
+    } catch (error: any) {
+      console.error('Erro ao atualizar fechamento:', error);
+      toast.error(`Erro ao atualizar: ${error.message || 'Erro desconhecido'}`);
+      throw error;
+    }
+  };
+
+  const deleteClosing = async (id: string) => {
+    try {
+      const { error } = await (supabase
+        .from('accounting_closings' as any)
+        .delete()
+        .eq('id', id)) as any;
+
+      if (error) throw error;
+      toast.success('Fechamento excluído com sucesso!');
+    } catch (error: any) {
+      console.error('Erro ao excluir fechamento:', error);
+      toast.error(`Erro ao excluir: ${error.message || 'Erro desconhecido'}`);
+      throw error;
+    }
+  };
+
+  const fetchClosedCompanies = async (): Promise<Set<string>> => {
+    try {
+      // Get IDs of clients that have at least one closing with empresa_encerrada = true
+      const { data, error } = await (supabase
+        .from('accounting_closings' as any)
+        .select('client_id')
+        .eq('empresa_encerrada', true)) as any;
+
+      if (error) throw error;
+
+      const closedCompanyIds = new Set((data as any[]).map(item => item.client_id));
+      return closedCompanyIds;
+    } catch (error) {
+      console.error('Erro ao buscar empresas encerradas:', error);
+      return new Set();
+    }
+  };
+
   return {
     loading,
     fetchClosingsByClient,
     createClosing,
-    fetchAllClosings
+    updateClosing,
+    deleteClosing,
+    fetchAllClosings,
+    fetchClosedCompanies
   };
 }

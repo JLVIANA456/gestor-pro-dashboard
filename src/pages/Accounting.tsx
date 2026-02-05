@@ -1,18 +1,25 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useClients, Client } from '@/hooks/useClients';
+import { useAccounting } from '@/hooks/useAccounting';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Search, Calculator, Loader2 } from 'lucide-react';
+import { Search, Calculator, Loader2, Lock } from 'lucide-react';
 import { AccountingModal } from '@/components/accounting/AccountingModal';
 
 export default function Accounting() {
     const { clients, loading } = useClients();
+    const { fetchClosedCompanies } = useAccounting();
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedClient, setSelectedClient] = useState<Client | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [closedCompanyIds, setClosedCompanyIds] = useState<Set<string>>(new Set());
+
+    useEffect(() => {
+        fetchClosedCompanies().then(setClosedCompanyIds);
+    }, []);
 
     const filteredClients = clients.filter(client =>
         client.razaoSocial.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -81,27 +88,46 @@ export default function Accounting() {
                                         </TableCell>
                                     </TableRow>
                                 ) : (
-                                    filteredClients.map((client) => (
-                                        <TableRow
-                                            key={client.id}
-                                            className="cursor-pointer hover:bg-muted/50 transition-colors"
-                                            onClick={() => handleClientClick(client)}
-                                        >
-                                            <TableCell className="font-medium">{client.razaoSocial}</TableCell>
-                                            <TableCell className="font-mono text-muted-foreground">{client.cnpj}</TableCell>
-                                            <TableCell>
-                                                <Badge variant={client.isActive ? 'default' : 'secondary'} className={client.isActive ? 'bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25 border-emerald-200' : ''}>
-                                                    {client.isActive ? 'Ativo' : 'Inativo'}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <Button variant="ghost" size="sm" className="hover:text-primary">
-                                                    <Calculator className="h-4 w-4 mr-2" />
-                                                    Registrar
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
+                                    filteredClients.map((client) => {
+                                        const isClosed = closedCompanyIds.has(client.id);
+                                        return (
+                                            <TableRow
+                                                key={client.id}
+                                                className={`cursor-pointer transition-colors ${isClosed ? 'bg-destructive/5 hover:bg-destructive/10' : 'hover:bg-muted/50'}`}
+                                                onClick={() => handleClientClick(client)}
+                                            >
+                                                <TableCell className="font-medium">
+                                                    {client.razaoSocial}
+                                                    {isClosed && (
+                                                        <span className="ml-2 text-xs font-semibold text-destructive border border-destructive/30 px-1.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                                                            <Lock className="h-3 w-3" />
+                                                            ENCERRADA
+                                                        </span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="font-mono text-muted-foreground">{client.cnpj}</TableCell>
+                                                <TableCell>
+                                                    <Badge variant={client.isActive ? 'default' : 'secondary'} className={client.isActive ? 'bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25 border-emerald-200' : ''}>
+                                                        {client.isActive ? 'Ativo' : 'Inativo'}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button
+                                                        variant={isClosed ? "secondary" : "ghost"}
+                                                        size="sm"
+                                                        className={isClosed ? "text-muted-foreground" : "hover:text-primary"}
+                                                    >
+                                                        {isClosed ? 'Ver Registro' : (
+                                                            <>
+                                                                <Calculator className="h-4 w-4 mr-2" />
+                                                                Registrar
+                                                            </>
+                                                        )}
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })
                                 )}
                             </TableBody>
                         </Table>
