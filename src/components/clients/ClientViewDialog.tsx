@@ -19,12 +19,14 @@ const regimeLabels: Record<TaxRegime, string> = {
   simples: 'Simples Nacional',
   presumido: 'Lucro Presumido',
   real: 'Lucro Real',
+  domestico: 'Empregador Doméstico',
 };
 
 const regimeStyles: Record<TaxRegime, string> = {
   simples: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
   presumido: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
   real: 'bg-violet-500/10 text-violet-500 border-violet-500/20',
+  domestico: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
 };
 
 function PasswordDisplay({ value }: { value?: string }) {

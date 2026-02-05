@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { Client, TaxRegime } from '@/hooks/useClients';
+import { useTechnicians } from '@/hooks/useTechnicians';
 
 interface ClientFormDialogProps {
   open: boolean;
@@ -64,12 +65,6 @@ interface FormData {
   responsavelQualidade: string;
 }
 
-const EMPLOYEES_DP = ['Nathalie Correia', 'Ana Vitória'];
-const EMPLOYEES_FISCAL = ['Fernanda A. Francisco', 'Beatriz Paterlini', 'Atila Mayara'];
-const EMPLOYEES_CONTABIL = ['Natiele M. Santos', 'Lucas S. Pereira', 'Filipe B. Oliveira'];
-const EMPLOYEES_QUALIDADE = ['Gabriel Tenani'];
-const EMPLOYEES_FINANCEIRO = ['Juliana Borim Viana'];
-
 const initialFormData: FormData = {
   razaoSocial: '',
   nomeFantasia: '',
@@ -102,6 +97,7 @@ const initialFormData: FormData = {
 };
 
 export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientFormDialogProps) {
+  const { technicians } = useTechnicians();
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [socios, setSocios] = useState<Socio[]>([{ nome: '', cpf: '', participacao: 100 }]);
 
@@ -497,8 +493,8 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
                     <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {EMPLOYEES_DP.map(name => (
-                      <SelectItem key={name} value={name}>{name}</SelectItem>
+                    {technicians.filter(t => t.department === 'dp').map(tech => (
+                      <SelectItem key={tech.id} value={tech.name}>{tech.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -511,8 +507,8 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
                     <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {EMPLOYEES_FISCAL.map(name => (
-                      <SelectItem key={name} value={name}>{name}</SelectItem>
+                    {technicians.filter(t => t.department === 'fiscal').map(tech => (
+                      <SelectItem key={tech.id} value={tech.name}>{tech.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -525,8 +521,8 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
                     <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {EMPLOYEES_CONTABIL.map(name => (
-                      <SelectItem key={name} value={name}>{name}</SelectItem>
+                    {technicians.filter(t => t.department === 'contabil').map(tech => (
+                      <SelectItem key={tech.id} value={tech.name}>{tech.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -539,9 +535,9 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
                     <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {EMPLOYEES_FINANCEIRO.length > 0 ? (
-                      EMPLOYEES_FINANCEIRO.map(name => (
-                        <SelectItem key={name} value={name}>{name}</SelectItem>
+                    {technicians.filter(t => t.department === 'financeiro').length > 0 ? (
+                      technicians.filter(t => t.department === 'financeiro').map(tech => (
+                        <SelectItem key={tech.id} value={tech.name}>{tech.name}</SelectItem>
                       ))
                     ) : (
                       <SelectItem value="none" disabled>Nenhum funcionário cadastrado</SelectItem>
@@ -557,8 +553,8 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
                     <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {EMPLOYEES_QUALIDADE.map(name => (
-                      <SelectItem key={name} value={name}>{name}</SelectItem>
+                    {technicians.filter(t => t.department === 'qualidade').map(tech => (
+                      <SelectItem key={tech.id} value={tech.name}>{tech.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
