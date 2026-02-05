@@ -7,6 +7,7 @@ import { useBranding } from '@/context/BrandingContext';
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Clientes', href: '/clientes', icon: Users },
+  { name: 'Contabilidade', href: '/contabilidade', icon: Building2 },
   { name: 'Relatórios', href: '/relatorios', icon: FileText },
   { name: 'E-mail', href: '/email', icon: Mail },
   { name: 'Personalizar', href: '/personalizar', icon: Palette },

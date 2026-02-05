@@ -98,4 +98,4 @@ Este projeto está sob a licença MIT.
 
 ---
 
-Feito com ❤️ por [JL Viana](https://github.com/JLVIANA456) 🚀
+Feito com ❤️ por [JLVIANA - DEV Gabriel](https://github.com/JLVIANA456) 🚀
