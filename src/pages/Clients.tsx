@@ -43,12 +43,14 @@ const regimeLabels: Record<TaxRegime, string> = {
   simples: 'Simples Nacional',
   presumido: 'Lucro Presumido',
   real: 'Lucro Real',
+  domestico: 'Empregador Doméstico',
 };
 
 const regimeStyles: Record<TaxRegime, string> = {
   simples: 'bg-emerald-50 text-emerald-700 border-emerald-100',
   presumido: 'bg-blue-50 text-blue-700 border-blue-100',
   real: 'bg-violet-50 text-violet-700 border-violet-100',
+  domestico: 'bg-amber-50 text-amber-700 border-amber-100',
 };
 
 export default function Clients() {
@@ -191,7 +193,7 @@ export default function Clients() {
         <div className="flex items-center gap-4">
           {/* Regime Filter */}
           <div className="flex items-center gap-1 p-1 bg-muted/20 rounded-2xl border border-border/50 overflow-x-auto no-scrollbar">
-            {(['all', 'simples', 'presumido', 'real'] as const).map((regime) => (
+            {(['all', 'simples', 'presumido', 'real', 'domestico'] as const).map((regime) => (
               <button
                 key={regime}
                 onClick={() => setFilterRegime(regime)}

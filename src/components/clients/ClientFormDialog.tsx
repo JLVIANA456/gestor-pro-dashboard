@@ -313,6 +313,7 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
                     <SelectItem value="simples" className="font-light">Simples Nacional</SelectItem>
                     <SelectItem value="presumido" className="font-light">Lucro Presumido</SelectItem>
                     <SelectItem value="real" className="font-light">Lucro Real</SelectItem>
+                    <SelectItem value="domestico" className="font-light">Empregador Doméstico</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
