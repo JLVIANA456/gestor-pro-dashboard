@@ -11,6 +11,7 @@ import { useAccounting, AccountingClosing } from '@/hooks/useAccounting';
 import { Client } from '@/hooks/useClients';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { Badge } from '@/components/ui/badge';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Loader2, Trash2, Edit } from 'lucide-react';
 
@@ -29,9 +30,11 @@ interface AccountingModalProps {
     client: Client | null;
     isOpen: boolean;
     onClose: () => void;
+    onUpdate?: () => void;
+    isAlreadyClosed?: boolean;
 }
 
-export function AccountingModal({ client, isOpen, onClose }: AccountingModalProps) {
+export function AccountingModal({ client, isOpen, onClose, onUpdate, isAlreadyClosed }: AccountingModalProps) {
     const { createClosing, updateClosing, deleteClosing, fetchClosingsByClient, loading } = useAccounting();
     const [activeTab, setActiveTab] = useState("new");
     const [closings, setClosings] = useState<AccountingClosing[]>([]);
@@ -55,6 +58,7 @@ export function AccountingModal({ client, isOpen, onClose }: AccountingModalProp
         if (client) {
             const data = await fetchClosingsByClient(client.id);
             setClosings(data);
+            if (onUpdate) onUpdate();
         }
     };
 
@@ -63,9 +67,10 @@ export function AccountingModal({ client, isOpen, onClose }: AccountingModalProp
             loadClosings();
             setEditingId(null);
             form.reset();
-            setActiveTab("new");
+            // Se a empresa já está fechada, abre no Histórico para ver os dados
+            setActiveTab(isAlreadyClosed ? "history" : "new");
         }
-    }, [isOpen, client]);
+    }, [isOpen, client, isAlreadyClosed]);
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         if (!client) return;
@@ -299,7 +304,7 @@ export function AccountingModal({ client, isOpen, onClose }: AccountingModalProp
                                         <TableHead>Mês/Ano</TableHead>
                                         <TableHead>Responsável</TableHead>
                                         <TableHead className="text-center">Conciliação</TableHead>
-                                        <TableHead className="text-center">Lucros</TableHead>
+                                        <TableHead className="text-center">Status</TableHead>
                                         <TableHead className="text-right">Ações</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -322,7 +327,13 @@ export function AccountingModal({ client, isOpen, onClose }: AccountingModalProp
                                                 <TableCell className="font-medium">{closing.mesAnoFechamento}</TableCell>
                                                 <TableCell>{closing.colaboradorResponsavel}</TableCell>
                                                 <TableCell className="text-center">{closing.conciliacaoContabil ? '✅' : '❌'}</TableCell>
-                                                <TableCell className="text-center">{closing.controleLucros ? '✅' : '❌'}</TableCell>
+                                                <TableCell className="text-center">
+                                                    {closing.empresaEncerrada ? (
+                                                        <Badge variant="destructive" className="text-[9px] px-1 py-0 h-4 uppercase">Encerrada</Badge>
+                                                    ) : (
+                                                        <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 uppercase">Normal</Badge>
+                                                    )}
+                                                </TableCell>
                                                 <TableCell className="text-right">
                                                     <div className="flex justify-end gap-2">
                                                         <Button variant="ghost" size="icon" onClick={() => handleEdit(closing)}>
