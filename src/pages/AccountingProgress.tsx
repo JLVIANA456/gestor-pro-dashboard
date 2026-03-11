@@ -100,7 +100,7 @@ export default function AccountingProgress() {
 
     // ── clients that have NO closing record at all (truly "open/pending") ─
     const clientsWithoutAnyClosing = useMemo(() => {
-        return clients.filter(cl => !closingClientIds.has(cl.id));
+        return clients.filter(cl => cl.isActive && !closingClientIds.has(cl.id));
     }, [clients, closingClientIds]);
 
     // ── filter closings ───────────────────────────────────────────────────
@@ -119,6 +119,12 @@ export default function AccountingProgress() {
         if (filterMonth) {
             result = result.filter(c => getYearMonth(c.mesAnoFechamento) === filterMonth);
         }
+
+        // Filter out records for inactive clients
+        result = result.filter(c => {
+            const client = clients.find(cl => cl.id === c.clientId);
+            return client?.isActive;
+        });
 
         if (filterColaborador) {
             result = result.filter(c => c.colaboradorResponsavel === filterColaborador);
@@ -204,12 +210,16 @@ export default function AccountingProgress() {
 
     // ── KPIs ──────────────────────────────────────────────────────────────
     const kpis = useMemo(() => {
-        const totalEmpresas = clients.length;
-        const totalFechamentos = closings.length;
-        const encerradas = closings.filter(c => c.empresaEncerrada).length;
-        const emAndamento = closings.filter(c => c.empresaEmAndamento && !c.empresaEncerrada).length;
-        const comPendencia = closings.filter(c => !c.empresaEncerrada && !c.empresaEmAndamento && c.pendencias && c.pendencias.trim() !== '').length;
-        const normais = closings.filter(c => !c.empresaEncerrada && !c.empresaEmAndamento && (!c.pendencias || c.pendencias.trim() === '')).length;
+        const activeClients = clients.filter(c => c.isActive);
+        const totalEmpresas = activeClients.length;
+        const activeClientIdsSet = new Set(activeClients.map(c => c.id));
+        
+        const filteredClosingsForKPI = closings.filter(c => activeClientIdsSet.has(c.clientId));
+        const totalFechamentos = filteredClosingsForKPI.length;
+        const encerradas = filteredClosingsForKPI.filter(c => c.empresaEncerrada).length;
+        const emAndamento = filteredClosingsForKPI.filter(c => c.empresaEmAndamento && !c.empresaEncerrada).length;
+        const comPendencia = filteredClosingsForKPI.filter(c => !c.empresaEncerrada && !c.empresaEmAndamento && c.pendencias && c.pendencias.trim() !== '').length;
+        const normais = filteredClosingsForKPI.filter(c => !c.empresaEncerrada && !c.empresaEmAndamento && (!c.pendencias || c.pendencias.trim() === '')).length;
         const semRegistro = clientsWithoutAnyClosing.length;
 
         return { totalEmpresas, totalFechamentos, encerradas, emAndamento, comPendencia, normais, semRegistro };

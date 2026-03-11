@@ -31,6 +31,16 @@ import { ClientViewDialog } from '@/components/clients/ClientViewDialog';
 import { InactivateClientDialog } from '@/components/clients/InactivateClientDialog';
 import { CSVImportDialog } from '@/components/clients/CSVImportDialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Table,
   TableBody,
   TableCell,
@@ -55,7 +65,7 @@ const regimeStyles: Record<TaxRegime, string> = {
 };
 
 export default function Clients() {
-  const { clients, loading, createClient, updateClient, inactivateClient, deleteMultipleClients, importClients } = useClients();
+  const { clients, loading, createClient, updateClient, deleteClient, inactivateClient, deleteMultipleClients, importClients } = useClients();
   const [viewTab, setViewTab] = useState<'active' | 'inactive'>('active');
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
@@ -68,6 +78,8 @@ export default function Clients() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isPermanentDeleteOpen, setIsPermanentDeleteOpen] = useState(false);
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
 
@@ -124,11 +136,33 @@ export default function Clients() {
     setIsDeleteOpen(true);
   };
 
+  const handlePermanentDeleteClick = (client: Client) => {
+    setSelectedClient(client);
+    setIsPermanentDeleteOpen(true);
+  };
+
   const handleInactivateConfirm = async (reason: string, details?: string) => {
     if (selectedClient) {
       await inactivateClient(selectedClient.id, reason, details);
       setSelectedClients(prev => prev.filter(id => id !== selectedClient.id));
       setSelectedClient(null);
+    }
+  };
+
+  const handlePermanentDeleteConfirm = async () => {
+    if (selectedClient) {
+      await deleteClient(selectedClient.id, selectedClient.nomeFantasia);
+      setSelectedClients(prev => prev.filter(id => id !== selectedClient.id));
+      setSelectedClient(null);
+      setIsPermanentDeleteOpen(false);
+    }
+  };
+
+  const handleBulkPermanentDelete = async () => {
+    if (selectedClients.length > 0) {
+      await deleteMultipleClients(selectedClients);
+      setSelectedClients([]);
+      setIsBulkDeleteOpen(false);
     }
   };
 
@@ -308,7 +342,11 @@ export default function Clients() {
           </span>
           <Button variant="destructive" size="sm" onClick={handleBulkDelete} className="rounded-xl font-light text-xs uppercase tracking-widest px-4 h-9">
             <AlertTriangle className="mr-2 h-3 w-3" />
-            Inativar Selecionados
+            Inativar
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setIsBulkDeleteOpen(true)} className="rounded-xl font-light text-xs uppercase tracking-widest px-4 h-9 text-destructive hover:bg-destructive/10">
+            <Trash2 className="mr-2 h-3 w-3" />
+            Excluir Total
           </Button>
         </div>
       )}
@@ -520,6 +558,13 @@ export default function Clients() {
                           <AlertTriangle className="h-4 w-4 opacity-70" />
                           Inativar
                         </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive rounded-lg gap-2 cursor-pointer font-light text-xs uppercase tracking-wider"
+                          onClick={() => handlePermanentDeleteClick(client)}
+                        >
+                          <Trash2 className="h-4 w-4 opacity-70" />
+                          Excluir Total
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -548,6 +593,41 @@ export default function Clients() {
         client={selectedClient}
         onConfirm={handleInactivateConfirm}
       />
+      
+      <AlertDialog open={isPermanentDeleteOpen} onOpenChange={setIsPermanentDeleteOpen}>
+        <AlertDialogContent className="rounded-2xl border-border bg-card shadow-elevated">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl font-light">Excluir Permanentemente?</AlertDialogTitle>
+            <AlertDialogDescription className="text-sm font-light">
+              Esta ação não pode ser desfeita. Isso excluirá permanentemente a empresa <strong>{selectedClient?.nomeFantasia}</strong> e todos os seus dados associados de nossos servidores.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl font-light">Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handlePermanentDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl font-light">
+              Sim, Excluir Totalmente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isBulkDeleteOpen} onOpenChange={setIsBulkDeleteOpen}>
+        <AlertDialogContent className="rounded-2xl border-border bg-card shadow-elevated">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl font-light">Excluir {selectedClients.length} Empresas?</AlertDialogTitle>
+            <AlertDialogDescription className="text-sm font-light">
+              Você está prestes a excluir permanentemente {selectedClients.length} empresas. Esta ação é irreversível.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl font-light">Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBulkPermanentDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl font-light">
+              Excluir Tudo
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <CSVImportDialog open={isImportOpen} onOpenChange={setIsImportOpen} onImport={importClients} />
     </div>
   );

@@ -59,6 +59,9 @@ export default function Reports() {
     fetchAllClosings().then(data => setAccountingData(data));
   }, []);
 
+  const activeClientIds = new Set(clients.filter(c => c.isActive).map(c => c.id));
+  const filteredAccountingData = accountingData.filter(item => activeClientIds.has(item.clientId));
+
   const filteredData = clients.filter(
     (item) => filterRegime === 'all' || item.regimeTributario === filterRegime
   );
@@ -85,7 +88,7 @@ export default function Reports() {
   };
 
   const handleExportAccountingXLSX = () => {
-    const exportData = accountingData.map((item) => ({
+    const exportData = filteredAccountingData.map((item) => ({
       'Razão Social': item.clientRazaoSocial,
       'CNPJ': item.clientCnpj,
       'Colaborador Responsável': item.colaboradorResponsavel,
@@ -117,6 +120,7 @@ export default function Reports() {
   };
 
   const totalClients = filteredData.length;
+  const totalAccountingRegistros = filteredAccountingData.length;
 
   if (loadingClients) {
     return (
@@ -229,7 +233,7 @@ export default function Reports() {
               </div>
               <div>
                 <p className="text-[10px] font-normal text-muted-foreground uppercase tracking-[0.2em]">Total de Registros</p>
-                <p className="text-4xl font-light text-foreground tracking-tighter">{accountingData.length}</p>
+                <p className="text-4xl font-light text-foreground tracking-tighter">{totalAccountingRegistros}</p>
               </div>
             </div>
             <div className="flex gap-3 no-print">
@@ -257,12 +261,12 @@ export default function Reports() {
                   <TableRow>
                     <TableCell colSpan={7} className="h-24 text-center">Carregando...</TableCell>
                   </TableRow>
-                ) : accountingData.length === 0 ? (
+                ) : filteredAccountingData.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">Nenhum registro encontrado.</TableCell>
                   </TableRow>
                 ) : (
-                  accountingData.map((item) => (
+                  filteredAccountingData.map((item) => (
                     <TableRow key={item.id} className="border-border hover:bg-primary/[0.01]">
                       <TableCell className="py-4 font-medium">{item.clientRazaoSocial}</TableCell>
                       <TableCell className="py-4">{item.mesAnoFechamento}</TableCell>
