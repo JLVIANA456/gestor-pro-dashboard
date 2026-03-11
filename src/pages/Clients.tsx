@@ -15,7 +15,8 @@ import {
   List,
   SortAsc,
   SortDesc,
-  ArrowUpDown
+  ArrowUpDown,
+  AlertTriangle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -27,7 +28,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ClientFormDialog } from '@/components/clients/ClientFormDialog';
 import { ClientViewDialog } from '@/components/clients/ClientViewDialog';
-import { DeleteConfirmDialog } from '@/components/clients/DeleteConfirmDialog';
+import { InactivateClientDialog } from '@/components/clients/InactivateClientDialog';
 import { CSVImportDialog } from '@/components/clients/CSVImportDialog';
 import {
   Table,
@@ -54,7 +55,8 @@ const regimeStyles: Record<TaxRegime, string> = {
 };
 
 export default function Clients() {
-  const { clients, loading, createClient, updateClient, deleteClient, deleteMultipleClients, importClients } = useClients();
+  const { clients, loading, createClient, updateClient, inactivateClient, deleteMultipleClients, importClients } = useClients();
+  const [viewTab, setViewTab] = useState<'active' | 'inactive'>('active');
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRegime, setFilterRegime] = useState<TaxRegime | 'all'>('all');
@@ -88,7 +90,8 @@ export default function Clients() {
       client.cnpj.includes(searchQuery) ||
       client.nomeFantasia.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesRegime = filterRegime === 'all' || client.regimeTributario === filterRegime;
-    return matchesSearch && matchesRegime;
+    const matchesTab = viewTab === 'active' ? client.isActive : !client.isActive;
+    return matchesSearch && matchesRegime && matchesTab;
   }).sort((a, b) => {
     const nameA = (a.nomeFantasia || a.razaoSocial).toLowerCase();
     const nameB = (b.nomeFantasia || b.razaoSocial).toLowerCase();
@@ -121,17 +124,21 @@ export default function Clients() {
     setIsDeleteOpen(true);
   };
 
-  const handleDeleteConfirm = async () => {
+  const handleInactivateConfirm = async (reason: string, details?: string) => {
     if (selectedClient) {
-      await deleteClient(selectedClient.id, selectedClient.nomeFantasia);
+      await inactivateClient(selectedClient.id, reason, details);
       setSelectedClients(prev => prev.filter(id => id !== selectedClient.id));
       setSelectedClient(null);
     }
   };
 
   const handleBulkDelete = async () => {
-    await deleteMultipleClients(selectedClients);
-    setSelectedClients([]);
+    if (confirm(`Deseja inativar os ${selectedClients.length} clientes selecionados?`)) {
+      for (const id of selectedClients) {
+        await inactivateClient(id, 'baixada', 'Inativação em massa');
+      }
+      setSelectedClients([]);
+    }
   };
 
   const handleSaveClient = async (clientData: Omit<Client, 'id'> & { id?: string }) => {
@@ -174,6 +181,32 @@ export default function Clients() {
             Novo Cliente
           </Button>
         </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex items-center gap-1 p-1 bg-muted/20 rounded-2xl border border-border/50 w-fit animate-slide-in-up">
+        <button
+          onClick={() => setViewTab('active')}
+          className={cn(
+            'px-6 py-2.5 rounded-xl text-[10px] font-normal uppercase tracking-[0.2em] transition-all',
+            viewTab === 'active'
+              ? 'bg-card text-primary shadow-sm border border-border/10'
+              : 'text-muted-foreground hover:text-foreground hover:bg-card/30'
+          )}
+        >
+          Clientes Ativos
+        </button>
+        <button
+          onClick={() => setViewTab('inactive')}
+          className={cn(
+            'px-6 py-2.5 rounded-xl text-[10px] font-normal uppercase tracking-[0.2em] transition-all',
+            viewTab === 'inactive'
+              ? 'bg-card text-primary shadow-sm border border-border/10'
+              : 'text-muted-foreground hover:text-foreground hover:bg-card/30'
+          )}
+        >
+          Histórico de Inativos
+        </button>
       </div>
 
       {/* Filters */}
@@ -274,8 +307,8 @@ export default function Clients() {
             {selectedClients.length} selecionado(s)
           </span>
           <Button variant="destructive" size="sm" onClick={handleBulkDelete} className="rounded-xl font-light text-xs uppercase tracking-widest px-4 h-9">
-            <Trash2 className="mr-2 h-3 w-3" />
-            Excluir
+            <AlertTriangle className="mr-2 h-3 w-3" />
+            Inativar Selecionados
           </Button>
         </div>
       )}
@@ -327,11 +360,11 @@ export default function Clients() {
                       Editar
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="text-destructive focus:text-destructive rounded-lg gap-2 cursor-pointer font-light text-xs uppercase tracking-wider"
+                      className="text-amber-600 focus:text-amber-600 rounded-lg gap-2 cursor-pointer font-light text-xs uppercase tracking-wider"
                       onClick={() => handleDeleteClick(client)}
                     >
-                      <Trash2 className="h-4 w-4 opacity-70" />
-                      Excluir
+                      <AlertTriangle className="h-4 w-4 opacity-70" />
+                      Inativar
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -358,7 +391,14 @@ export default function Clients() {
                     <span className="text-[10px] font-normal text-muted-foreground uppercase tracking-[0.2em]">Cnpj / Cpf</span>
                     <p className="text-sm font-light text-foreground">{client.cnpj}</p>
                     {!client.isActive && (
-                      <span className="inline-flex mt-1 text-[9px] text-destructive uppercase tracking-widest font-bold border border-destructive/20 bg-destructive/5 px-2 py-0.5 rounded-lg w-fit">Inativo</span>
+                      <div className="flex flex-col gap-1 mt-1">
+                        <span className="inline-flex text-[9px] text-amber-600 uppercase tracking-widest font-bold border border-amber-600/20 bg-amber-600/5 px-2 py-0.5 rounded-lg w-fit">
+                          Inativo: {client.inactivationReason === 'baixada' ? 'Baixada' : client.inactivationReason === 'transferida' ? 'Transferida' : 'Outros'}
+                        </span>
+                        {client.inactivatedAt && (
+                          <span className="text-[8px] text-muted-foreground uppercase">Desde: {new Date(client.inactivatedAt).toLocaleDateString()}</span>
+                        )}
+                      </div>
                     )}
                   </div>
                   <div className="flex flex-col gap-1.5 min-w-0">
@@ -474,11 +514,11 @@ export default function Clients() {
                           Editar
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          className="text-destructive focus:text-destructive rounded-lg gap-2 cursor-pointer font-light text-xs uppercase tracking-wider"
+                          className="text-amber-600 focus:text-amber-600 rounded-lg gap-2 cursor-pointer font-light text-xs uppercase tracking-wider"
                           onClick={() => handleDeleteClick(client)}
                         >
-                          <Trash2 className="h-4 w-4 opacity-70" />
-                          Excluir
+                          <AlertTriangle className="h-4 w-4 opacity-70" />
+                          Inativar
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -502,11 +542,11 @@ export default function Clients() {
         onOpenChange={setIsViewOpen}
         client={selectedClient}
       />
-      <DeleteConfirmDialog
+      <InactivateClientDialog
         open={isDeleteOpen}
         onOpenChange={setIsDeleteOpen}
         client={selectedClient}
-        onConfirm={handleDeleteConfirm}
+        onConfirm={handleInactivateConfirm}
       />
       <CSVImportDialog open={isImportOpen} onOpenChange={setIsImportOpen} onImport={importClients} />
     </div>

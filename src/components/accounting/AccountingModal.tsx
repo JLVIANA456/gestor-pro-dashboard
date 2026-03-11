@@ -12,6 +12,7 @@ import { Client } from '@/hooks/useClients';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Loader2, Trash2, Edit } from 'lucide-react';
 
@@ -23,6 +24,7 @@ const formSchema = z.object({
     controleAplicacaoFinanceira: z.boolean().default(false),
     controleAnual: z.boolean().default(false),
     empresaEncerrada: z.boolean().default(false),
+    empresaEmAndamento: z.boolean().default(false),
     pendencias: z.string().optional(),
 });
 
@@ -50,9 +52,16 @@ export function AccountingModal({ client, isOpen, onClose, onUpdate, isAlreadyCl
             controleAplicacaoFinanceira: false,
             controleAnual: false,
             empresaEncerrada: false,
+            empresaEmAndamento: false,
             pendencias: '',
         },
     });
+
+    const watchedValues = form.watch();
+    const canCloseCompany = watchedValues.conciliacaoContabil && 
+                           watchedValues.controleLucros && 
+                           watchedValues.controleAplicacaoFinanceira && 
+                           watchedValues.controleAnual;
 
     const loadClosings = async () => {
         if (client) {
@@ -72,6 +81,13 @@ export function AccountingModal({ client, isOpen, onClose, onUpdate, isAlreadyCl
         }
     }, [isOpen, client, isAlreadyClosed]);
 
+    // Reset empresaEncerrada if conditions are no longer met
+    useEffect(() => {
+        if (!canCloseCompany && form.getValues('empresaEncerrada')) {
+            form.setValue('empresaEncerrada', false);
+        }
+    }, [canCloseCompany]);
+
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         if (!client) return;
 
@@ -86,6 +102,7 @@ export function AccountingModal({ client, isOpen, onClose, onUpdate, isAlreadyCl
                     controleAplicacaoFinanceira: values.controleAplicacaoFinanceira,
                     controleAnual: values.controleAnual,
                     empresaEncerrada: values.empresaEncerrada,
+                    empresaEmAndamento: values.empresaEmAndamento,
                     pendencias: values.pendencias || '',
                 });
                 setEditingId(null);
@@ -99,6 +116,7 @@ export function AccountingModal({ client, isOpen, onClose, onUpdate, isAlreadyCl
                     controleAplicacaoFinanceira: values.controleAplicacaoFinanceira,
                     controleAnual: values.controleAnual,
                     empresaEncerrada: values.empresaEncerrada,
+                    empresaEmAndamento: values.empresaEmAndamento,
                     pendencias: values.pendencias || '',
                 });
             }
@@ -124,6 +142,7 @@ export function AccountingModal({ client, isOpen, onClose, onUpdate, isAlreadyCl
             controleAplicacaoFinanceira: closing.controleAplicacaoFinanceira,
             controleAnual: closing.controleAnual,
             empresaEncerrada: closing.empresaEncerrada,
+            empresaEmAndamento: closing.empresaEmAndamento,
             pendencias: closing.pendencias,
         });
         setActiveTab("new");
@@ -256,9 +275,38 @@ export function AccountingModal({ client, isOpen, onClose, onUpdate, isAlreadyCl
                                         control={form.control}
                                         name="empresaEncerrada"
                                         render={({ field }) => (
-                                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm bg-destructive/5 border-destructive/20">
+                                            <FormItem className={cn(
+                                                "flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm transition-all",
+                                                canCloseCompany ? "bg-destructive/5 border-destructive/20" : "bg-muted/50 border-border/50 opacity-60"
+                                            )}>
                                                 <div className="space-y-0.5">
-                                                    <FormLabel className="text-base text-destructive">Empresa Encerrada?</FormLabel>
+                                                    <FormLabel className={cn("text-base", canCloseCompany ? "text-destructive" : "text-muted-foreground")}>
+                                                        Empresa Encerrada?
+                                                    </FormLabel>
+                                                    {!canCloseCompany && (
+                                                        <p className="text-[10px] text-muted-foreground italic">
+                                                            Marque todas as opções acima primeiro
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                <FormControl>
+                                                    <Switch 
+                                                        checked={field.value} 
+                                                        onCheckedChange={field.onChange}
+                                                        disabled={!canCloseCompany}
+                                                    />
+                                                </FormControl>
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <FormField
+                                        control={form.control}
+                                        name="empresaEmAndamento"
+                                        render={({ field }) => (
+                                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm bg-blue-500/5 border-blue-500/20">
+                                                <div className="space-y-0.5">
+                                                    <FormLabel className="text-base text-blue-600">Empresa em Andamento?</FormLabel>
                                                 </div>
                                                 <FormControl>
                                                     <Switch checked={field.value} onCheckedChange={field.onChange} />
@@ -330,6 +378,8 @@ export function AccountingModal({ client, isOpen, onClose, onUpdate, isAlreadyCl
                                                 <TableCell className="text-center">
                                                     {closing.empresaEncerrada ? (
                                                         <Badge variant="destructive" className="text-[9px] px-1 py-0 h-4 uppercase">Encerrada</Badge>
+                                                    ) : closing.empresaEmAndamento ? (
+                                                        <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 border-blue-200 text-[9px] px-1 py-0 h-4 uppercase">Em Andamento</Badge>
                                                     ) : (
                                                         <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 uppercase">Normal</Badge>
                                                     )}

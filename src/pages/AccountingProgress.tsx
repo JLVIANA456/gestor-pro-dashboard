@@ -73,7 +73,8 @@ export default function AccountingProgress() {
     const [searchQuery, setSearchQuery] = useState('');
     const [filterMonth, setFilterMonth] = useState('');       // YYYY-MM
     const [filterColaborador, setFilterColaborador] = useState('');
-    const [filterStatus, setFilterStatus] = useState<'all' | 'closed' | 'pending' | 'open'>('all');
+    const [filterStatus, setFilterStatus] = useState<'all' | 'closed' | 'pending' | 'open' | 'progress' | 'no_record'>('all');
+    const [filterRegime, setFilterRegime] = useState<string>('all');
     const [showFilters, setShowFilters] = useState(true);
     const [sortField, setSortField] = useState<'empresa' | 'mes' | 'colaborador'>('mes');
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
@@ -125,10 +126,59 @@ export default function AccountingProgress() {
 
         if (filterStatus === 'closed') {
             result = result.filter(c => c.empresaEncerrada);
+        } else if (filterStatus === 'progress') {
+            result = result.filter(c => c.empresaEmAndamento && !c.empresaEncerrada);
         } else if (filterStatus === 'pending') {
-            result = result.filter(c => !c.empresaEncerrada && c.pendencias && c.pendencias.trim() !== '');
+            result = result.filter(c => !c.empresaEncerrada && !c.empresaEmAndamento && c.pendencias && c.pendencias.trim() !== '');
         } else if (filterStatus === 'open') {
-            result = result.filter(c => !c.empresaEncerrada && (!c.pendencias || c.pendencias.trim() === ''));
+            result = result.filter(c => !c.empresaEncerrada && !c.empresaEmAndamento && (!c.pendencias || c.pendencias.trim() === ''));
+        }
+
+        if (filterStatus === 'no_record') {
+            // When filtered by no record, we return the clients without any closing for the selected month
+            // map them to a virtual AccountingReportItem structure
+            const monthsToFilter = filterMonth ? [filterMonth] : allMonths;
+            
+            // This is a bit complex because we need to check if client has NO record in ALL filtered months
+            // but usually users filter by a specific month here
+            return clientsWithoutAnyClosing.map(client => ({
+                id: `virtual-${client.id}`,
+                clientId: client.id,
+                clientRazaoSocial: client.razaoSocial,
+                clientNomeFantasia: client.nomeFantasia || '',
+                clientCnpj: client.cnpj,
+                colaboradorResponsavel: 'N/A',
+                mesAnoFechamento: filterMonth || 'Sem registro',
+                conciliacaoContabil: false,
+                controleLucros: false,
+                controleAplicacaoFinanceira: false,
+                controleAnual: false,
+                empresaEncerrada: false,
+                empresaEmAndamento: false,
+                pendencias: 'Nenhum registro de fechamento encontrado',
+                updatedAt: new Date().toISOString()
+            })).filter(item => {
+                if (searchQuery) {
+                    const search = searchQuery.toLowerCase();
+                    return item.clientRazaoSocial.toLowerCase().includes(search) || 
+                           item.clientCnpj.includes(search);
+                }
+                return true;
+            }).filter(item => {
+                if (filterRegime !== 'all') {
+                    const client = clients.find(cl => cl.id === item.clientId);
+                    return client?.regimeTributario === filterRegime;
+                }
+                return true;
+            });
+        }
+
+        if (filterRegime !== 'all') {
+            // Need to find the regime from the clients list
+            result = result.filter(c => {
+                const client = clients.find(cl => cl.id === c.clientId);
+                return client?.regimeTributario === filterRegime;
+            });
         }
 
         result.sort((a, b) => {
@@ -157,11 +207,12 @@ export default function AccountingProgress() {
         const totalEmpresas = clients.length;
         const totalFechamentos = closings.length;
         const encerradas = closings.filter(c => c.empresaEncerrada).length;
-        const comPendencia = closings.filter(c => !c.empresaEncerrada && c.pendencias && c.pendencias.trim() !== '').length;
-        const normais = closings.filter(c => !c.empresaEncerrada && (!c.pendencias || c.pendencias.trim() === '')).length;
+        const emAndamento = closings.filter(c => c.empresaEmAndamento && !c.empresaEncerrada).length;
+        const comPendencia = closings.filter(c => !c.empresaEncerrada && !c.empresaEmAndamento && c.pendencias && c.pendencias.trim() !== '').length;
+        const normais = closings.filter(c => !c.empresaEncerrada && !c.empresaEmAndamento && (!c.pendencias || c.pendencias.trim() === '')).length;
         const semRegistro = clientsWithoutAnyClosing.length;
 
-        return { totalEmpresas, totalFechamentos, encerradas, comPendencia, normais, semRegistro };
+        return { totalEmpresas, totalFechamentos, encerradas, emAndamento, comPendencia, normais, semRegistro };
     }, [clients, closings, clientsWithoutAnyClosing]);
 
     // ── Por colaborador (no mês selecionado ou geral) ─────────────────────
@@ -170,14 +221,15 @@ export default function AccountingProgress() {
             ? closings.filter(c => getYearMonth(c.mesAnoFechamento) === filterMonth)
             : closings;
 
-        const map: Record<string, { total: number; encerradas: number; pendentes: number }> = {};
+        const map: Record<string, { total: number; encerradas: number; andamento: number; pendentes: number }> = {};
         base.forEach(c => {
             if (!map[c.colaboradorResponsavel]) {
-                map[c.colaboradorResponsavel] = { total: 0, encerradas: 0, pendentes: 0 };
+                map[c.colaboradorResponsavel] = { total: 0, encerradas: 0, andamento: 0, pendentes: 0 };
             }
             map[c.colaboradorResponsavel].total++;
             if (c.empresaEncerrada) map[c.colaboradorResponsavel].encerradas++;
-            if (!c.empresaEncerrada && c.pendencias && c.pendencias.trim() !== '') {
+            else if (c.empresaEmAndamento) map[c.colaboradorResponsavel].andamento++;
+            else if (c.pendencias && c.pendencias.trim() !== '') {
                 map[c.colaboradorResponsavel].pendentes++;
             }
         });
@@ -197,7 +249,7 @@ export default function AccountingProgress() {
             'Controle Lucros': c.controleLucros ? 'Sim' : 'Não',
             'Controle Aplicação': c.controleAplicacaoFinanceira ? 'Sim' : 'Não',
             'Controle Anual': c.controleAnual ? 'Sim' : 'Não',
-            'Status': c.empresaEncerrada ? 'Encerrada' : (c.pendencias && c.pendencias.trim() !== '' ? 'Pendente' : 'Fechada'),
+            'Status': c.empresaEncerrada ? 'Encerrada' : c.empresaEmAndamento ? 'Em Andamento' : (c.pendencias && c.pendencias.trim() !== '' ? 'Pendente' : 'Fechada'),
             'Pendências': c.pendencias || ''
         }));
 
@@ -221,6 +273,31 @@ export default function AccountingProgress() {
         worksheet['!cols'] = wscols;
 
         XLSX.writeFile(workbook, `relatorio-progresso-contabil-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    };
+
+    const handleExportNoRecordsXLSX = () => {
+        const noRecords = clientsWithoutAnyClosing.map(c => ({
+            'Razão Social': c.razaoSocial,
+            'Nome Fantasia': c.nomeFantasia || '',
+            'CNPJ': c.cnpj,
+            'Regime Tributário': c.regimeTributario,
+            'Status': 'Sem Registro de Fechamento'
+        }));
+
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(noRecords);
+
+        const colWidths = [
+            { wch: 40 }, // Razão Social
+            { wch: 30 }, // Nome Fantasia
+            { wch: 20 }, // CNPJ
+            { wch: 20 }, // Regime
+            { wch: 30 }, // Status
+        ];
+        ws['!cols'] = colWidths;
+
+        XLSX.utils.book_append_sheet(wb, ws, 'Sem Registro');
+        XLSX.writeFile(wb, `empresas_sem_registro_${new Date().toISOString().split('T')[0]}.xlsx`);
     };
 
     const handlePrint = () => {
@@ -253,10 +330,24 @@ export default function AccountingProgress() {
 
     // ── status badge helper ───────────────────────────────────────────────
     const StatusBadge = ({ closing }: { closing: AccountingReportItem }) => {
+        if (closing.id.startsWith('virtual-')) {
+            return (
+                <Badge className="bg-slate-500/15 text-slate-700 border-slate-200 text-[10px] uppercase tracking-wider gap-1">
+                    <Users className="h-3 w-3" /> Sem Registro
+                </Badge>
+            );
+        }
         if (closing.empresaEncerrada) {
             return (
                 <Badge className="bg-red-500/15 text-red-700 border-red-200 text-[10px] uppercase tracking-wider gap-1">
                     <XCircle className="h-3 w-3" /> Encerrada
+                </Badge>
+            );
+        }
+        if (closing.empresaEmAndamento) {
+            return (
+                <Badge className="bg-blue-500/15 text-blue-700 border-blue-200 text-[10px] uppercase tracking-wider gap-1">
+                    <TrendingUp className="h-3 w-3" /> Em Andamento
                 </Badge>
             );
         }
@@ -357,6 +448,7 @@ export default function AccountingProgress() {
                     { label: 'Total Empresas', value: kpis.totalEmpresas, icon: Building2, color: 'text-blue-600', bg: 'bg-blue-500/10' },
                     { label: 'Registros', value: kpis.totalFechamentos, icon: BarChart3, color: 'text-primary', bg: 'bg-primary/10' },
                     { label: 'Fechadas', value: kpis.normais, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-500/10' },
+                    { label: 'Em Andamento', value: kpis.emAndamento, icon: TrendingUp, color: 'text-blue-600', bg: 'bg-blue-500/10' },
                     { label: 'Pendentes', value: kpis.comPendencia, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-500/10' },
                     { label: 'Encerradas', value: kpis.encerradas, icon: XCircle, color: 'text-red-600', bg: 'bg-red-500/10' },
                     { label: 'Sem Registro', value: kpis.semRegistro, icon: Users, color: 'text-slate-600', bg: 'bg-slate-500/10' },
@@ -423,7 +515,8 @@ export default function AccountingProgress() {
                                         />
                                     </div>
                                     <div className="flex items-center gap-3 text-[10px] text-muted-foreground uppercase tracking-wider">
-                                        <span className="text-emerald-600">{stats.total - stats.encerradas - stats.pendentes} fechadas</span>
+                                        <span className="text-emerald-600">{stats.total - stats.encerradas - stats.andamento - stats.pendentes} fechadas</span>
+                                        {stats.andamento > 0 && <span className="text-blue-600">{stats.andamento} em andamento</span>}
                                         {stats.pendentes > 0 && <span className="text-amber-600">{stats.pendentes} pendentes</span>}
                                         {stats.encerradas > 0 && <span className="text-red-600">{stats.encerradas} encerradas</span>}
                                     </div>
@@ -492,12 +585,14 @@ export default function AccountingProgress() {
                         </div>
 
                         {/* Status filter */}
-                        <div className="flex items-center gap-1 p-1 bg-muted/20 rounded-xl border border-border/50 h-10">
+                        <div className="flex items-center gap-1 p-1 bg-muted/20 rounded-xl border border-border/50 h-10 lg:col-span-2">
                             {([
                                 ['all', 'Todos'],
                                 ['closed', 'Fechadas'],
+                                ['progress', 'Em Andamento'],
                                 ['pending', 'Pendentes'],
                                 ['open', 'Encerradas'],
+                                ['no_record', 'Sem Registro'],
                             ] as const).map(([val, label]) => (
                                 <button
                                     key={val}
@@ -512,6 +607,35 @@ export default function AccountingProgress() {
                                     {label}
                                 </button>
                             ))}
+                        </div>
+
+                        {/* Export No Records Button */}
+                        <div className="flex items-center">
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={handleExportNoRecordsXLSX}
+                                className="h-10 w-full rounded-xl border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 font-light text-[10px] uppercase tracking-wider gap-2 shadow-sm"
+                            >
+                                <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+                                Exportar s/ Registro
+                            </Button>
+                        </div>
+
+                        {/* Regime filter */}
+                        <div className="relative">
+                            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40 pointer-events-none" />
+                            <select
+                                value={filterRegime}
+                                onChange={e => setFilterRegime(e.target.value)}
+                                className="h-10 w-full rounded-xl border border-border/50 bg-background pl-9 pr-4 text-sm font-light text-foreground focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all appearance-none cursor-pointer"
+                            >
+                                <option value="all">Todos os Regimes</option>
+                                <option value="simples">Simples Nacional</option>
+                                <option value="presumido">Lucro Presumido</option>
+                                <option value="real">Lucro Real</option>
+                                <option value="domestico">Empregador Doméstico</option>
+                            </select>
                         </div>
                     </div>
                 )}
@@ -548,14 +672,22 @@ export default function AccountingProgress() {
                                 onClick={() => setFilterStatus('all')}
                                 className="flex items-center gap-1 text-[10px] uppercase tracking-wider px-2 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-all"
                             >
-                                {filterStatus === 'closed' ? 'Fechadas' : filterStatus === 'pending' ? 'Pendentes' : 'Encerradas'} ✕
+                                {filterStatus === 'closed' ? 'Fechadas' : filterStatus === 'progress' ? 'Em Andamento' : filterStatus === 'pending' ? 'Pendentes' : filterStatus === 'no_record' ? 'Sem Registro' : 'Encerradas'} ✕
+                            </button>
+                        )}
+                        {filterRegime !== 'all' && (
+                            <button
+                                onClick={() => setFilterRegime('all')}
+                                className="flex items-center gap-1 text-[10px] uppercase tracking-wider px-2 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-all"
+                            >
+                                {filterRegime === 'simples' ? 'Simples Nacional' : filterRegime === 'presumido' ? 'Lucro Presumido' : filterRegime === 'real' ? 'Lucro Real' : 'Doméstico'} ✕
                             </button>
                         )}
                         <Button
                             variant="ghost"
                             size="sm"
                             className="text-[10px] uppercase tracking-wider ml-auto text-muted-foreground hover:text-destructive"
-                            onClick={() => { setSearchQuery(''); setFilterMonth(''); setFilterColaborador(''); setFilterStatus('all'); }}
+                            onClick={() => { setSearchQuery(''); setFilterMonth(''); setFilterColaborador(''); setFilterStatus('all'); setFilterRegime('all'); }}
                         >
                             Limpar tudo
                         </Button>
@@ -616,8 +748,10 @@ export default function AccountingProgress() {
                                     key={closing.id}
                                     className={cn(
                                         'border-border/20 hover:bg-muted/20 transition-colors',
+                                        closing.id.startsWith('virtual-') && 'bg-slate-500/[0.03]',
                                         closing.empresaEncerrada && 'bg-red-500/[0.03]',
-                                        !closing.empresaEncerrada && closing.pendencias && closing.pendencias.trim() !== '' && 'bg-amber-500/[0.03]',
+                                        closing.empresaEmAndamento && !closing.empresaEncerrada && 'bg-blue-500/[0.03]',
+                                        !closing.empresaEncerrada && !closing.empresaEmAndamento && !closing.id.startsWith('virtual-') && closing.pendencias && closing.pendencias.trim() !== '' && 'bg-amber-500/[0.03]',
                                     )}
                                 >
                                     <TableCell className="py-4">

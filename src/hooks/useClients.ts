@@ -35,6 +35,9 @@ export interface Client {
   dataSaida?: string;
   motivoSaida?: string;
   isActive: boolean;
+  inactivatedAt?: string;
+  inactivationReason?: string;
+  inactivationDetails?: string;
   responsavelDp?: string;
   responsavelFiscal?: string;
   responsavelContabil?: string;
@@ -68,6 +71,9 @@ interface DbClient {
   data_saida: string | null;
   motivo_saida: string | null;
   is_active: boolean;
+  inactivated_at: string | null;
+  inactivation_reason: string | null;
+  inactivation_details: string | null;
   responsavel_dp: string | null;
   responsavel_fiscal: string | null;
   responsavel_contabil: string | null;
@@ -104,6 +110,9 @@ const mapDbToClient = (db: DbClient): Client => ({
   dataSaida: db.data_saida ?? undefined,
   motivoSaida: db.motivo_saida ?? undefined,
   isActive: db.is_active ?? true,
+  inactivatedAt: db.inactivated_at ?? undefined,
+  inactivationReason: db.inactivation_reason ?? undefined,
+  inactivationDetails: db.inactivation_details ?? undefined,
   responsavelDp: db.responsavel_dp ?? undefined,
   responsavelFiscal: db.responsavel_fiscal ?? undefined,
   responsavelContabil: db.responsavel_contabil ?? undefined,
@@ -137,6 +146,9 @@ const mapClientToDb = (client: Omit<Client, 'id'> & { id?: string }) => ({
   data_saida: (client.dataSaida && client.dataSaida.trim() !== '') ? client.dataSaida : null,
   motivo_saida: (client.motivoSaida && client.motivoSaida.trim() !== '') ? client.motivoSaida : null,
   is_active: client.isActive === undefined ? true : client.isActive,
+  inactivated_at: client.inactivatedAt || null,
+  inactivation_reason: client.inactivationReason || null,
+  inactivation_details: client.inactivationDetails || null,
   responsavel_dp: client.responsavelDp || null,
   responsavel_fiscal: client.responsavelFiscal || null,
   responsavel_contabil: client.responsavelContabil || null,
@@ -242,6 +254,36 @@ export function useClients() {
     }
   };
 
+  const inactivateClient = async (id: string, reason: string, details?: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('clients')
+        .update({
+          is_active: false,
+          inactivated_at: new Date().toISOString(),
+          inactivation_reason: reason,
+          inactivation_details: details || null,
+          data_saida: new Date().toISOString().split('T')[0]
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const updatedClient = mapDbToClient(data as unknown as DbClient);
+      setClients(prev => prev.map(c => c.id === id ? updatedClient : c));
+      toast.success('Cliente inativado com sucesso!', {
+        description: `${updatedClient.nomeFantasia} foi marcado como inativo.`
+      });
+      return updatedClient;
+    } catch (error) {
+      console.error('Erro ao inativar cliente:', error);
+      toast.error('Erro ao inativar cliente');
+      throw error;
+    }
+  };
+
   const deleteMultipleClients = async (ids: string[]) => {
     try {
       const { error } = await supabase
@@ -292,6 +334,7 @@ export function useClients() {
     createClient,
     updateClient,
     deleteClient,
+    inactivateClient,
     deleteMultipleClients,
     importClients,
   };

@@ -95,6 +95,7 @@ export default function Reports() {
       'Controle Aplicação': item.controleAplicacaoFinanceira ? 'SIM' : 'NÃO',
       'Controle Anual': item.controleAnual ? 'SIM' : 'NÃO',
       'Empresa Encerrada': item.empresaEncerrada ? 'SIM' : 'NÃO',
+      'Empresa em Andamento': item.empresaEmAndamento ? 'SIM' : 'NÃO',
       'Pendências': item.pendencias,
       'Data Atualização': new Date(item.updatedAt).toLocaleString('pt-BR'),
     }));
@@ -247,17 +248,18 @@ export default function Reports() {
                   <TableHead className="h-12">Responsável</TableHead>
                   <TableHead className="h-12 text-center">Conciliação</TableHead>
                   <TableHead className="h-12 text-center">Lucros</TableHead>
+                  <TableHead className="h-12 text-center">Em Andamento?</TableHead>
                   <TableHead className="h-12 text-center">Encerrada?</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loadingAccounting ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center">Carregando...</TableCell>
+                    <TableCell colSpan={7} className="h-24 text-center">Carregando...</TableCell>
                   </TableRow>
                 ) : accountingData.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">Nenhum registro encontrado.</TableCell>
+                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">Nenhum registro encontrado.</TableCell>
                   </TableRow>
                 ) : (
                   accountingData.map((item) => (
@@ -267,6 +269,9 @@ export default function Reports() {
                       <TableCell className="py-4 text-muted-foreground">{item.colaboradorResponsavel}</TableCell>
                       <TableCell className="py-4 text-center">{item.conciliacaoContabil ? '✅' : '❌'}</TableCell>
                       <TableCell className="py-4 text-center">{item.controleLucros ? '✅' : '❌'}</TableCell>
+                      <TableCell className="py-4 text-center">
+                        {item.empresaEmAndamento ? <span className="text-blue-600 font-bold">SIM</span> : 'NÃO'}
+                      </TableCell>
                       <TableCell className="py-4 text-center">
                         {item.empresaEncerrada ? <span className="text-destructive font-bold">SIM</span> : 'NÃO'}
                       </TableCell>

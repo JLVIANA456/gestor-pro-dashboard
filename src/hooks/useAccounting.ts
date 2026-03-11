@@ -12,6 +12,7 @@ export interface AccountingClosing {
   controleAplicacaoFinanceira: boolean;
   controleAnual: boolean;
   empresaEncerrada: boolean;
+  empresaEmAndamento: boolean;
   pendencias: string;
   createdAt: string;
   updatedAt: string;
@@ -32,6 +33,7 @@ interface DbAccountingClosing {
   controle_aplicacao_financeira: boolean;
   controle_anual: boolean;
   empresa_encerrada: boolean;
+  empresa_em_andamento: boolean;
   pendencias: string | null;
   created_at: string;
   updated_at: string;
@@ -51,6 +53,7 @@ const mapDbToAccounting = (db: DbAccountingClosing): AccountingClosing => ({
   controleAplicacaoFinanceira: db.controle_aplicacao_financeira,
   controleAnual: db.controle_anual,
   empresaEncerrada: db.empresa_encerrada,
+  empresaEmAndamento: db.empresa_em_andamento,
   pendencias: db.pendencias || '',
   createdAt: db.created_at,
   updatedAt: db.updated_at,
@@ -65,6 +68,7 @@ const mapAccountingToDb = (data: Omit<AccountingClosing, 'id' | 'createdAt' | 'u
   controle_aplicacao_financeira: data.controleAplicacaoFinanceira,
   controle_anual: data.controleAnual,
   empresa_encerrada: data.empresaEncerrada,
+  empresa_em_andamento: data.empresaEmAndamento,
   pendencias: data.pendencias || null,
 });
 

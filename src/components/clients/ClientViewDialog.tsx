@@ -122,8 +122,27 @@ export function ClientViewDialog({ open, onOpenChange, client }: ClientViewDialo
                 </div>
               </div>
               <DataField label="Data de Entrada" value={client.dataEntrada ? new Date(client.dataEntrada).toLocaleDateString('pt-BR') : '---'} />
-              <DataField label="Data de Saída" value={client.dataSaida ? new Date(client.dataSaida).toLocaleDateString('pt-BR') : '---'} />
-              {client.motivoSaida && (
+              {client.dataSaida && !client.isActive && (
+                <DataField label="Data de Inativação" value={new Date(client.dataSaida).toLocaleDateString('pt-BR')} />
+              )}
+              {!client.isActive && client.inactivationReason && (
+                <div className="col-span-full animate-slide-in-up">
+                  <div className="space-y-1.5 p-4 rounded-xl bg-amber-500/5 border border-amber-500/10">
+                    <p className="text-[10px] text-amber-600 uppercase tracking-widest font-bold">Motivo da Inativação</p>
+                    <p className="font-light text-foreground text-sm">
+                      {client.inactivationReason === 'baixada' ? 'Baixada' : 
+                       client.inactivationReason === 'transferida' ? 'Transferida' : 
+                       'Outros motivos'}
+                    </p>
+                    {client.inactivationDetails && (
+                      <p className="font-light text-muted-foreground text-xs mt-2 border-t border-amber-500/10 pt-2">
+                        {client.inactivationDetails}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+              {client.motivoSaida && client.isActive && (
                 <div className="col-span-full animate-slide-in-up">
                   <div className="space-y-1.5 p-4 rounded-xl bg-destructive/5 border border-destructive/10">
                     <p className="text-[10px] text-destructive uppercase tracking-widest font-bold">Motivo da Saída / Baixa</p>
