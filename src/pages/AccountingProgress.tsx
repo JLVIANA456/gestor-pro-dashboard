@@ -349,7 +349,7 @@ export default function AccountingProgress() {
         }
         if (closing.empresaEncerrada) {
             return (
-                <Badge className="bg-red-500/15 text-red-700 border-red-200 text-[10px] uppercase tracking-wider gap-1">
+                <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-200 text-[10px] uppercase tracking-wider gap-1">
                     <XCircle className="h-3 w-3" /> Encerrada
                 </Badge>
             );
@@ -369,7 +369,7 @@ export default function AccountingProgress() {
             );
         }
         return (
-            <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-200 text-[10px] uppercase tracking-wider gap-1">
+            <Badge className="bg-red-500/15 text-red-700 border-red-200 text-[10px] uppercase tracking-wider gap-1">
                 <CheckCircle2 className="h-3 w-3" /> Fechada
             </Badge>
         );
@@ -457,10 +457,10 @@ export default function AccountingProgress() {
                 {[
                     { label: 'Total Empresas', value: kpis.totalEmpresas, icon: Building2, color: 'text-blue-600', bg: 'bg-blue-500/10' },
                     { label: 'Registros', value: kpis.totalFechamentos, icon: BarChart3, color: 'text-primary', bg: 'bg-primary/10' },
-                    { label: 'Fechadas', value: kpis.normais, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-500/10' },
+                    { label: 'Fechadas', value: kpis.normais, icon: CheckCircle2, color: 'text-red-600', bg: 'bg-red-500/10' },
                     { label: 'Em Andamento', value: kpis.emAndamento, icon: TrendingUp, color: 'text-blue-600', bg: 'bg-blue-500/10' },
                     { label: 'Pendentes', value: kpis.comPendencia, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-500/10' },
-                    { label: 'Encerradas', value: kpis.encerradas, icon: XCircle, color: 'text-red-600', bg: 'bg-red-500/10' },
+                    { label: 'Encerradas', value: kpis.encerradas, icon: XCircle, color: 'text-emerald-600', bg: 'bg-emerald-500/10' },
                     { label: 'Sem Registro', value: kpis.semRegistro, icon: Users, color: 'text-slate-600', bg: 'bg-slate-500/10' },
                 ].map(({ label, value, icon: Icon, color, bg }) => (
                     <div key={label} className="rounded-2xl border border-border/50 bg-card p-5 shadow-card flex flex-col gap-3">
@@ -525,10 +525,10 @@ export default function AccountingProgress() {
                                         />
                                     </div>
                                     <div className="flex items-center gap-3 text-[10px] text-muted-foreground uppercase tracking-wider">
-                                        <span className="text-emerald-600">{stats.total - stats.encerradas - stats.andamento - stats.pendentes} fechadas</span>
+                                        <span className="text-red-600">{stats.total - stats.encerradas - stats.andamento - stats.pendentes} fechadas</span>
                                         {stats.andamento > 0 && <span className="text-blue-600">{stats.andamento} em andamento</span>}
                                         {stats.pendentes > 0 && <span className="text-amber-600">{stats.pendentes} pendentes</span>}
-                                        {stats.encerradas > 0 && <span className="text-red-600">{stats.encerradas} encerradas</span>}
+                                        {stats.encerradas > 0 && <span className="text-emerald-600">{stats.encerradas} encerradas</span>}
                                     </div>
                                 </div>
                             );
@@ -598,10 +598,10 @@ export default function AccountingProgress() {
                         <div className="flex items-center gap-1 p-1 bg-muted/20 rounded-xl border border-border/50 h-10 lg:col-span-2">
                             {([
                                 ['all', 'Todos'],
-                                ['closed', 'Fechadas'],
+                                ['closed', 'Encerradas'],
                                 ['progress', 'Em Andamento'],
                                 ['pending', 'Pendentes'],
-                                ['open', 'Encerradas'],
+                                ['open', 'Fechadas'],
                                 ['no_record', 'Sem Registro'],
                             ] as const).map(([val, label]) => (
                                 <button
@@ -682,7 +682,7 @@ export default function AccountingProgress() {
                                 onClick={() => setFilterStatus('all')}
                                 className="flex items-center gap-1 text-[10px] uppercase tracking-wider px-2 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-all"
                             >
-                                {filterStatus === 'closed' ? 'Fechadas' : filterStatus === 'progress' ? 'Em Andamento' : filterStatus === 'pending' ? 'Pendentes' : filterStatus === 'no_record' ? 'Sem Registro' : 'Encerradas'} ✕
+                                {filterStatus === 'closed' ? 'Encerradas' : filterStatus === 'progress' ? 'Em Andamento' : filterStatus === 'pending' ? 'Pendentes' : filterStatus === 'no_record' ? 'Sem Registro' : 'Fechadas'} ✕
                             </button>
                         )}
                         {filterRegime !== 'all' && (
@@ -759,9 +759,10 @@ export default function AccountingProgress() {
                                     className={cn(
                                         'border-border/20 hover:bg-muted/20 transition-colors',
                                         closing.id.startsWith('virtual-') && 'bg-slate-500/[0.03]',
-                                        closing.empresaEncerrada && 'bg-red-500/[0.03]',
+                                        closing.empresaEncerrada && 'bg-emerald-500/[0.03]',
                                         closing.empresaEmAndamento && !closing.empresaEncerrada && 'bg-blue-500/[0.03]',
                                         !closing.empresaEncerrada && !closing.empresaEmAndamento && !closing.id.startsWith('virtual-') && closing.pendencias && closing.pendencias.trim() !== '' && 'bg-amber-500/[0.03]',
+                                        !closing.empresaEncerrada && !closing.empresaEmAndamento && !closing.id.startsWith('virtual-') && (!closing.pendencias || closing.pendencias.trim() === '') && 'bg-red-500/[0.03]',
                                     )}
                                 >
                                     <TableCell className="py-4">
