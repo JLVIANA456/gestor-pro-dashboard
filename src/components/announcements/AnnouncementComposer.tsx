@@ -26,6 +26,21 @@ import { cn } from "@/lib/utils";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { useClients } from '@/hooks/useClients';
+import { Search, Building2, Check, ChevronsUpDown } from 'lucide-react';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from "@/components/ui/command";
 
 interface AnnouncementComposerProps {
     open: boolean;
@@ -39,6 +54,7 @@ interface AnnouncementComposerProps {
         message: string;
         isScheduled: boolean;
         scheduled_for?: string;
+        client_id?: string;
     }, provider: 'gmail' | 'outlook') => Promise<void>;
 }
 
@@ -57,6 +73,25 @@ export function AnnouncementComposer({
     const [scheduledDate, setScheduledDate] = useState('');
     const [scheduledTime, setScheduledTime] = useState('');
     const [loading, setLoading] = useState(false);
+    const [selectedClientId, setSelectedClientId] = useState<string>('');
+    const [comboboxOpen, setComboboxOpen] = useState(false);
+    const { clients } = useClients();
+
+    const handleClientSelect = (clientId: string) => {
+        const id = clientId === "none" ? "" : clientId;
+        setSelectedClientId(id);
+        setComboboxOpen(false);
+        
+        if (id) {
+            const client = clients.find(c => c.id === id);
+            if (client) {
+                setTo(client.email);
+                if (subject === '') {
+                    setSubject(`Comunicado - ${client.nomeFantasia}`);
+                }
+            }
+        }
+    };
 
     const handleSend = async (provider: 'gmail' | 'outlook') => {
         if (!to || !subject || !message) {
@@ -77,7 +112,8 @@ export function AnnouncementComposer({
                 subject,
                 message,
                 isScheduled,
-                scheduled_for: isScheduled ? `${scheduledDate}T${scheduledTime}:00` : undefined
+                scheduled_for: isScheduled ? `${scheduledDate}T${scheduledTime}:00` : undefined,
+                client_id: selectedClientId || undefined
             }, provider);
             
             // Success handling is done in parent, but we close on success
@@ -92,19 +128,14 @@ export function AnnouncementComposer({
         } finally {
             setLoading(false);
         }
-    };
-
-    return (
+    };    return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl bg-card border-none rounded-[2rem] p-0 overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300">
-                {/* Header Section */}
-                <div className="bg-primary/5 border-b border-primary/10 p-8 pb-6 relative">
-                    <div className="absolute top-4 right-4 h-8 w-8 flex items-center justify-center rounded-full bg-muted/40 text-muted-foreground/40 hover:text-foreground hover:bg-muted/80 transition-all cursor-pointer" onClick={() => onOpenChange(false)}>
-                        <X className="h-4 w-4" />
-                    </div>
+            <DialogContent className="max-w-2xl bg-card border-none rounded-[2.5rem] p-0 overflow-hidden shadow-elevated animate-in fade-in zoom-in duration-300">
+                {/* Header Premium */}
+                <div className="bg-primary/[0.03] border-b border-border/40 p-8 pb-7 relative">
                     <div className="flex items-center gap-5">
-                        <div className="h-14 w-14 flex items-center justify-center rounded-2xl bg-primary/10 border border-primary/20 shadow-sm">
-                            <Send className="h-7 w-7 text-primary" />
+                        <div className="h-14 w-14 flex items-center justify-center rounded-2xl bg-white border border-border/50 shadow-sm transition-transform hover:scale-105 duration-500">
+                            <Send className="h-6 w-6 text-primary" />
                         </div>
                         <div>
                             <DialogTitle className="text-2xl font-light tracking-tight text-foreground">
@@ -112,151 +143,222 @@ export function AnnouncementComposer({
                             </DialogTitle>
                             <div className="flex items-center gap-2 mt-1.5">
                                 <span className={cn(
-                                    "px-2 py-0.5 rounded-full text-[9px] uppercase tracking-widest font-bold border border-current/20",
-                                    department === 'fiscal' ? "bg-orange-500/5 text-orange-500" :
-                                    department === 'pessoal' ? "bg-blue-500/5 text-blue-500" :
-                                    department === 'contabil' ? "bg-emerald-500/5 text-emerald-500" :
-                                    department === 'financeiro' ? "bg-purple-500/5 text-purple-500" :
-                                    "bg-slate-500/5 text-slate-500"
+                                    "px-3 py-0.5 rounded-full text-[9px] uppercase tracking-widest font-bold border",
+                                    department === 'fiscal' ? "bg-orange-500/5 text-orange-600 border-orange-500/10" :
+                                    department === 'pessoal' ? "bg-blue-500/5 text-blue-600 border-blue-500/10" :
+                                    department === 'contabil' ? "bg-emerald-500/5 text-emerald-600 border-emerald-500/10" :
+                                    department === 'financeiro' ? "bg-purple-500/5 text-purple-600 border-purple-500/10" :
+                                    "bg-slate-500/5 text-slate-600 border-slate-500/10"
                                 )}>
-                                    {department}
+                                    setor {department}
                                 </span>
-                                <span className="text-muted-foreground opacity-30">/</span>
+                                <span className="h-1 w-1 rounded-full bg-muted-foreground/30 mx-1" />
                                 <span className="text-[10px] text-muted-foreground font-light uppercase tracking-widest flex items-center gap-1.5">
-                                    <Tags className="h-3 w-3" /> {folderName}
+                                    <Tags className="h-3 w-3 opacity-50" /> {folderName}
                                 </span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="p-8 pt-6 space-y-6 max-h-[85vh] overflow-y-auto">
-                    {/* Recipients & Subject Row */}
+                <div className="p-8 space-y-7 max-h-[80vh] overflow-y-auto custom-scrollbar">
+                    {/* Seleção de Cliente Searchable */}
+                    <div className="space-y-2">
+                        <Label className="text-[10px] font-normal text-muted-foreground uppercase tracking-widest flex items-center gap-2 ml-1">
+                            <Building2 className="h-3 w-3 opacity-40 text-primary" /> Vincular a Cliente
+                        </Label>
+                        
+                        <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    aria-expanded={comboboxOpen}
+                                    className="w-full justify-between h-11 rounded-xl border-border/50 bg-muted/20 text-sm font-light transition-all focus:border-primary/30 hover:bg-muted/30 px-3"
+                                >
+                                    {selectedClientId
+                                        ? clients.find((client) => client.id === selectedClientId)?.nomeFantasia
+                                        : "Selecione uma empresa..."}
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 rounded-2xl border-border/40 shadow-elevated overflow-hidden" align="start">
+                                <Command>
+                                    <CommandInput placeholder="Buscar empresa por nome ou CNPJ..." className="h-11 border-none focus:ring-0 text-sm font-light" />
+                                    <CommandList className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                                        <CommandEmpty className="py-6 text-center text-xs text-muted-foreground font-light">Nenhuma empresa encontrada.</CommandEmpty>
+                                        <CommandGroup>
+                                            <CommandItem
+                                                value="none"
+                                                onSelect={() => handleClientSelect("none")}
+                                                className="text-xs font-light py-2.5 px-3 cursor-pointer hover:bg-primary/5 rounded-lg m-1"
+                                            >
+                                                Nenhum cliente específico
+                                            </CommandItem>
+                                            {clients.map((client) => (
+                                                <CommandItem
+                                                    key={client.id}
+                                                    value={`${client.nomeFantasia} ${client.cnpj}`}
+                                                    onSelect={() => handleClientSelect(client.id)}
+                                                    className="text-xs font-light py-2.5 px-3 cursor-pointer hover:bg-primary/5 rounded-lg m-1"
+                                                >
+                                                    <Check
+                                                        className={cn(
+                                                            "mr-2 h-4 w-4 text-primary",
+                                                            selectedClientId === client.id ? "opacity-100" : "opacity-0"
+                                                        )}
+                                                    />
+                                                    <div className="flex flex-col">
+                                                        <span className="font-medium text-foreground">{client.nomeFantasia}</span>
+                                                        <span className="text-[10px] opacity-50 uppercase tracking-tighter">{client.cnpj}</span>
+                                                    </div>
+                                                </CommandItem>
+                                            ))}
+                                        </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
+                        <p className="text-[9px] text-muted-foreground/40 px-1 font-light italic">Pesquise pelo nome para preencher os dados automaticamente.</p>
+                    </div>
+
+                    {/* Linha 1: Destinatários e Assunto */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2.5">
-                            <Label className="text-[10px] font-light text-muted-foreground uppercase tracking-widest flex items-center gap-2 ml-1">
-                                <Mail className="h-3 w-3 opacity-50" /> Destinatários
+                        <div className="space-y-2">
+                            <Label className="text-[10px] font-normal text-muted-foreground uppercase tracking-widest flex items-center gap-2 ml-1">
+                                <Mail className="h-3 w-3 opacity-40 text-primary" /> Destinatários
                             </Label>
                             <Input
-                                placeholder="email1@exemplo.com, email2@exemplo.com"
+                                placeholder="email1@exemplo.com..."
                                 value={to}
                                 onChange={(e) => setTo(e.target.value)}
-                                className="h-11 rounded-xl border-border/50 bg-muted/20 text-sm font-light transition-all focus:border-primary/20"
+                                className="h-11 rounded-xl border-border/50 bg-muted/20 text-sm font-light transition-all focus:border-primary/30 focus:bg-card"
                             />
-                            <p className="text-[9px] text-muted-foreground/50 px-1 font-light italic">Divida por vírgula para múltiplos envios.</p>
+                            <p className="text-[9px] text-muted-foreground/40 px-1 font-light italic">Divida por vírgula para múltiplos envios.</p>
                         </div>
 
-                        <div className="space-y-2.5">
-                            <Label className="text-[10px] font-light text-muted-foreground uppercase tracking-widest flex items-center gap-2 ml-1">
-                                <MessageSquare className="h-3 w-3 opacity-50" /> Assunto
+                        <div className="space-y-2">
+                            <Label className="text-[10px] font-normal text-muted-foreground uppercase tracking-widest flex items-center gap-2 ml-1">
+                                <MessageSquare className="h-3 w-3 opacity-40 text-primary" /> Assunto
                             </Label>
                             <Input
-                                placeholder="Título do comunicado..."
+                                placeholder="Título do informativo..."
                                 value={subject}
                                 onChange={(e) => setSubject(e.target.value)}
-                                className="h-11 rounded-xl border-border/50 bg-muted/20 text-sm font-light transition-all focus:border-primary/20"
+                                className="h-11 rounded-xl border-border/50 bg-muted/20 text-sm font-light transition-all focus:border-primary/30 focus:bg-card"
                             />
                         </div>
                     </div>
 
-                    {/* Content Section */}
-                    <div className="space-y-2.5">
-                        <Label className="text-[10px] font-light text-muted-foreground uppercase tracking-widest flex items-center gap-2 ml-1">
-                            <History className="h-3 w-3 opacity-50" /> Mensagem Principal
+                    {/* Mensagem principal */}
+                    <div className="space-y-2">
+                        <Label className="text-[10px] font-normal text-muted-foreground uppercase tracking-widest flex items-center gap-2 ml-1">
+                            <History className="h-3 w-3 opacity-40 text-primary" /> Mensagem Principal
                         </Label>
                         <Textarea
-                            placeholder="Escreva aqui o conteúdo do seu informativo..."
+                            placeholder="Escreva aqui o conteúdo do seu comunicado..."
                             value={message}
                             onChange={(e) => setMessage(e.target.value)}
-                            className="min-h-[220px] rounded-3xl border-border/50 bg-muted/10 text-sm font-light p-5 resize-none transition-all focus:bg-card focus:border-primary/20 leading-relaxed"
+                            className="min-h-[200px] rounded-2xl border-border/50 bg-muted/10 text-sm font-light p-5 resize-none transition-all focus:bg-card focus:border-primary/30 leading-relaxed shadow-inner"
                         />
                     </div>
 
-                    {/* Scheduling Panel */}
-                    <div className="p-5 rounded-3xl bg-secondary/5 border border-border/40 space-y-4">
+                    {/* Bloco de Agendamento */}
+                    <div className={cn(
+                        "p-6 rounded-2xl border transition-all duration-500",
+                        isScheduled 
+                            ? "bg-amber-500/5 border-amber-500/20 shadow-sm" 
+                            : "bg-muted/10 border-border/40"
+                    )}>
                         <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="h-8 w-8 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
-                                    <CalendarIcon className="h-4 w-4 text-amber-600/70" />
+                            <div className="flex items-center gap-4">
+                                <div className={cn(
+                                    "h-10 w-10 rounded-xl flex items-center justify-center border transition-all",
+                                    isScheduled ? "bg-amber-500/20 border-amber-500/20" : "bg-card border-border/50"
+                                )}>
+                                    <Clock className={cn("h-4.5 w-4.5", isScheduled ? "text-amber-600" : "text-muted-foreground/40")} />
                                 </div>
                                 <div className="space-y-0.5">
-                                    <Label className="text-xs font-semibold uppercase tracking-tight">Agendamento de Envio</Label>
-                                    <p className="text-[10px] text-muted-foreground font-light">Programe para uma data futura no histórico.</p>
+                                    <Label className="text-xs font-semibold tracking-tight text-foreground">Programar Envio</Label>
+                                    <p className="text-[10px] text-muted-foreground font-light uppercase tracking-widest">Agendar para data futura</p>
                                 </div>
                             </div>
                             <Switch
                                 checked={isScheduled}
                                 onCheckedChange={setIsScheduled}
-                                className="data-[state=checked]:bg-amber-600"
+                                className="data-[state=checked]:bg-amber-500"
                             />
                         </div>
 
                         {isScheduled && (
-                            <div className="grid grid-cols-2 gap-4 pt-2 animate-in fade-in slide-in-from-top-2">
+                            <div className="grid grid-cols-2 gap-4 pt-6 animate-in fade-in slide-in-from-top-3">
                                 <div className="space-y-1.5">
-                                    <Label className="text-[9px] uppercase tracking-wider opacity-60 ml-1">Data</Label>
+                                    <Label className="text-[9px] uppercase tracking-widest font-bold opacity-40 ml-1">Data de Envio</Label>
                                     <Input
                                         type="date"
                                         value={scheduledDate}
                                         onChange={(e) => setScheduledDate(e.target.value)}
-                                        className="h-10 bg-card border-border/40 text-xs rounded-xl font-light"
+                                        className="h-10 bg-card border-border/50 text-xs rounded-xl font-light focus:border-amber-500/30"
                                     />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <Label className="text-[9px] uppercase tracking-wider opacity-60 ml-1">Horário</Label>
+                                    <Label className="text-[9px] uppercase tracking-widest font-bold opacity-40 ml-1">Horário</Label>
                                     <Input
                                         type="time"
                                         value={scheduledTime}
                                         onChange={(e) => setScheduledTime(e.target.value)}
-                                        className="h-10 bg-card border-border/40 text-xs rounded-xl font-light"
+                                        className="h-10 bg-card border-border/50 text-xs rounded-xl font-light focus:border-amber-500/30"
                                     />
                                 </div>
                             </div>
                         )}
                     </div>
 
-                    {/* Provider Selection & Action Buttons */}
-                    <div className="flex items-center justify-end gap-3 pt-6 border-t border-border/40">
+                    {/* Footer com Botões de Ação */}
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-border/40">
                         <Button
                             type="button"
                             variant="ghost"
                             onClick={() => onOpenChange(false)}
-                            className="rounded-xl font-light text-[10px] uppercase tracking-widest px-8 h-11 text-muted-foreground hover:bg-muted transition-all"
+                            className="rounded-xl font-light text-[10px] uppercase tracking-widest px-8 h-12 text-muted-foreground hover:bg-muted transition-all"
                         >
                             Cancelar
                         </Button>
                         
-                        <div className="flex items-center gap-2">
-                            <Button
-                                type="button"
-                                disabled={loading}
-                                onClick={() => handleSend('gmail')}
-                                className={cn(
-                                    "rounded-xl shadow-lg font-light text-[10px] uppercase tracking-widest px-6 h-11 transition-all bg-[#EA4335] hover:bg-[#D33426] shadow-[#EA4335]/20 border-none",
-                                    isScheduled && "opacity-50 grayscale cursor-not-allowed"
-                                )}
-                            >
-                                Gmail
-                            </Button>
-                            <Button
-                                type="button"
-                                disabled={loading}
-                                onClick={() => handleSend('outlook')}
-                                className={cn(
-                                    "rounded-xl shadow-lg font-light text-[10px] uppercase tracking-widest px-6 h-11 transition-all bg-[#0078D4] hover:bg-[#005A9E] shadow-[#0078D4]/20 border-none",
-                                    isScheduled && "opacity-50 grayscale cursor-not-allowed"
-                                )}
-                            >
-                                Outlook
-                            </Button>
-                            {isScheduled && (
+                        <div className="flex items-center gap-3 w-full sm:w-auto">
+                            {!isScheduled ? (
+                                <>
+                                    <Button
+                                        type="button"
+                                        disabled={loading}
+                                        onClick={() => handleSend('gmail')}
+                                        className="flex-1 sm:flex-none rounded-xl bg-white hover:bg-red-50 text-[#EA4335] border border-red-500/20 shadow-sm font-light text-[10px] uppercase tracking-widest px-6 h-12 transition-all active:scale-95 gap-2"
+                                    >
+                                        <div className="w-4 h-4 rounded-full bg-red-500 flex items-center justify-center">
+                                            <span className="text-[8px] font-bold text-white">G</span>
+                                        </div>
+                                        Gmail
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        disabled={loading}
+                                        onClick={() => handleSend('outlook')}
+                                        className="flex-1 sm:flex-none rounded-xl bg-white hover:bg-blue-50 text-[#0078D4] border border-blue-500/20 shadow-sm font-light text-[10px] uppercase tracking-widest px-6 h-12 transition-all active:scale-95 gap-2"
+                                    >
+                                        <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center">
+                                            <span className="text-[8px] font-bold text-white">O</span>
+                                        </div>
+                                        Outlook
+                                    </Button>
+                                </>
+                            ) : (
                                 <Button
                                     type="button"
                                     disabled={loading}
-                                    onClick={() => handleSend('gmail')} // Using gmail as default for internal reg when scheduled
-                                    className="rounded-xl shadow-lg font-light text-[10px] uppercase tracking-widest px-8 h-11 transition-all bg-amber-600 hover:bg-amber-700 shadow-amber-600/20"
+                                    onClick={() => handleSend('gmail')}
+                                    className="w-full sm:w-auto rounded-xl bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/20 border-none font-light text-[10px] uppercase tracking-widest px-10 h-12 transition-all active:scale-95 gap-2"
                                 >
-                                    Confirmar Agendamento
+                                    <CalendarIcon className="h-4 w-4" /> Confirmar Agendamento
                                 </Button>
                             )}
                         </div>

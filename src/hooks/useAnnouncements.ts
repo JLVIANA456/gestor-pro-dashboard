@@ -16,6 +16,11 @@ export interface Announcement {
     scheduled_for?: string | null;
     is_scheduled?: boolean;
     folder_id?: string | null;
+    client_id?: string | null;
+    client?: {
+        nome_fantasia: string;
+        razao_social: string;
+    } | null;
 }
 
 export interface AnnouncementFolder {
@@ -45,10 +50,10 @@ export function useAnnouncements() {
                 .select('*')
                 .order('name');
             
-            // Try to fetch announcements
+            // Try to fetch announcements with client info
             const { data: announcementData, error: announcementError } = await sb
                 .from('announcements')
-                .select('*')
+                .select('*, client:clients(nome_fantasia, razao_social)')
                 .order('created_at', { ascending: false });
 
             if (folderError) {
