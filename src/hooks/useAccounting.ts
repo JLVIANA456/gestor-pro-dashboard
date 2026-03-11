@@ -203,6 +203,25 @@ export function useAccounting() {
     }
   };
 
+  const resetAll = async () => {
+    try {
+      setLoading(true);
+      const { error } = await (supabase
+        .from('accounting_closings' as any)
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000')) as any; // Trick to delete all
+
+      if (error) throw error;
+      toast.success('Todos os dados de contabilidade foram resetados!');
+    } catch (error: any) {
+      console.error('Erro ao resetar contabilidade:', error);
+      toast.error('Erro ao resetar dados');
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     loading,
     fetchClosingsByClient,
@@ -210,6 +229,7 @@ export function useAccounting() {
     updateClosing,
     deleteClosing,
     fetchAllClosings,
-    fetchClosedCompanies
+    fetchClosedCompanies,
+    resetAll
   };
 }

@@ -194,8 +194,8 @@ export default function ProfitSheetTasks() {
         
         // Use responsavelEmpresa if available, otherwise generic
         const greeting = responsavelEmpresa 
-            ? `Prezado(a) Cliente ${responsavelEmpresa}, ${clientName}`
-            : `Prezado(a) Cliente, ${clientName}`;
+            ? `**Prezado(a) Cliente ${responsavelEmpresa}, ${clientName}**`
+            : `**Prezado(a) Cliente, ${clientName}**`;
 
         const body =
             `${greeting},\n\n` +

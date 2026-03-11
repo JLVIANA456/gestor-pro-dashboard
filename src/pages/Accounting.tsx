@@ -15,15 +15,27 @@ import {
     SortAsc,
     SortDesc,
     Building2,
-    Eye
+    Eye,
+    Eraser
 } from 'lucide-react';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { AccountingModal } from '@/components/accounting/AccountingModal';
 import { cn } from '@/lib/utils';
 import { useSearchParams } from 'react-router-dom';
 
 export default function Accounting() {
     const { clients, loading } = useClients();
-    const { fetchClosedCompanies } = useAccounting();
+    const { fetchClosedCompanies, resetAll } = useAccounting();
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedClient, setSelectedClient] = useState<Client | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -61,6 +73,15 @@ export default function Accounting() {
         setIsModalOpen(true);
     };
 
+    const handleResetAll = async () => {
+        try {
+            await resetAll();
+            refreshClosedCompanies();
+        } catch (err) {
+            // Error already handled in hook/toast
+        }
+    };
+
     if (loading) {
         return (
             <div className="flex items-center justify-center h-64">
@@ -77,6 +98,34 @@ export default function Accounting() {
                     <h1 className="text-3xl font-light tracking-tight text-foreground">Contabilidade</h1>
                     <p className="text-xs font-normal text-muted-foreground uppercase tracking-[0.2em] mt-1">Gerenciamento e fechamentos mensais</p>
                 </div>
+
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="rounded-xl border-border/50 bg-card hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20 text-[10px] uppercase tracking-wider gap-2 h-10 px-4 transition-all"
+                        >
+                            <Eraser className="h-4 w-4 opacity-60" />
+                            Zerar Tudo
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="rounded-3xl border-border bg-card shadow-elevated">
+                        <AlertDialogHeader>
+                            <AlertDialogTitle className="text-xl font-light">Zerar Toda a Contabilidade?</AlertDialogTitle>
+                            <AlertDialogDescription className="text-sm font-light">
+                                Esta ação irá **apagar permanentemente** todos os registros de fechamento contábil de todos os meses e clientes. 
+                                Esta operação não pode ser desfeita.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel className="rounded-xl font-light">Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleResetAll} className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl font-light">
+                                Sim, Resetar Tudo
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </div>
 
             {/* Filters */}

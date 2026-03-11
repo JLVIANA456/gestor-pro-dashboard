@@ -21,7 +21,20 @@ import {
     Download,
     FileSpreadsheet,
     Printer,
+    Eraser,
+    Trash2,
 } from 'lucide-react';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { cn } from '@/lib/utils';
 import {
     Table,
@@ -53,7 +66,7 @@ function getYearMonth(raw: string) {
 
 // ─── component ──────────────────────────────────────────────────────────────
 export default function AccountingProgress() {
-    const { fetchAllClosings, loading } = useAccounting();
+    const { fetchAllClosings, loading, resetAll } = useAccounting();
     const { clients } = useClients();
 
     const [closings, setClosings] = useState<AccountingReportItem[]>([]);
@@ -214,6 +227,15 @@ export default function AccountingProgress() {
         window.print();
     };
 
+    const handleResetAll = async () => {
+        try {
+            await resetAll();
+            setClosings([]); // Limpa localmente após reset
+        } catch (err) {
+            // Toast já disparado pelo hook
+        }
+    };
+
     // ── sort toggle ───────────────────────────────────────────────────────
     const handleSort = (field: typeof sortField) => {
         if (sortField === field) {
@@ -298,6 +320,34 @@ export default function AccountingProgress() {
                         <Printer className="h-3.5 w-3.5 text-slate-600" />
                         Imprimir / PDF
                     </Button>
+
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="rounded-xl border-border/50 bg-card hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20 text-[10px] uppercase tracking-wider gap-2 h-9 ml-auto transition-all"
+                            >
+                                <Eraser className="h-3.5 w-3.5 opacity-60" />
+                                Zerar Tudo
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="rounded-3xl border-border bg-card shadow-elevated">
+                            <AlertDialogHeader>
+                                <AlertDialogTitle className="text-xl font-light">Zerar Toda a Contabilidade?</AlertDialogTitle>
+                                <AlertDialogDescription className="text-sm font-light">
+                                    Esta ação irá **apagar permanentemente** todos os registros de fechamento contábil de todos os meses e clientes. 
+                                    Esta operação não pode ser desfeita.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel className="rounded-xl font-light">Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleResetAll} className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl font-light">
+                                    Sim, Resetar Tudo
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                 </div>
             </div>
 
