@@ -1,17 +1,52 @@
-import { useState, useEffect } from 'react';
-import { Mail, Send, Sparkles, History, ArrowRight, ExternalLink, Shield, Clock, CheckCircle2, Eye, Search, Filter, Trash2, Users, Calendar as CalendarIcon } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useMemo } from 'react';
+import { 
+    Mail, 
+    Send, 
+    History, 
+    ArrowRight, 
+    Shield, 
+    Clock, 
+    CheckCircle2, 
+    Eye, 
+    Search, 
+    Filter, 
+    Trash2, 
+    Users, 
+    Calendar as CalendarIcon,
+    FolderPlus,
+    FolderOpen,
+    MoreHorizontal,
+    Plus,
+    Tags,
+    ChevronRight,
+    Loader2,
+    Inbox,
+    Target,
+} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+    DropdownMenu, 
+    DropdownMenuContent, 
+    DropdownMenuItem, 
+    DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { supabase } from "@/integrations/supabase/client";
-import { Switch } from "@/components/ui/switch";
+import { useAnnouncements, AnnouncementFolder } from '@/hooks/useAnnouncements';
+import { AnnouncementComposer } from '@/components/announcements/AnnouncementComposer';
 
 const DEPARTMENTS = [
     { id: 'fiscal', name: 'Fiscal', color: 'text-orange-500', bg: 'bg-orange-500/10' },
@@ -21,456 +56,516 @@ const DEPARTMENTS = [
     { id: 'geral', name: 'Geral', color: 'text-slate-500', bg: 'bg-slate-500/10' },
 ];
 
-interface Announcement {
-    id: string;
-    created_at: string;
-    department: string;
-    recipient: string;
-    subject: string;
-    content: string;
-    status: 'sent' | 'delivered' | 'read' | 'scheduled';
-    sent_at: string;
-    scheduled_for?: string;
-    is_scheduled?: boolean;
-}
-
 export default function Announcements() {
-    const [activeDept, setActiveDept] = useState('geral');
-    const [to, setTo] = useState('');
-    const [subject, setSubject] = useState('');
-    const [message, setMessage] = useState('');
-    const [isHoveredGmail, setIsHoveredGmail] = useState(false);
-    const [isHoveredOutlook, setIsHoveredOutlook] = useState(false);
-    const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [isScheduled, setIsScheduled] = useState(false);
-    const [scheduledDate, setScheduledDate] = useState('');
-    const [scheduledTime, setScheduledTime] = useState('');
+    const { 
+        announcements, 
+        folders, 
+        loading, 
+        createFolder, 
+        deleteFolder, 
+        sendAnnouncement, 
+        deleteAnnouncement 
+    } = useAnnouncements();
 
-    useEffect(() => {
-        fetchAnnouncements();
-    }, [activeDept]);
+    const [activeDept, setActiveDept] = useState('fiscal');
+    const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [isComposerOpen, setIsComposerOpen] = useState(false);
+    const [isNewFolderDialogOpen, setIsNewFolderDialogOpen] = useState(false);
+    const [newFolderName, setNewFolderName] = useState('');
 
-    const fetchAnnouncements = async () => {
-        try {
-            setLoading(true);
-            const { data, error } = await (supabase as any)
-                .from('announcements')
-                .select('*')
-                .order('created_at', { ascending: false });
+    // Folders of the active department
+    const deptFolders = useMemo(() => 
+        folders.filter(f => f.department === activeDept),
+    [folders, activeDept]);
 
-            if (error) {
-                if (error.code === '42P01') {
-                    console.log('Announcements table does not exist yet');
-                    setAnnouncements([]);
-                } else {
-                    console.error('Error fetching announcements:', error);
-                    toast.error("Erro ao carregar histórico.");
-                }
-            } else {
-                setAnnouncements(data || []);
-            }
-        } catch (err) {
-            console.error('Unexpected error fetching announcements:', err);
-        } finally {
-            setLoading(false);
-        }
+    const activeFolder = useMemo(() => 
+        folders.find(f => f.id === selectedFolderId) || null,
+    [folders, selectedFolderId]);
+
+    // Announcements filtered by Dept and Folder
+    const filteredAnnouncements = useMemo(() => {
+        return announcements.filter(a => {
+            const matchesDept = a.department === activeDept;
+            const matchesFolder = selectedFolderId ? a.folder_id === selectedFolderId : !a.folder_id;
+            const search = searchQuery.toLowerCase();
+            const matchesSearch = 
+                a.subject.toLowerCase().includes(search) || 
+                a.recipient.toLowerCase().includes(search) ||
+                a.content.toLowerCase().includes(search);
+            
+            return matchesDept && matchesFolder && matchesSearch;
+        });
+    }, [announcements, activeDept, selectedFolderId, searchQuery]);
+
+    const handleCreateFolder = async () => {
+        if (!newFolderName.trim()) return;
+        await createFolder({
+            name: newFolderName,
+            department: activeDept,
+            icon: 'folder',
+            color: 'primary'
+        });
+        setNewFolderName('');
+        setIsNewFolderDialogOpen(false);
     };
 
-    const handleSend = async (provider: 'gmail' | 'outlook') => {
-        if (!to) {
-            toast.error("Por favor, preencha o destinatário.");
-            return;
-        }
+    const handleSendSubmit = async (data: any, provider: 'gmail' | 'outlook') => {
+        const { recipients, subject, message, isScheduled, scheduled_for } = data;
 
-        // Split recipients by comma or semicolon and clean them up
-        const recipients = to.split(/[;,]/).map(email => email.trim()).filter(email => email !== '');
-
-        if (recipients.length === 0) {
-            toast.error("Nenhum e-mail válido encontrado.");
-            return;
-        }
-
-        // Save to history (creates separate logs for each recipient for individual tracking)
-        try {
-            const inserts = recipients.map(email => {
-                const item: any = {
-                    department: activeDept,
-                    recipient: email,
-                    subject: subject,
-                    content: message,
-                    status: isScheduled ? 'scheduled' : 'delivered',
-                    sent_at: isScheduled ? null : new Date().toISOString()
-                };
-
-                // Only add scheduling fields if explicitly scheduling to avoid errors 
-                // if the columns haven't been created yet in some environments
-                if (isScheduled) {
-                    item.scheduled_for = `${scheduledDate}T${scheduledTime}:00`;
-                    item.is_scheduled = true;
-                }
-
-                return item;
+        // Process all recipients
+        const results = await Promise.all(recipients.map(async (email: string) => {
+            return await sendAnnouncement({
+                department: activeDept,
+                folder_id: selectedFolderId || undefined,
+                recipient: email,
+                subject,
+                content: message,
+                status: isScheduled ? 'scheduled' : 'sent',
+                sent_at: isScheduled ? null : new Date().toISOString(),
+                scheduled_for: isScheduled ? scheduled_for : null,
+                is_scheduled: isScheduled
             });
+        }));
 
-            const { data, error } = await (supabase as any)
-                .from('announcements')
-                .insert(inserts)
-                .select();
+        const successCount = results.filter(r => r !== null).length;
 
-            if (error) {
-                console.error('Error saving announcements:', error);
-                toast.error("Erro ao registrar no histórico. Verifique se a tabela possui as colunas de agendamento.");
-            } else if (data) {
-                setAnnouncements(prev => [...data, ...prev]);
-            }
-        } catch (err) {
-            console.error('Unexpected error saving announcements:', err);
-            toast.error("Ocorreu um erro inesperado ao salvar o histórico.");
-        }
-
-        // Only redirect if NOT scheduled
+        // Redirect only if not scheduled
         if (!isScheduled) {
-            // Prepare the URL for the chosen provider
-            if (provider === 'gmail') {
-                // Gmail uses commas for multiple recipients
-                const toList = recipients.join(',');
-                const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(toList)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
-                window.open(gmailUrl, '_blank');
-                toast.success(`${recipients.length} e-mail(s) preparado(s) no Gmail.`, {
-                    description: "Comunicados registrados individualmente para rastreio.",
-                });
-            } else {
-                // Outlook web uses semicolons for multiple recipients
-                const toList = recipients.join(';');
-                const outlookUrl = `https://outlook.office.com/mail/deeplink/compose?to=${encodeURIComponent(toList)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
-                window.open(outlookUrl, '_blank');
-                toast.success(`${recipients.length} e-mail(s) preparado(s) no Outlook.`, {
-                    description: "Comunicados registrados individualmente para rastreio.",
-                });
-            }
+            const toList = recipients.join(provider === 'gmail' ? ',' : ';');
+            const baseUrl = provider === 'gmail' 
+                ? 'https://mail.google.com/mail/?view=cm&fs=1&to=' 
+                : 'https://outlook.office.com/mail/deeplink/compose?to=';
+            const subjectParam = provider === 'gmail' ? '&su=' : '&subject=';
+            
+            const url = `${baseUrl}${encodeURIComponent(toList)}${subjectParam}${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
+            window.open(url, '_blank');
+            
+            toast.success(`${successCount} comunicado(s) preparados no ${provider.charAt(0).toUpperCase() + provider.slice(1)}.`);
         } else {
-            toast.success(`${recipients.length} comunicado(s) agendado(s)!`, {
-                description: `Será enviado em ${format(new Date(`${scheduledDate}T${scheduledTime}:00`), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}.`,
-            });
+            toast.success(`${successCount} comunicado(s) agendado(s) com sucesso!`);
         }
-
-        // Limpar campos
-        setTo('');
-        setSubject('');
-        setMessage('');
-        setIsScheduled(false);
-        setScheduledDate('');
-        setScheduledTime('');
     };
 
     const getStatusIcon = (status: string) => {
         switch (status) {
-            case 'read': return <Eye className="h-4 w-4 text-primary" />;
-            case 'delivered': return <CheckCircle2 className="h-4 w-4 text-success" />;
-            case 'scheduled': return <CalendarIcon className="h-4 w-4 text-amber-500" />;
-            default: return <Clock className="h-4 w-4 text-muted-foreground" />;
+            case 'read': return <Eye className="h-3.5 w-3.5 text-primary" />;
+            case 'delivered': return <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />;
+            case 'scheduled': return <CalendarIcon className="h-3.5 w-3.5 text-amber-500" />;
+            default: return <Clock className="h-3.5 w-3.5 text-muted-foreground/60" />;
         }
     };
-
-    const getStatusText = (status: string) => {
-        switch (status) {
-            case 'read': return 'Lido';
-            case 'delivered': return 'Entregue';
-            case 'scheduled': return 'Agendado';
-            default: return 'Enviado';
-        }
-    };
-
-    const filteredAnnouncements = announcements.filter(a =>
-        activeDept === 'geral' ? true : a.department === activeDept
-    );
 
     return (
-        <div className="space-y-8 animate-fade-in max-w-7xl mx-auto pb-12">
-            {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-border pb-6">
-                <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-primary mb-1">
-                        <Shield className="h-4 w-4 fill-primary/20" />
-                        <span className="text-[10px] uppercase tracking-[0.3em] font-semibold">Comunicação Oficial</span>
+        <div className="space-y-10 animate-fade-in max-w-[1400px] mx-auto pb-16 px-4 md:px-8">
+            {/* Minimalist Premium Header */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 border-b border-border/40 pb-10">
+                <div className="space-y-3">
+                    <div className="flex items-center gap-3 text-primary mb-1 group cursor-default">
+                        <div className="h-9 w-9 rounded-2xl bg-primary/10 flex items-center justify-center transition-all group-hover:rotate-12 group-hover:scale-110 shadow-sm border border-primary/20">
+                            <Shield className="h-4.5 w-4.5 fill-primary/20" />
+                        </div>
+                        <span className="text-[10px] uppercase font-light tracking-[0.5em] opacity-50">Central de Comunicações</span>
                     </div>
-                    <h2 className="text-4xl font-light tracking-tight text-foreground">
-                        Central de <span className="font-semibold text-primary">Comunicados</span>
+                    <h2 className="text-4xl md:text-5xl font-light tracking-tight text-foreground flex items-center gap-4">
+                        Fluxo de <span className="font-light text-primary italic relative">
+                            Informativos
+                            <span className="absolute -bottom-1 left-0 w-full h-[0.5px] bg-primary/30" />
+                        </span>
                     </h2>
-                    <p className="text-muted-foreground font-light max-w-md">
-                        Envie informativos e avisos importantes segmentados por departamento.
+                    <p className="text-muted-foreground font-light max-w-xl text-sm leading-relaxed opacity-70">
+                        Gestão organizada de comunicados por pastas temáticas e departamentos. 
+                        Agende disparos e monitore o histórico de interações.
                     </p>
+                </div>
+
+                <div className="flex items-center gap-4">
+                    <Button 
+                        onClick={() => setIsComposerOpen(true)}
+                        className="h-14 rounded-2xl px-8 bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20 font-light text-[11px] uppercase tracking-[0.2em] gap-3 transition-all active:scale-95 group"
+                    >
+                        <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" /> Novo Comunicado
+                    </Button>
                 </div>
             </div>
 
-            <Tabs defaultValue="geral" className="w-full space-y-8" onValueChange={setActiveDept}>
-                <div className="flex items-center justify-between border-b border-border/50 pb-4">
-                    <TabsList className="bg-secondary/40 p-1 rounded-2xl border border-border/40">
-                        {DEPARTMENTS.map(dept => (
-                            <TabsTrigger
-                                key={dept.id}
-                                value={dept.id}
-                                className="rounded-xl px-6 py-2.5 data-[state=active]:bg-background data-[state=active]:shadow-md transition-all font-light text-xs uppercase tracking-widest"
-                            >
-                                <span className={cn("mr-2.5 h-1.5 w-1.5 rounded-full transition-all", dept.id === activeDept ? "bg-primary scale-125" : "bg-muted-foreground/30")} />
-                                {dept.name}
-                            </TabsTrigger>
-                        ))}
-                    </TabsList>
-                </div>
-
-                <div className="grid gap-8 lg:grid-cols-12 items-start">
-                    {/* Main Composition Card */}
-                    <div className="lg:col-span-12 space-y-6">
-                        <Card className="border-none bg-card shadow-card overflow-hidden transition-all duration-500 hover:shadow-card-hover border border-border/5">
-                            <div className={cn("h-1.5 w-full bg-gradient-to-r transition-all duration-500",
-                                activeDept === 'fiscal' ? "from-orange-500 via-orange-400 to-orange-300" :
-                                    activeDept === 'pessoal' ? "from-blue-500 via-blue-400 to-blue-300" :
-                                        activeDept === 'contabil' ? "from-emerald-500 via-emerald-400 to-emerald-300" :
-                                            activeDept === 'financeiro' ? "from-purple-500 via-purple-400 to-purple-300" :
-                                                "from-primary via-accent to-primary/50"
+            {/* Department Navigation Tabs */}
+            <div className="w-full flex justify-center py-4">
+                <div className="bg-muted/20 backdrop-blur-md p-1.5 rounded-[2.5rem] border border-border/30 inline-flex shadow-inner">
+                    {DEPARTMENTS.map(dept => (
+                        <button
+                            key={dept.id}
+                            onClick={() => {
+                                setActiveDept(dept.id);
+                                setSelectedFolderId(null);
+                            }}
+                            className={cn(
+                                "rounded-full px-10 py-3 transition-all font-light text-[10px] uppercase tracking-widest flex items-center gap-3 relative overflow-hidden",
+                                activeDept === dept.id 
+                                    ? "bg-card text-primary shadow-lg transform scale-105 border border-primary/5" 
+                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                            )}
+                        >
+                            <span className={cn(
+                                "h-1.5 w-1.5 rounded-full transition-all", 
+                                activeDept === dept.id ? "bg-primary animate-pulse" : "bg-muted-foreground/30"
                             )} />
-                            <CardHeader className="pt-8 px-8">
-                                <div className="flex items-center justify-between">
-                                    <CardTitle className="text-xl font-light flex items-center gap-3">
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/5 border border-primary/10">
-                                            <Send className="h-4 w-4 text-primary" />
+                            {dept.name}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+                {/* SIDEBAR: Folder List */}
+                <aside className="lg:col-span-3 space-y-8 lg:sticky lg:top-28">
+                    <div className="bg-card/40 backdrop-blur-xl border border-border/40 rounded-[2.5rem] p-7 shadow-sm space-y-10">
+                        {/* Folder Section */}
+                        <div className="space-y-6">
+                            <div className="flex items-center justify-between px-3">
+                                <h4 className="text-[10px] font-light uppercase tracking-[0.3em] text-primary/60 flex items-center gap-2.5">
+                                    <FolderOpen className="h-3 w-3" /> Pastas
+                                </h4>
+                                <button 
+                                    onClick={() => setIsNewFolderDialogOpen(true)}
+                                    className="h-7 w-7 flex items-center justify-center rounded-xl bg-primary/5 text-primary border border-primary/10 hover:bg-primary/10 transition-all hover:scale-110"
+                                    title="Nova Pasta"
+                                >
+                                    <Plus className="h-4 w-4" />
+                                </button>
+                            </div>
+
+                            <div className="space-y-2">
+                                {/* Default Folder: Geral */}
+                                <button
+                                    onClick={() => setSelectedFolderId(null)}
+                                    className={cn(
+                                        "w-full flex items-center justify-between px-5 py-4 rounded-2xl transition-all group overflow-hidden relative",
+                                        selectedFolderId === null 
+                                            ? "bg-primary/[0.04] text-primary border border-primary/10 shadow-sm" 
+                                            : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                                    )}
+                                >
+                                    <div className="flex items-center gap-4 relative z-10">
+                                        <div className={cn(
+                                            "h-8 w-8 rounded-xl flex items-center justify-center transition-all",
+                                            selectedFolderId === null ? "bg-primary/10 shadow-sm" : "bg-muted/50"
+                                        )}>
+                                            <Inbox className={cn("h-4 w-4 transition-transform group-hover:scale-110", selectedFolderId === null ? "text-primary" : "opacity-30")} />
                                         </div>
-                                        Composição do Comunicado
-                                    </CardTitle>
-                                    <div className={cn(
-                                        "px-4 py-1.5 rounded-full border text-[9px] font-semibold uppercase tracking-widest",
-                                        DEPARTMENTS.find(d => d.id === activeDept)?.bg,
-                                        DEPARTMENTS.find(d => d.id === activeDept)?.color,
-                                        "border-current/20 shadow-sm"
-                                    )}>
-                                        {DEPARTMENTS.find(d => d.id === activeDept)?.name}
+                                        <span className="text-xs font-light tracking-wide">Geral</span>
                                     </div>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="space-y-8 p-8 pt-2">
-                                {/* Fields Row */}
-                                <div className="grid gap-6 md:grid-cols-2">
-                                    <div className="space-y-2 group">
-                                        <Label htmlFor="to" className="text-[10px] font-bold uppercase tracking-[2px] text-muted-foreground group-focus-within:text-primary transition-colors">
-                                            Destinatários
-                                        </Label>
-                                        <div className="relative">
-                                            <Input
-                                                id="to"
-                                                placeholder="email1@exemplo.com, email2@exemplo.com"
-                                                value={to}
-                                                onChange={(e) => setTo(e.target.value)}
-                                                className="bg-secondary/20 border-border/40 focus-visible:ring-primary/30 h-11 rounded-xl transition-all pl-10 text-xs font-light"
-                                            />
-                                            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/40">
-                                                <Mail className="h-3.5 w-3.5" />
+                                    <span className="text-[10px] tabular-nums opacity-40 font-light relative z-10">
+                                        {announcements.filter(a => a.department === activeDept && !a.folder_id).length}
+                                    </span>
+                                </button>
+
+                                {/* Custom Folders */}
+                                {deptFolders.map(folder => (
+                                    <div key={folder.id} className="relative group">
+                                        <button
+                                            onClick={() => setSelectedFolderId(folder.id)}
+                                            className={cn(
+                                                "w-full flex items-center justify-between px-5 py-4 rounded-2xl transition-all group overflow-hidden relative",
+                                                selectedFolderId === folder.id 
+                                                    ? "bg-primary/[0.04] text-primary border border-primary/10 shadow-sm" 
+                                                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                                            )}
+                                        >
+                                            <div className="flex items-center gap-4 relative z-10">
+                                                <div className={cn(
+                                                    "h-8 w-8 rounded-xl flex items-center justify-center transition-all",
+                                                    selectedFolderId === folder.id ? "bg-primary/10 shadow-sm" : "bg-muted/50"
+                                                )}>
+                                                    <Target className={cn("h-4 w-4 shrink-0 transition-transform group-hover:scale-110", selectedFolderId === folder.id ? "text-primary" : "opacity-30")} />
+                                                </div>
+                                                <span className="text-xs font-light tracking-wide truncate max-w-[120px]">{folder.name}</span>
                                             </div>
-                                        </div>
+                                            <div className="flex items-center gap-3 relative z-10">
+                                                <span className="text-[10px] tabular-nums opacity-40 font-light">
+                                                    {announcements.filter(a => a.folder_id === folder.id).length}
+                                                </span>
+                                            </div>
+                                        </button>
+                                        
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <button className="absolute right-12 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 h-7 w-7 transition-all hover:bg-muted flex items-center justify-center rounded-xl bg-card border border-border/20 z-20 shadow-md">
+                                                    <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
+                                                </button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent className="rounded-2xl border-border/50 bg-card shadow-elevated p-1.5">
+                                                <DropdownMenuItem 
+                                                    className="text-destructive font-light text-[11px] gap-2.5 cursor-pointer rounded-xl py-2 px-3 focus:bg-destructive/10"
+                                                    onClick={(e) => { e.stopPropagation(); deleteFolder(folder.id); if (selectedFolderId === folder.id) setSelectedFolderId(null); }}
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5" /> Excluir Pasta
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                     </div>
+                                ))}
 
-                                    <div className="space-y-2 group">
-                                        <Label htmlFor="subject" className="text-[10px] font-bold uppercase tracking-[2px] text-muted-foreground group-focus-within:text-primary transition-colors">
-                                            Assunto da Mensagem
-                                        </Label>
-                                        <Input
-                                            id="subject"
-                                            placeholder="Ex: Atualização de Documentos Fiscais"
-                                            value={subject}
-                                            onChange={(e) => setSubject(e.target.value)}
-                                            className="bg-secondary/20 border-border/40 focus-visible:ring-primary/30 h-11 rounded-xl transition-all text-xs font-light"
-                                        />
+                                {deptFolders.length === 0 && (
+                                    <div 
+                                        className="p-10 text-center border border-dashed border-border/40 rounded-3xl mt-6 opacity-40 group hover:opacity-100 hover:border-primary/20 hover:bg-primary/[0.01] transition-all cursor-pointer" 
+                                        onClick={() => setIsNewFolderDialogOpen(true)}
+                                    >
+                                        <FolderPlus className="h-8 w-8 mx-auto mb-3 opacity-10 group-hover:text-primary group-hover:opacity-100 transition-all transform group-hover:-rotate-6" />
+                                        <p className="text-[9px] font-light uppercase tracking-[0.2em]">Criar pasta temática</p>
                                     </div>
-                                </div>
+                                )}
+                            </div>
+                        </div>
 
-                                <div className="space-y-2 group">
-                                    <Label htmlFor="message" className="text-[10px] font-bold uppercase tracking-[2px] text-muted-foreground group-focus-within:text-primary transition-colors flex justify-between">
-                                        Conteúdo do Informativo
-                                        <span className="font-normal lowercase opacity-40 tabular-nums">{message.length} chars</span>
-                                    </Label>
-                                    <Textarea
-                                        id="message"
-                                        placeholder="Escreva sua mensagem aqui..."
-                                        rows={8}
-                                        value={message}
-                                        onChange={(e) => setMessage(e.target.value)}
-                                        className="bg-secondary/20 border-border/40 focus-visible:ring-primary/30 rounded-xl transition-all resize-none p-4 text-sm leading-relaxed font-light min-h-[240px]"
+                        {/* Search & Stats */}
+                        <div className="pt-8 border-t border-border/20 space-y-6">
+                            <div className="space-y-3">
+                                <h4 className="text-[10px] font-light uppercase tracking-widest text-primary/60 px-3">Filtro Rápido</h4>
+                                <div className="relative group">
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                        <Search className="h-4 w-4 text-muted-foreground/30 transition-colors group-focus-within:text-primary/40" />
+                                    </div>
+                                    <input
+                                        type="text"
+                                        placeholder="Buscar..."
+                                        value={searchQuery}
+                                        onChange={e => setSearchQuery(e.target.value)}
+                                        className="h-12 w-full rounded-2xl border border-border/40 bg-muted/20 pl-11 pr-4 text-xs font-light focus:bg-card focus:border-primary/30 focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all shadow-inner"
                                     />
                                 </div>
+                            </div>
 
-                                {/* Scheduling Row */}
-                                <div className="pt-6 border-t border-border/30">
-                                    <div className="rounded-2xl bg-secondary/10 border border-border/40 p-5 space-y-4">
-                                        <div className="flex items-center justify-between">
-                                            <div className="space-y-1">
-                                                <div className="flex items-center gap-2">
-                                                    <CalendarIcon className="h-3.5 w-3.5 text-primary/70" />
-                                                    <Label className="text-xs font-semibold uppercase tracking-wide">Agendar Envio Permanente</Label>
-                                                </div>
-                                                <p className="text-[10px] text-muted-foreground font-light">Programe esse comunicado para um momento estratégico.</p>
-                                            </div>
-                                            <Switch
-                                                checked={isScheduled}
-                                                onCheckedChange={setIsScheduled}
-                                                className="data-[state=checked]:bg-primary"
-                                            />
+                            <div className="bg-primary/[0.02] border border-primary/10 rounded-2xl p-4 flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                    <p className="text-[9px] text-muted-foreground font-light uppercase tracking-widest">Capacidade Mensal</p>
+                                    <p className="text-xs font-light text-foreground">Infinita</p>
+                                </div>
+                                <Shield className="h-5 w-5 text-primary/20" />
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+
+                {/* MAIN CONTENT Area */}
+                <main className="lg:col-span-9 space-y-8">
+                    <Card className="border-none bg-card/60 backdrop-blur-sm shadow-2xl rounded-[3rem] overflow-hidden border border-white/10">
+                        <CardHeader className="bg-primary/[0.03] px-10 py-10 border-b border-primary/10 flex flex-col sm:flex-row items-center justify-between gap-6">
+                            <div className="space-y-2.5 px-2">
+                                <div className="flex items-center gap-3">
+                                    <span className="px-2.5 py-1 rounded-full bg-primary/10 text-[9px] uppercase font-bold tracking-widest text-primary border border-primary/10">{activeDept}</span>
+                                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/30" />
+                                    <span className="text-[10px] uppercase font-light tracking-[0.2em] text-foreground opacity-60">{activeFolder?.name || 'Geral'}</span>
+                                </div>
+                                <CardTitle className="text-2xl font-light text-foreground flex items-center gap-4">
+                                    <div className="h-10 w-10 rounded-2xl bg-white/50 border border-border/40 flex items-center justify-center shadow-sm">
+                                        {activeFolder ? <Target className="h-5 w-5 text-primary/70" /> : <Inbox className="h-5 w-5 text-primary/70" />}
+                                    </div>
+                                    <span>Fluxo de <span className="font-light text-primary">{activeFolder?.name || 'Entregas Gerais'}</span></span>
+                                </CardTitle>
+                            </div>
+                            
+                            <div className="flex items-center gap-4">
+                                <div className="text-right hidden sm:block px-4 border-r border-border/40">
+                                    <p className="text-[10px] text-muted-foreground font-light uppercase tracking-widest mb-0.5 line-clamp-1">Volume do Filtro</p>
+                                    <p className="text-2xl font-light text-foreground tabular-nums tracking-tighter">{filteredAnnouncements.length}</p>
+                                </div>
+                                <Button variant="ghost" size="icon" className="h-12 w-12 rounded-2xl bg-muted/40 hover:bg-muted text-muted-foreground/70 transition-all border border-border/20">
+                                    <Filter className="h-4.5 w-4.5" />
+                                </Button>
+                            </div>
+                        </CardHeader>
+
+                        <CardContent className="p-0">
+                            {loading ? (
+                                <div className="py-48 flex flex-col items-center gap-6 text-muted-foreground">
+                                    <div className="relative">
+                                        <Loader2 className="h-16 w-16 animate-spin text-primary opacity-20" />
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <div className="h-2 w-2 rounded-full bg-primary animate-ping" />
                                         </div>
-
-                                        {isScheduled && (
-                                            <div className="grid grid-cols-2 gap-4 pt-2 animate-in fade-in slide-in-from-top-3">
-                                                <div className="space-y-1.5">
-                                                    <Label className="text-[9px] uppercase tracking-wider opacity-60">Escolha a Data</Label>
-                                                    <Input
-                                                        type="date"
-                                                        value={scheduledDate}
-                                                        onChange={(e) => setScheduledDate(e.target.value)}
-                                                        className="h-10 bg-background/50 border-border/40 text-xs rounded-lg"
-                                                    />
-                                                </div>
-                                                <div className="space-y-1.5">
-                                                    <Label className="text-[9px] uppercase tracking-wider opacity-60">Escolha o Horário</Label>
-                                                    <Input
-                                                        type="time"
-                                                        value={scheduledTime}
-                                                        onChange={(e) => setScheduledTime(e.target.value)}
-                                                        className="h-10 bg-background/50 border-border/40 text-xs rounded-lg"
-                                                    />
-                                                </div>
-                                            </div>
-                                        )}
+                                    </div>
+                                    <div className="space-y-1 text-center">
+                                        <p className="text-[11px] font-light uppercase tracking-[0.3em]">Carregando Registros</p>
+                                        <p className="text-[9px] opacity-40 font-light italic">Sincronizando com a nuvem...</p>
                                     </div>
                                 </div>
-
-                                {/* Send Buttons */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                                    <Button
-                                        onClick={() => handleSend('gmail')}
-                                        className="h-14 rounded-2xl bg-[#EA4335] hover:bg-[#EA4335]/90 text-white border-none shadow-lg shadow-[#EA4335]/10 group transition-all"
+                            ) : filteredAnnouncements.length === 0 ? (
+                                <div className="py-48 flex flex-col items-center gap-8 text-center px-12 animate-in fade-in zoom-in-95 duration-500">
+                                    <div className="relative">
+                                        <div className="h-28 w-28 rounded-[3rem] bg-gradient-to-br from-muted/10 to-muted/20 flex items-center justify-center border border-border/20 shadow-inner group">
+                                            <History className="h-10 w-10 text-muted-foreground/10 group-hover:scale-110 transition-transform duration-500" />
+                                        </div>
+                                        <div className="absolute -bottom-2 -right-2 h-10 w-10 rounded-2xl bg-card border border-border shadow-soft flex items-center justify-center animate-bounce">
+                                            <Plus className="h-4 w-4 text-primary" />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-3 max-w-sm">
+                                        <h3 className="text-lg font-light text-foreground uppercase tracking-widest">Nenhum registro</h3>
+                                        <p className="text-xs font-light text-muted-foreground leading-relaxed">
+                                            Esta sessão histórica ainda não contém disparos registrados para este agrupamento.
+                                        </p>
+                                    </div>
+                                    <Button 
+                                        onClick={() => setIsComposerOpen(true)}
+                                        variant="outline" 
+                                        className="h-12 rounded-2xl px-10 font-light text-[10px] uppercase tracking-[0.2em] border-primary/20 text-primary hover:bg-primary/5 transition-all mt-4"
                                     >
-                                        <div className="flex items-center gap-3">
-                                            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-                                                <path d="M24 4.5v15c0 .85-.65 1.5-1.5 1.5H21V7.39l-9 6.49-9-6.49V21H1.5C.65 21 0 20.35 0 19.5v-15c0-.42.17-.8.45-1.1.28-.3.65-.4 1.05-.4L12 10.11 22.5 3c.4 0 .77.1 1.05.4.28.3.45.68.45 1.1z" />
-                                            </svg>
-                                            <div className="flex flex-col items-start leading-none">
-                                                <span className="text-[10px] uppercase tracking-widest opacity-70">Enviar via</span>
-                                                <span className="font-semibold text-sm tracking-wide">Gmail Corporate</span>
-                                            </div>
-                                        </div>
-                                    </Button>
-
-                                    <Button
-                                        onClick={() => handleSend('outlook')}
-                                        className="h-14 rounded-2xl bg-[#0078D4] hover:bg-[#0078D4]/90 text-white border-none shadow-lg shadow-[#0078D4]/10 group transition-all"
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-                                                <path d="M11.5 2C10.7 2 10 2.7 10 3.5v1.6L2.6 7.6C1.6 8 1 9 1 10.1v7c0 1.1.7 2.1 1.7 2.5l7.3 2.5V22c0 .8.7 1.5 1.5 1.5h9c.8 0 1.5-.7 1.5-1.5V3.5c0-.8-.7-1.5-1.5-1.5h-9zm0 2h9v17.5l-9-3V4zm-2 3.6v10.8L3 16.5v-7L9.5 7.6z" />
-                                            </svg>
-                                            <div className="flex flex-col items-start leading-none">
-                                                <span className="text-[10px] uppercase tracking-widest opacity-70">Enviar via</span>
-                                                <span className="font-semibold text-sm tracking-wide">Outlook Business</span>
-                                            </div>
-                                        </div>
+                                        Iniciar Primeira Comunicação
                                     </Button>
                                 </div>
-                            </CardContent>
-                        </Card>
-                    </div>
+                            ) : (
+                                <div className="divide-y divide-border/20 animate-in fade-in duration-500">
+                                    {filteredAnnouncements.map((item, idx) => (
+                                        <div 
+                                            key={item.id} 
+                                            className="px-10 py-10 hover:bg-primary/[0.015] transition-all flex items-center justify-between group cursor-default relative overflow-hidden"
+                                            style={{ animationDelay: `${idx * 50}ms` }}
+                                        >
+                                            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-12 bg-primary rounded-r-full scale-y-0 group-hover:scale-y-100 transition-transform duration-500" />
+                                            
+                                            <div className="flex items-center gap-10 min-w-0">
+                                                <div className="flex flex-col items-center gap-1.5 shrink-0 bg-muted/10 p-4 rounded-2xl border border-border/10">
+                                                    <span className="text-[22px] font-light text-foreground tabular-nums leading-none tracking-tighter">
+                                                        {format(new Date(item.created_at), "dd")}
+                                                    </span>
+                                                    <span className="text-[10px] uppercase font-light tracking-[0.2em] text-muted-foreground opacity-60">
+                                                        {format(new Date(item.created_at), "MMM", { locale: ptBR })}
+                                                    </span>
+                                                </div>
 
-
-
-                    {/* Full Width History Section */}
-                    <div className="lg:col-span-12">
-                        <Card className="border-none bg-card shadow-card overflow-hidden">
-                            <CardHeader className="border-b border-border/40 pb-6 pt-8 px-8 flex flex-row items-center justify-between">
-                                <div className="space-y-1">
-                                    <CardTitle className="text-xl font-light flex items-center gap-2">
-                                        <History className="h-5 w-5 text-muted-foreground/60" />
-                                        Histórico de Comunicados
-                                    </CardTitle>
-                                    <CardDescription className="text-xs font-light">
-                                        Logs detalhados de todas as interações do setor {DEPARTMENTS.find(d => d.id === activeDept)?.name}.
-                                    </CardDescription>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Button variant="outline" size="sm" className="h-8 rounded-lg text-[10px] uppercase tracking-widest font-light border-border/50">
-                                        <Filter className="h-3 w-3 mr-2 opacity-50" /> Filtrar Lista
-                                    </Button>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="p-0">
-                                <div className="divide-y divide-border/30">
-                                    {loading ? (
-                                        <div className="p-16 text-center text-muted-foreground flex flex-col items-center gap-3">
-                                            <Clock className="h-10 w-10 animate-pulse opacity-20" />
-                                            <p className="text-sm font-light">Sincronizando registros do servidor...</p>
-                                        </div>
-                                    ) : filteredAnnouncements.length === 0 ? (
-                                        <div className="p-20 text-center text-muted-foreground flex flex-col items-center gap-4">
-                                            <div className="h-16 w-16 rounded-3xl bg-secondary/50 flex items-center justify-center">
-                                                <Search className="h-8 w-8 opacity-10" />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <p className="text-sm font-medium">Nenhum registro encontrado</p>
-                                                <p className="text-xs font-light opacity-50">Inicie uma nova comunicação para este setor.</p>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="grid divide-y divide-border/30">
-                                            {filteredAnnouncements.map((item) => (
-                                                <div key={item.id} className="p-6 hover:bg-secondary/10 transition-colors flex items-center justify-between group">
-                                                    <div className="flex items-center gap-5">
-                                                        <div className={cn("h-11 w-11 rounded-2xl flex items-center justify-center border border-current/10 shadow-sm transition-transform group-hover:scale-105",
-                                                            DEPARTMENTS.find(d => d.id === item.department)?.bg || "bg-secondary"
-                                                        )}>
-                                                            <Mail className={cn("h-4 w-4",
-                                                                DEPARTMENTS.find(d => d.id === item.department)?.color || "text-muted-foreground"
-                                                            )} />
-                                                        </div>
-                                                        <div className="space-y-1">
-                                                            <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">{item.subject}</p>
-                                                            <div className="flex items-center gap-4">
-                                                                <span className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-                                                                    <Users className="h-3 w-3 opacity-40" />
-                                                                    {item.recipient}
-                                                                </span>
-                                                                <span className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-                                                                    <Clock className="h-3 w-3 opacity-40" />
-                                                                    {item.status === 'scheduled' && item.scheduled_for
-                                                                        ? `Agendado: ${format(new Date(item.scheduled_for), "dd/MM/yyyy, HH:mm", { locale: ptBR })}`
-                                                                        : item.sent_at ? format(new Date(item.sent_at), "dd 'de' MMMM, HH:mm", { locale: ptBR }) : 'Pendente'}
-                                                                </span>
+                                                <div className="space-y-2.5 min-w-0">
+                                                    <div className="flex items-center gap-4">
+                                                        <h4 className="text-base font-light text-foreground truncate group-hover:text-primary transition-colors max-w-[320px]">
+                                                            {item.subject}
+                                                        </h4>
+                                                        {item.is_scheduled && (
+                                                            <div className="px-2.5 py-1 rounded-full bg-amber-500/5 border border-amber-500/20 text-[9px] font-bold text-amber-600 uppercase tracking-widest flex items-center gap-1.5">
+                                                                <Clock className="h-3 w-3" /> Agendado
                                                             </div>
-                                                        </div>
+                                                        )}
                                                     </div>
                                                     <div className="flex items-center gap-8">
-                                                        <div className="flex flex-col items-end gap-1.5">
-                                                            <div className={cn(
-                                                                "flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border shadow-sm",
-                                                                item.status === 'scheduled' ? "bg-amber-500/10 text-amber-500 border-amber-500/20" :
-                                                                    item.status === 'read' ? "bg-primary/10 text-primary border-primary/20" :
-                                                                        "bg-secondary/50 text-muted-foreground border-border/50"
-                                                            )}>
-                                                                {getStatusIcon(item.status)}
-                                                                {getStatusText(item.status)}
+                                                        <div className="flex items-center gap-2.5 text-xs text-muted-foreground font-light">
+                                                            <div className="h-5 w-5 rounded-full bg-muted/60 flex items-center justify-center">
+                                                                <Users className="h-2.5 w-2.5 opacity-40" />
                                                             </div>
-                                                            <span className="text-[8px] text-muted-foreground font-bold opacity-30 uppercase tracking-tighter">ID: {item.id.slice(0, 8)}</span>
+                                                            <span className="truncate max-w-[200px]">{item.recipient}</span>
                                                         </div>
-                                                        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl opacity-0 group-hover:opacity-100 transition-all hover:bg-primary/10 hover:text-primary">
-                                                            <ArrowRight className="h-5 w-5" />
-                                                        </Button>
+                                                        <div className="flex items-center gap-2.5 text-xs text-muted-foreground font-light hidden md:flex">
+                                                            <div className="h-5 w-5 rounded-full bg-muted/60 flex items-center justify-center">
+                                                                <History className="h-2.5 w-2.5 opacity-40" />
+                                                            </div>
+                                                            <span>{format(new Date(item.created_at), "HH:mm")}h</span>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            ))}
+                                            </div>
+
+                                            <div className="flex items-center gap-14 shrink-0">
+                                                <div className="flex flex-col items-end gap-2 text-right">
+                                                    <div className={cn(
+                                                        "flex items-center gap-2.5 px-4 py-2 rounded-2xl text-[10px] font-light uppercase tracking-widest border transition-all shadow-sm",
+                                                        item.status === 'scheduled' ? "bg-amber-500/5 text-amber-500 border-amber-500/10" :
+                                                        item.status === 'sent' || item.status === 'delivered' ? "bg-emerald-500/5 text-emerald-600 border-emerald-500/10" :
+                                                        item.status === 'read' ? "bg-primary/5 text-primary border-primary/10" :
+                                                        "bg-muted/10 text-muted-foreground border-border/20"
+                                                    )}>
+                                                        {getStatusIcon(item.status)}
+                                                        {item.status}
+                                                    </div>
+                                                    {item.is_scheduled && item.scheduled_for && (
+                                                        <span className="text-[10px] text-amber-600 font-light italic opacity-70 flex items-center gap-1.5 justify-end">
+                                                            <CalendarIcon className="h-3 w-3" />
+                                                            {format(new Date(item.scheduled_for), "dd/MM/yy 'às' HH:mm")}
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
+                                                    <Button variant="ghost" size="icon" className="h-11 w-11 rounded-2xl bg-white hover:bg-muted border border-border/40 shadow-sm transition-all active:scale-90">
+                                                        <ArrowRight className="h-4.5 w-4.5 text-muted-foreground" />
+                                                    </Button>
+                                                    
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button variant="ghost" size="icon" className="h-11 w-11 rounded-2xl bg-white hover:bg-destructive/5 hover:text-destructive border border-border/40 shadow-sm transition-all active:scale-90">
+                                                                <Trash2 className="h-4.5 w-4.5 opacity-40 group-hover:opacity-100" />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end" className="rounded-2xl border-border/50 shadow-elevated p-1.5 min-w-[180px]">
+                                                            <DropdownMenuItem 
+                                                                className="text-destructive font-light text-[11px] gap-3 cursor-pointer p-3 rounded-xl focus:bg-destructive/10"
+                                                                onClick={() => deleteAnnouncement(item.id)}
+                                                            >
+                                                                <Trash2 className="h-4 w-4" /> Confirmar Exclusão
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                </div>
+                                            </div>
                                         </div>
-                                    )}
+                                    ))}
                                 </div>
-                            </CardContent>
-                        </Card>
+                            )}
+                        </CardContent>
+                    </Card>
+                </main>
+            </div>
+
+            {/* DIALOG: New Folder */}
+            <Dialog open={isNewFolderDialogOpen} onOpenChange={setIsNewFolderDialogOpen}>
+                <DialogContent className="max-w-md bg-card border-none rounded-[2rem] p-0 overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300">
+                    <div className="bg-primary/5 border-b border-primary/10 p-8 pb-6">
+                        <DialogTitle className="text-2xl font-light tracking-tight text-foreground">
+                            Nova <span className="font-light text-primary">Pasta Temática</span>
+                        </DialogTitle>
+                        <p className="text-[10px] text-muted-foreground font-light uppercase tracking-widest mt-1.5">Crie um organizador para o setor {activeDept}</p>
                     </div>
-                </div>
-            </Tabs>
+                    <div className="p-8 space-y-6">
+                        <div className="space-y-2.5">
+                            <Label className="text-[10px] font-light text-muted-foreground uppercase tracking-widest flex items-center gap-2 ml-1">
+                                <Tags className="h-3 w-3 opacity-50" /> Nome da Pasta
+                            </Label>
+                            <Input
+                                placeholder="Ex: DAS, FGTS, Imposto de Renda..."
+                                value={newFolderName}
+                                onChange={(e) => setNewFolderName(e.target.value)}
+                                className="h-12 rounded-xl border-border/50 bg-muted/20 text-sm font-light transition-all focus:border-primary/20"
+                                autoFocus
+                            />
+                            <p className="text-[9px] text-muted-foreground/50 italic px-1">Isso ajudará a agrupar todos os comunicados deste assunto.</p>
+                        </div>
+
+                        <DialogFooter className="pt-4">
+                            <Button 
+                                variant="ghost" 
+                                onClick={() => setIsNewFolderDialogOpen(false)}
+                                className="rounded-xl font-light text-[10px] uppercase tracking-widest px-8"
+                            >
+                                Cancelar
+                            </Button>
+                            <Button 
+                                onClick={handleCreateFolder}
+                                disabled={!newFolderName.trim()}
+                                className="rounded-xl shadow-lg shadow-primary/20 font-light text-[10px] uppercase tracking-widest px-8 transition-all active:scale-95"
+                            >
+                                Criar Pasta
+                            </Button>
+                        </DialogFooter>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* COMPOSER DIALOG */}
+            <AnnouncementComposer 
+                open={isComposerOpen}
+                onOpenChange={setIsComposerOpen}
+                department={activeDept}
+                folderId={selectedFolderId || undefined}
+                folderName={activeFolder?.name || 'Geral'}
+                onSend={handleSendSubmit}
+            />
         </div>
     );
 }
