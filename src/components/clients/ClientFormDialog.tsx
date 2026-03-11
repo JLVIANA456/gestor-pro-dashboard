@@ -63,6 +63,7 @@ interface FormData {
   responsavelContabil: string;
   responsavelFinanceiro: string;
   responsavelQualidade: string;
+  responsavelEmpresa: string;
 }
 
 const initialFormData: FormData = {
@@ -94,6 +95,7 @@ const initialFormData: FormData = {
   responsavelContabil: '',
   responsavelFinanceiro: '',
   responsavelQualidade: '',
+  responsavelEmpresa: '',
 };
 
 export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientFormDialogProps) {
@@ -134,6 +136,7 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
         responsavelContabil: client.responsavelContabil || '',
         responsavelFinanceiro: client.responsavelFinanceiro || '',
         responsavelQualidade: client.responsavelQualidade || '',
+        responsavelEmpresa: client.responsavelEmpresa || '',
       });
       setSocios(client.quadroSocietario.length > 0
         ? client.quadroSocietario
@@ -260,6 +263,7 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
       responsavelContabil: formData.responsavelContabil || undefined,
       responsavelFinanceiro: formData.responsavelFinanceiro || undefined,
       responsavelQualidade: formData.responsavelQualidade || undefined,
+      responsavelEmpresa: formData.responsavelEmpresa || undefined,
     };
 
     onSave(clientData);
@@ -299,6 +303,18 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
                   className="rounded-xl h-11 font-light"
                   value={formData.nomeFantasia}
                   onChange={(e) => handleInputChange('nomeFantasia', e.target.value)}
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-1">
+              <div className="space-y-2">
+                <Label className="text-xs font-normal">Responsável pela Empresa (Pessoa de Contato)</Label>
+                <Input
+                  placeholder="Nome do responsável direto na empresa"
+                  className="rounded-xl h-11 font-light"
+                  value={formData.responsavelEmpresa}
+                  onChange={(e) => handleInputChange('responsavelEmpresa', e.target.value)}
                 />
               </div>
             </div>

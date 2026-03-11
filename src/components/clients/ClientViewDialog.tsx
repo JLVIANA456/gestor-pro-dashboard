@@ -110,6 +110,7 @@ export function ClientViewDialog({ open, onOpenChange, client }: ClientViewDialo
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               <DataField label="Razão Social" value={client.razaoSocial} fullWidth />
               <DataField label="Nome Fantasia" value={client.nomeFantasia} />
+              <DataField label="Responsável" value={client.responsavelEmpresa} />
               <DataField label="CNPJ / CPF" value={client.cnpj} />
               <div className="space-y-1.5">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-normal">Regime Tributário</p>

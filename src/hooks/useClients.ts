@@ -40,6 +40,7 @@ export interface Client {
   responsavelContabil?: string;
   responsavelFinanceiro?: string;
   responsavelQualidade?: string;
+  responsavelEmpresa?: string;
 }
 
 interface DbClient {
@@ -72,6 +73,7 @@ interface DbClient {
   responsavel_contabil: string | null;
   responsavel_financeiro: string | null;
   responsavel_qualidade: string | null;
+  responsavel_empresa: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -107,6 +109,7 @@ const mapDbToClient = (db: DbClient): Client => ({
   responsavelContabil: db.responsavel_contabil ?? undefined,
   responsavelFinanceiro: db.responsavel_financeiro ?? undefined,
   responsavelQualidade: db.responsavel_qualidade ?? undefined,
+  responsavelEmpresa: db.responsavel_empresa ?? undefined,
 });
 
 // Mapeia do frontend para o formato do banco
@@ -139,6 +142,7 @@ const mapClientToDb = (client: Omit<Client, 'id'> & { id?: string }) => ({
   responsavel_contabil: client.responsavelContabil || null,
   responsavel_financeiro: client.responsavelFinanceiro || null,
   responsavel_qualidade: client.responsavelQualidade || null,
+  responsavel_empresa: client.responsavelEmpresa || null,
 });
 
 

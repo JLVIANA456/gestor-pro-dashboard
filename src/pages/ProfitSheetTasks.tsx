@@ -184,14 +184,21 @@ export default function ProfitSheetTasks() {
         task: ProfitSheetTask | null,
         clientEmail: string,
         clientName: string,
-        provider: 'gmail' | 'outlook'
+        provider: 'gmail' | 'outlook',
+        responsavelEmpresa?: string
     ) => {
         if (!task) return;
 
         const mes = formatMesAno(selectedMes);
         const subject = `Planilha de Distribuição de Lucros — ${mes}`;
+        
+        // Use responsavelEmpresa if available, otherwise generic
+        const greeting = responsavelEmpresa 
+            ? `Prezado(a) Cliente ${responsavelEmpresa}, ${clientName}`
+            : `Prezado(a) Cliente, ${clientName}`;
+
         const body =
-            `Prezado(a) ${clientName},\n\n` +
+            `${greeting},\n\n` +
             `Passamos a informar que ainda não recebemos a planilha de distribuição de lucros referente ao mês de ${mes}.\n\n` +
             `Por favor, encaminhe o documento o quanto antes para que possamos dar seguimento ao fechamento contábil.\n\n` +
             `Em caso de dúvidas, estamos à disposição.\n\n` +
@@ -214,27 +221,30 @@ export default function ProfitSheetTasks() {
         const mes = formatMesAno(selectedMes);
         const now = new Date().toLocaleDateString('pt-BR');
 
+        // Use filtered current data instead of all enriched clients to reflect UI state
         // Aba 1 — Recebidas
-        const recebidas = enrichedClients
+        const recebidas = filtered
             .filter(({ task }) => task?.status === 'recebido')
             .map(({ client, task }) => ({
                 'Empresa': client.nomeFantasia || client.razaoSocial,
                 'Razão Social': client.razaoSocial,
+                'Responsável Empresa': client.responsavelEmpresa || 'Não informado',
                 'CNPJ': client.cnpj,
                 'E-mail': client.email,
                 'Status': 'Recebido ✓',
                 'Data de Recebimento': task?.received_at
                     ? format(new Date(task.received_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
                     : '',
-                'Responsável': task?.responsavel || '',
+                'Responsável Baixa': task?.responsavel || '',
             }));
 
         // Aba 2 — Pendentes e Cobradas (não enviaram)
-        const naoEnviadas = enrichedClients
+        const naoEnviadas = filtered
             .filter(({ task }) => !task || task.status === 'pendente' || task.status === 'cobrado')
             .map(({ client, task }) => ({
                 'Empresa': client.nomeFantasia || client.razaoSocial,
                 'Razão Social': client.razaoSocial,
+                'Responsável Empresa': client.responsavelEmpresa || 'Não informado',
                 'CNPJ': client.cnpj,
                 'E-mail': client.email,
                 'Status': !task || task.status === 'pendente' ? 'Pendente' : 'Cobrado — E-mail enviado',
@@ -250,6 +260,7 @@ export default function ProfitSheetTasks() {
         const cols = [
             { wch: 35 }, // Empresa
             { wch: 40 }, // Razão Social
+            { wch: 30 }, // Responsável Empresa
             { wch: 20 }, // CNPJ
             { wch: 35 }, // E-mail
             { wch: 28 }, // Status
@@ -629,13 +640,13 @@ export default function ProfitSheetTasks() {
                                             {!isReceived && (
                                                 <div className="flex items-center gap-1.5">
                                                     <button
-                                                        onClick={() => handleSendEmail(task, client.email, client.nomeFantasia || client.razaoSocial, 'gmail')}
+                                                        onClick={() => handleSendEmail(task, client.email, client.nomeFantasia || client.razaoSocial, 'gmail', client.responsavelEmpresa)}
                                                         className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[10px] font-light uppercase tracking-wider transition-all border bg-[#EA4335]/10 text-[#EA4335] border-[#EA4335]/20 hover:bg-[#EA4335]/20"
                                                     >
                                                         Gmail
                                                     </button>
                                                     <button
-                                                        onClick={() => handleSendEmail(task, client.email, client.nomeFantasia || client.razaoSocial, 'outlook')}
+                                                        onClick={() => handleSendEmail(task, client.email, client.nomeFantasia || client.razaoSocial, 'outlook', client.responsavelEmpresa)}
                                                         className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[10px] font-light uppercase tracking-wider transition-all border bg-[#0078D4]/10 text-[#0078D4] border-[#0078D4]/20 hover:bg-[#0078D4]/20"
                                                     >
                                                         Outlook
@@ -707,14 +718,14 @@ export default function ProfitSheetTasks() {
                                                         {!isReceived && (
                                                             <div className="flex items-center gap-1.5">
                                                                 <button
-                                                                    onClick={() => handleSendEmail(task, client.email, client.nomeFantasia || client.razaoSocial, 'gmail')}
+                                                                    onClick={() => handleSendEmail(task, client.email, client.nomeFantasia || client.razaoSocial, 'gmail', client.responsavelEmpresa)}
                                                                     className="p-2 rounded-lg border border-[#EA4335]/20 bg-[#EA4335]/10 text-[#EA4335] hover:bg-[#EA4335]/20"
                                                                     title="Gmail"
                                                                 >
                                                                     <Mail className="h-4 w-4" />
                                                                 </button>
                                                                 <button
-                                                                    onClick={() => handleSendEmail(task, client.email, client.nomeFantasia || client.razaoSocial, 'outlook')}
+                                                                    onClick={() => handleSendEmail(task, client.email, client.nomeFantasia || client.razaoSocial, 'outlook', client.responsavelEmpresa)}
                                                                     className="p-2 rounded-lg border border-[#0078D4]/20 bg-[#0078D4]/10 text-[#0078D4] hover:bg-[#0078D4]/20"
                                                                     title="Outlook"
                                                                 >
