@@ -597,20 +597,20 @@ export default function AccountingProgress() {
                         {/* Status filter */}
                         <div className="flex items-center gap-1 p-1 bg-muted/20 rounded-xl border border-border/50 h-10 lg:col-span-2">
                             {([
-                                ['all', 'Todos'],
-                                ['closed', 'Encerradas'],
-                                ['progress', 'Em Andamento'],
-                                ['pending', 'Pendentes'],
-                                ['open', 'Fechadas'],
-                                ['no_record', 'Sem Registro'],
-                            ] as const).map(([val, label]) => (
+                                { val: 'all', label: 'Todos', activeClass: 'bg-primary/10 text-primary border-primary/20' },
+                                { val: 'closed', label: 'Encerradas', activeClass: 'bg-emerald-500/15 text-emerald-700 border-emerald-500/20' },
+                                { val: 'progress', label: 'Em Andamento', activeClass: 'bg-blue-500/15 text-blue-700 border-blue-500/20' },
+                                { val: 'pending', label: 'Pendentes', activeClass: 'bg-amber-500/15 text-amber-700 border-amber-500/20' },
+                                { val: 'open', label: 'Fechadas', activeClass: 'bg-red-500/15 text-red-700 border-red-500/20' },
+                                { val: 'no_record', label: 'Sem Registro', activeClass: 'bg-slate-500/15 text-slate-700 border-slate-500/20' },
+                            ] as const).map(({ val, label, activeClass }) => (
                                 <button
                                     key={val}
-                                    onClick={() => setFilterStatus(val)}
+                                    onClick={() => setFilterStatus(val as any)}
                                     className={cn(
-                                        'flex-1 rounded-lg text-[10px] uppercase tracking-wider font-normal transition-all h-full px-1',
+                                        'flex-1 rounded-lg text-[10px] uppercase tracking-wider font-normal transition-all h-full px-1 border border-transparent',
                                         filterStatus === val
-                                            ? 'bg-card text-primary shadow-sm border border-border/10'
+                                            ? activeClass + ' shadow-sm'
                                             : 'text-muted-foreground hover:text-foreground'
                                     )}
                                 >
@@ -680,7 +680,14 @@ export default function AccountingProgress() {
                         {filterStatus !== 'all' && (
                             <button
                                 onClick={() => setFilterStatus('all')}
-                                className="flex items-center gap-1 text-[10px] uppercase tracking-wider px-2 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-all"
+                                className={cn(
+                                    "flex items-center gap-1 text-[10px] uppercase tracking-wider px-2 py-1 rounded-lg transition-all",
+                                    filterStatus === 'closed' && "bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25",
+                                    filterStatus === 'progress' && "bg-blue-500/15 text-blue-700 hover:bg-blue-500/25",
+                                    filterStatus === 'pending' && "bg-amber-500/15 text-amber-700 hover:bg-amber-500/25",
+                                    filterStatus === 'open' && "bg-red-500/15 text-red-700 hover:bg-red-500/25",
+                                    filterStatus === 'no_record' && "bg-slate-500/15 text-slate-700 hover:bg-slate-500/25"
+                                )}
                             >
                                 {filterStatus === 'closed' ? 'Encerradas' : filterStatus === 'progress' ? 'Em Andamento' : filterStatus === 'pending' ? 'Pendentes' : filterStatus === 'no_record' ? 'Sem Registro' : 'Fechadas'} ✕
                             </button>
