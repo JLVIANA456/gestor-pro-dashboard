@@ -307,7 +307,7 @@ export default function ProfitSheetTasks() {
         const subject = `URGENTE – Envio da Planilha de Distribuição de Lucros (Prazo Vencido)`;
 
         const body =
-            `Prezados Clientes,\n\n` +
+            `Prezado Cliente, ${clientName}\n\n` +
             `Até o presente momento, não recebemos a planilha mensal de distribuição de lucros, cujo prazo de envio encerrou-se no dia 10.\n\n` +
             `Reforçamos que o envio dessas informações é obrigatório para a correta transmissão da EFD-Reinf, conforme as exigências fiscais vigentes a partir de 2026.\n\n` +
             `Destacamos que a ausência do envio da planilha impedirá a correta transmissão da EFD-Reinf, caracterizando falta de entrega de obrigação acessória perante a Receita Federal. O envio fora do prazo poderá gerar a necessidade de retificação da declaração e aplicação de multas, as quais serão de responsabilidade exclusiva do cliente.\n\n` +
