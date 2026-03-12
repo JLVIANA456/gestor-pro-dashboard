@@ -4,7 +4,6 @@ import {
     FileSpreadsheet,
     CheckCircle2,
     Clock,
-    RefreshCw,
     Search,
     CalendarDays,
     Users,
@@ -17,11 +16,8 @@ import {
     LayoutGrid,
     List,
     Mail,
-    Filter,
     Eraser,
-    Trash2,
-    ChevronUp,
-    ChevronDown,
+    X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
@@ -83,6 +79,110 @@ function getLast12Months(): string[] {
 const RESPONSAVEL_KEY = 'profit_sheet_responsavel';
 const COLABORADORES = ['Lucas', 'Natiele', 'Filipe'];
 
+// ─── Modal de Baixa ──────────────────────────────────────────────────────────
+interface BaixaModalProps {
+    open: boolean;
+    clientName: string;
+    responsavel: string;
+    setResponsavel: (v: string) => void;
+    baixaDate: string;
+    setBaixaDate: (v: string) => void;
+    onConfirm: () => void;
+    onCancel: () => void;
+}
+
+function BaixaModal({
+    open, clientName, responsavel, setResponsavel, baixaDate, setBaixaDate, onConfirm, onCancel
+}: BaixaModalProps) {
+    if (!open) return null;
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+            {/* Backdrop */}
+            <div
+                className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                onClick={onCancel}
+            />
+            {/* Modal */}
+            <div className="relative z-10 w-full max-w-md mx-4 bg-card border border-border/50 rounded-3xl shadow-2xl p-8 animate-fade-in">
+                {/* Close */}
+                <button
+                    onClick={onCancel}
+                    className="absolute top-5 right-5 h-8 w-8 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
+                >
+                    <X className="h-4 w-4" />
+                </button>
+
+                {/* Header */}
+                <div className="flex items-center gap-4 mb-6">
+                    <div className="h-12 w-12 flex items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-200/40">
+                        <CheckCircle2 className="h-6 w-6 text-emerald-600" />
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-light text-foreground">Registrar Baixa</h3>
+                        <p className="text-xs text-muted-foreground font-light truncate max-w-[220px]">{clientName}</p>
+                    </div>
+                </div>
+
+                {/* Form */}
+                <div className="space-y-5">
+                    {/* Colaborador */}
+                    <div className="space-y-2">
+                        <label className="text-[10px] uppercase font-light text-muted-foreground tracking-widest pl-1">
+                            Colaborador Responsável *
+                        </label>
+                        <div className="relative">
+                            <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40 pointer-events-none" />
+                            <select
+                                value={responsavel}
+                                onChange={e => setResponsavel(e.target.value)}
+                                className="h-11 w-full rounded-xl border border-border/50 bg-muted/20 pl-10 text-sm font-light text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary/40 appearance-none cursor-pointer transition-all"
+                            >
+                                <option value="">Selecionar colaborador...</option>
+                                {COLABORADORES.map(c => (
+                                    <option key={c} value={c}>{c}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* Data */}
+                    <div className="space-y-2">
+                        <label className="text-[10px] uppercase font-light text-muted-foreground tracking-widest pl-1">
+                            Data da Baixa
+                        </label>
+                        <div className="relative">
+                            <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40 pointer-events-none" />
+                            <input
+                                type="date"
+                                value={baixaDate}
+                                onChange={e => setBaixaDate(e.target.value)}
+                                className="h-11 w-full rounded-xl border border-border/50 bg-muted/20 pl-10 pr-4 text-sm font-light text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary/40 cursor-pointer transition-all"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-3 mt-8">
+                    <button
+                        onClick={onCancel}
+                        className="flex-1 h-11 rounded-xl border border-border/50 text-sm font-light text-muted-foreground hover:bg-muted/30 transition-all"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        className="flex-1 h-11 rounded-xl bg-emerald-600 text-white text-sm font-light hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20"
+                    >
+                        <CheckCircle2 className="h-4 w-4" />
+                        Confirmar Baixa
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 // ─── component ──────────────────────────────────────────────────────────────
 export default function ProfitSheetTasks() {
     const { clients, loading: loadingClients } = useClients();
@@ -92,7 +192,13 @@ export default function ProfitSheetTasks() {
     const [responsavel, setResponsavel] = useState(() => localStorage.getItem(RESPONSAVEL_KEY) || '');
     const [baixaDate, setBaixaDate] = useState(() => new Date().toISOString().split('T')[0]);
     const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
-    const [showFilters, setShowFilters] = useState(true);
+
+    // Estado do modal de baixa
+    const [baixaModal, setBaixaModal] = useState<{
+        open: boolean;
+        task: ProfitSheetTask | null;
+        clientName: string;
+    }>({ open: false, task: null, clientName: '' });
 
     const {
         tasks,
@@ -162,22 +268,30 @@ export default function ProfitSheetTasks() {
     }, [enrichedClients]);
 
     // ── handlers ────────────────────────────────────────────────────────────
-    const handleMarkReceived = async (task: ProfitSheetTask | null, clientId: string) => {
+
+    // Abre o modal de baixa ao clicar em "Marcar OK"
+    const handleOpenBaixaModal = (task: ProfitSheetTask | null, clientName: string) => {
         if (!task) return;
-        // Exige nome do colaborador antes de dar baixa
-        if (!responsavel.trim() && task.status !== 'recebido') {
-            toast.error('Selecione o "Colaborador responsável" antes de dar baixa.', {
+        // Se já está recebido, apenas desfaz
+        if (task.status === 'recebido') {
+            resetTask(task.id);
+            return;
+        }
+        setBaixaModal({ open: true, task, clientName });
+    };
+
+    // Confirma a baixa pelo modal
+    const handleConfirmBaixa = async () => {
+        if (!baixaModal.task) return;
+        if (!responsavel.trim()) {
+            toast.error('Selecione o colaborador responsável antes de confirmar.', {
                 description: 'O nome é necessário para identificação no relatório.',
             });
             return;
         }
-        if (task.status === 'recebido') {
-            await resetTask(task.id);
-        } else {
-            // Usa a data selecionada convertida para ISO
-            const dateToUse = new Date(`${baixaDate}T12:00:00`).toISOString();
-            await markReceived(task.id, responsavel.trim() || undefined, dateToUse);
-        }
+        const dateToUse = new Date(`${baixaDate}T12:00:00`).toISOString();
+        await markReceived(baixaModal.task.id, responsavel.trim(), dateToUse);
+        setBaixaModal({ open: false, task: null, clientName: '' });
     };
 
     const handleSendEmail = async (
@@ -191,7 +305,7 @@ export default function ProfitSheetTasks() {
 
         const mes = formatMesAno(selectedMes);
         const subject = `URGENTE – Envio da Planilha de Distribuição de Lucros (Prazo Vencido)`;
-        
+
         const body =
             `Prezados Clientes,\n\n` +
             `Até o presente momento, não recebemos a planilha mensal de distribuição de lucros, cujo prazo de envio encerrou-se no dia 10.\n\n` +
@@ -200,7 +314,7 @@ export default function ProfitSheetTasks() {
             `Dessa forma, solicitamos o envio impreterivelmente até amanhã, para que possamos tentar regularizar a obrigação dentro do prazo operacional possível.\n\n` +
             `Após esse prazo, não poderemos garantir a transmissão tempestiva das informações, ficando a empresa sujeita aos riscos fiscais decorrentes do atraso ou da falta de envio.\n\n` +
             `Permanecemos à disposição para esclarecimentos.\n\n` +
-            `Atenciosamente,\n${responsavel || 'JLVIANA Consultoria Contábil'}`;
+            `Atenciosamente,\nJLVIANA Consultoria Contábil`;
 
         if (provider === 'gmail') {
             const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(clientEmail)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
@@ -219,8 +333,6 @@ export default function ProfitSheetTasks() {
         const mes = formatMesAno(selectedMes);
         const now = new Date().toLocaleDateString('pt-BR');
 
-        // Use filtered current data instead of all enriched clients to reflect UI state
-        // Aba 1 — Recebidas
         const recebidas = filtered
             .filter(({ task }) => task?.status === 'recebido')
             .map(({ client, task }) => ({
@@ -236,7 +348,6 @@ export default function ProfitSheetTasks() {
                 'Responsável Baixa': task?.responsavel || '',
             }));
 
-        // Aba 2 — Pendentes e Cobradas (não enviaram)
         const naoEnviadas = filtered
             .filter(({ task }) => !task || task.status === 'pendente' || task.status === 'cobrado')
             .map(({ client, task }) => ({
@@ -253,17 +364,9 @@ export default function ProfitSheetTasks() {
             }));
 
         const wb = XLSX.utils.book_new();
-
-        // Colunas largas
         const cols = [
-            { wch: 35 }, // Empresa
-            { wch: 40 }, // Razão Social
-            { wch: 30 }, // Responsável Empresa
-            { wch: 20 }, // CNPJ
-            { wch: 35 }, // E-mail
-            { wch: 28 }, // Status
-            { wch: 25 }, // Data
-            { wch: 20 }, // Responsável
+            { wch: 35 }, { wch: 40 }, { wch: 30 }, { wch: 20 },
+            { wch: 35 }, { wch: 28 }, { wch: 25 }, { wch: 20 },
         ];
 
         const wsRecebidas = XLSX.utils.json_to_sheet(
@@ -310,7 +413,20 @@ export default function ProfitSheetTasks() {
     // ── render ───────────────────────────────────────────────────────────────
     return (
         <div className="space-y-8 animate-fade-in">
-            {/* Header / Toolbar */}
+
+            {/* ── Modal de Baixa ── */}
+            <BaixaModal
+                open={baixaModal.open}
+                clientName={baixaModal.clientName}
+                responsavel={responsavel}
+                setResponsavel={setResponsavel}
+                baixaDate={baixaDate}
+                setBaixaDate={setBaixaDate}
+                onConfirm={handleConfirmBaixa}
+                onCancel={() => setBaixaModal({ open: false, task: null, clientName: '' })}
+            />
+
+            {/* ── Header ── */}
             <div className="flex flex-col gap-6">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
@@ -324,39 +440,43 @@ export default function ProfitSheetTasks() {
                             <p className="text-xs text-muted-foreground font-light uppercase tracking-widest">Controle Mensal de Recebimento</p>
                         </div>
                     </div>
-
-                    <div className="flex items-center gap-3 bg-muted/30 p-1.5 rounded-2xl border border-border/50">
-                        <div className="flex items-center gap-2 pl-2">
-                            <CalendarDays className="h-4 w-4 text-muted-foreground/50" />
-                            <span className="text-[10px] uppercase tracking-widest font-light text-muted-foreground">Mês:</span>
-                        </div>
-                        <select
-                            value={selectedMes}
-                            onChange={e => setSelectedMes(e.target.value)}
-                            className="bg-transparent border-none text-sm font-light text-foreground focus:ring-0 cursor-pointer pr-8"
-                        >
-                            {getLast12Months().map(m => (
-                                <option key={m} value={m}>{formatMesAno(m)}</option>
-                            ))}
-                        </select>
-                    </div>
                 </div>
 
-                {/* KPI Summary Banner */}
+                {/* ── Mês de Referência em destaque ── */}
+                <div className="flex items-center gap-4 bg-primary/5 border border-primary/20 rounded-2xl px-6 py-4">
+                    <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-primary/10 border border-primary/20 shrink-0">
+                        <CalendarDays className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                        <p className="text-[10px] font-light uppercase tracking-[0.2em] text-primary mb-0.5">Mês de Referência</p>
+                        <p className="text-xs text-muted-foreground font-light">Selecione o mês para visualizar e gerenciar as planilhas de distribuição de lucros.</p>
+                    </div>
+                    <select
+                        value={selectedMes}
+                        onChange={e => setSelectedMes(e.target.value)}
+                        className="h-11 rounded-xl border border-primary/30 bg-background text-sm font-light text-foreground focus:ring-2 focus:ring-primary/20 cursor-pointer px-4 min-w-[180px] shadow-sm"
+                    >
+                        {getLast12Months().map(m => (
+                            <option key={m} value={m}>{formatMesAno(m)}</option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* ── KPI Summary Banner ── */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 bg-card border border-border/50 p-6 rounded-3xl shadow-card relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
                         <BarChart3 className="h-24 w-24 text-primary" />
                     </div>
-                    
+
                     <div className="lg:col-span-4 space-y-4">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-xs font-light uppercase tracking-widest text-muted-foreground">Progresso do Mês</h3>
-                            <span className="text-2xl font-light text-primary">{Math.round((kpis.recebido / kpis.total) * 100)}%</span>
+                            <h3 className="text-xs font-light uppercase tracking-widest text-muted-foreground">Progresso — {formatMesAno(selectedMes)}</h3>
+                            <span className="text-2xl font-light text-primary">{kpis.total > 0 ? Math.round((kpis.recebido / kpis.total) * 100) : 0}%</span>
                         </div>
                         <div className="h-2 w-full rounded-full bg-muted/50 overflow-hidden">
                             <div
                                 className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-primary transition-all duration-1000"
-                                style={{ width: `${Math.round((kpis.recebido / kpis.total) * 100)}%` }}
+                                style={{ width: `${kpis.total > 0 ? Math.round((kpis.recebido / kpis.total) * 100) : 0}%` }}
                             />
                         </div>
                         <div className="flex items-center gap-4">
@@ -390,10 +510,10 @@ export default function ProfitSheetTasks() {
                 </div>
             </div>
 
-            {/* ── Main Area ────────────────────────────────────────────────── */}
+            {/* ── Main Area ── */}
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
-                
-                {/* Sidebar: Filters & Config */}
+
+                {/* Sidebar: Filters */}
                 <aside className="xl:col-span-3 space-y-6">
                     <div className="bg-card border border-border/50 rounded-3xl p-6 shadow-sm space-y-8">
                         {/* Search */}
@@ -418,7 +538,7 @@ export default function ProfitSheetTasks() {
                                 {([
                                     { id: 'all', label: 'Todos os Clientes', icon: List },
                                     { id: 'pendente', label: 'Aguardando', icon: Clock },
-                                    { id: 'cobrado', label: 'Cobrança Enviada', icon: Send },
+                                    { id: 'cobrado', label: 'Cobrança Enviada', icon: Send },
                                     { id: 'recebido', label: 'Recebidos ✓', icon: CheckCircle2 },
                                 ] as const).map(s => (
                                     <button
@@ -438,61 +558,21 @@ export default function ProfitSheetTasks() {
                             </div>
                         </div>
 
-                        {/* Action Config */}
-                        <div className="pt-6 border-t border-border/50 space-y-4">
-                            <div className="bg-primary/[0.03] border border-primary/10 p-5 rounded-2xl space-y-4">
-                                <h4 className="text-[10px] font-light uppercase tracking-widest text-primary mb-1">Ações de Baixa</h4>
-                                <p className="text-[10px] text-muted-foreground font-light leading-snug">Configure quem está realizando a baixa e a data do processo.</p>
-                                
-                                <div className="space-y-4 pt-2">
-                                    <div className="space-y-1.5">
-                                        <label className="text-[9px] uppercase font-light text-muted-foreground/70 pl-1">Colaborador</label>
-                                        <div className="relative">
-                                            <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/40 pointer-events-none" />
-                                            <select
-                                                value={responsavel}
-                                                onChange={e => setResponsavel(e.target.value)}
-                                                className="h-9 w-full rounded-xl border border-border/50 bg-background pl-9 text-xs font-light text-foreground focus:ring-2 focus:ring-primary/10 appearance-none cursor-pointer"
-                                            >
-                                                <option value="">Selecionar...</option>
-                                                {COLABORADORES.map(c => (
-                                                    <option key={c} value={c}>{c}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-1.5">
-                                        <label className="text-[9px] uppercase font-light text-muted-foreground/70 pl-1">Data da Baixa</label>
-                                        <div className="relative">
-                                            <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/40 pointer-events-none" />
-                                            <input
-                                                type="date"
-                                                value={baixaDate}
-                                                onChange={e => setBaixaDate(e.target.value)}
-                                                className="h-9 w-full rounded-xl border border-border/50 bg-background pl-9 pr-4 text-xs font-light text-foreground focus:ring-2 focus:ring-primary/10 cursor-pointer"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Secondary Actions */}
-                        <div className="flex flex-col gap-2 pt-2">
-                            <Button 
-                                variant="outline" 
-                                size="sm" 
+                        {/* Actions */}
+                        <div className="pt-6 border-t border-border/50 flex flex-col gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
                                 onClick={handleExportXLSX}
                                 className="w-full text-[10px] uppercase font-light tracking-widest h-10 rounded-xl border-emerald-500/20 text-emerald-600 hover:bg-emerald-500/5"
                             >
                                 <Download className="mr-2 h-3.5 w-3.5" /> Exportar Planilha
                             </Button>
-                            
+
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                    <Button 
-                                        variant="ghost" 
+                                    <Button
+                                        variant="ghost"
                                         size="sm"
                                         className="w-full text-[10px] uppercase font-light tracking-widest h-10 rounded-xl text-muted-foreground/50 hover:text-destructive hover:bg-destructive/5"
                                     >
@@ -526,7 +606,7 @@ export default function ProfitSheetTasks() {
                              </h3>
                              <span className="text-[10px] bg-muted px-2 py-0.5 rounded-full text-muted-foreground font-light">{filtered.length} Clientes</span>
                          </div>
-                         
+
                          <div className="flex items-center gap-1.5 p-1 bg-muted/30 rounded-xl border border-border/50">
                              <button
                                  onClick={() => setViewMode('grid')}
@@ -623,7 +703,7 @@ export default function ProfitSheetTasks() {
                                         <div className="flex items-center gap-2 pt-2 border-t border-border/30 flex-wrap">
                                             {!isCobrado && (
                                                 <button
-                                                    onClick={() => handleMarkReceived(task, client.id)}
+                                                    onClick={() => handleOpenBaixaModal(task, client.nomeFantasia || client.razaoSocial)}
                                                     className={cn(
                                                         'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-light uppercase tracking-wider transition-all border',
                                                         isReceived
@@ -632,7 +712,7 @@ export default function ProfitSheetTasks() {
                                                     )}
                                                 >
                                                     <CheckCircle2 className="h-3.5 w-3.5" />
-                                                    {isReceived ? 'OK' : 'Marcar OK'}
+                                                    {isReceived ? 'OK ✓' : 'Marcar OK'}
                                                 </button>
                                             )}
                                             {!isReceived && (
@@ -701,7 +781,7 @@ export default function ProfitSheetTasks() {
                                                     <div className="flex items-center justify-end gap-1.5">
                                                         {!isCobrado && (
                                                             <button
-                                                                onClick={() => handleMarkReceived(task, client.id)}
+                                                                onClick={() => handleOpenBaixaModal(task, client.nomeFantasia || client.razaoSocial)}
                                                                 className={cn(
                                                                     'p-2 rounded-lg border transition-all',
                                                                     isReceived
