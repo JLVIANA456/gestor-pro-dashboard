@@ -32,35 +32,57 @@ export interface AnnouncementFolder {
     color?: string;
 }
 
+export interface AnnouncementTemplate {
+    id: string;
+    created_at: string;
+    name: string;
+    subject: string;
+    content: string;
+    department: string;
+}
+
 export function useAnnouncements() {
     const [announcements, setAnnouncements] = useState<Announcement[]>([]);
     const [folders, setFolders] = useState<AnnouncementFolder[]>([]);
+    const [templates, setTemplates] = useState<AnnouncementTemplate[]>([]);
     const [loading, setLoading] = useState(true);
 
     const fetchAll = useCallback(async () => {
         try {
             setLoading(true);
             
-            // Cast to any to access tables not in the generated Database type
             const sb = supabase as any;
 
-            // Try to fetch folders
+            // Fetch folders
             const { data: folderData, error: folderError } = await sb
                 .from('announcement_folders')
                 .select('*')
                 .order('name');
             
-            // Try to fetch announcements with client info
+            // Fetch announcements with client info
             const { data: announcementData, error: announcementError } = await sb
                 .from('announcements')
-                .select('*, client:clients(nome_fantasia, razao_social)')
+                .select('*, client:clients(nome_fantasia, razao_social, telefone)')
                 .order('created_at', { ascending: false });
 
+            // Fetch templates
+            const { data: templateData, error: templateError } = await sb
+                .from('announcement_templates')
+                .select('*')
+                .order('name');
+
             if (folderError) {
-                console.warn('Announcement folders table might missing:', folderError);
+                console.warn('Announcement folders table might be missing:', folderError);
                 setFolders([]);
             } else {
                 setFolders(folderData || []);
+            }
+
+            if (templateError) {
+                console.warn('Announcement templates table might be missing:', templateError);
+                setTemplates([]);
+            } else {
+                setTemplates(templateData || []);
             }
 
             if (announcementError) {
@@ -121,6 +143,45 @@ export function useAnnouncements() {
         }
     };
 
+    const createTemplate = async (template: Omit<AnnouncementTemplate, 'id' | 'created_at'>) => {
+        try {
+            const sb = supabase as any;
+            const { data, error } = await sb
+                .from('announcement_templates')
+                .insert(template)
+                .select()
+                .single();
+
+            if (error) throw error;
+            setTemplates(prev => [data, ...prev]);
+            toast.success(`Modelo "${template.name}" salvo com sucesso!`);
+            return data;
+        } catch (error) {
+            console.error('Error creating template:', error);
+            toast.error("Erro ao salvar modelo.");
+            return null;
+        }
+    };
+
+    const deleteTemplate = async (id: string) => {
+        try {
+            const sb = supabase as any;
+            const { error } = await sb
+                .from('announcement_templates')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+            setTemplates(prev => prev.filter(t => t.id !== id));
+            toast.success("Modelo removido.");
+            return true;
+        } catch (error) {
+            console.error('Error deleting template:', error);
+            toast.error("Erro ao remover modelo.");
+            return false;
+        }
+    };
+
     const sendAnnouncement = async (announcement: Partial<Announcement>) => {
         try {
             const sb = supabase as any;
@@ -162,11 +223,15 @@ export function useAnnouncements() {
     return {
         announcements,
         folders,
+        templates,
         loading,
         createFolder,
         deleteFolder,
+        createTemplate,
+        deleteTemplate,
         sendAnnouncement,
         deleteAnnouncement,
         refresh: fetchAll
     };
 }
+
