@@ -26,6 +26,16 @@ import {
     LayoutTemplate,
     UserPlus,
     Trash2,
+    Bold,
+    Link as LinkIcon,
+    Image as ImageIcon,
+    Loader2,
+    Sparkles,
+    AlignLeft,
+    AlignCenter,
+    AlignRight,
+    Palette,
+    TextCursor
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { format } from 'date-fns';
@@ -47,7 +57,15 @@ import {
     CommandItem,
     CommandList,
 } from "@/components/ui/command";
+import { 
+    DropdownMenu, 
+    DropdownMenuContent, 
+    DropdownMenuItem, 
+    DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { AiService } from '@/services/aiService';
+import { useRef } from 'react';
 
 interface AnnouncementComposerProps {
     open: boolean;
@@ -83,6 +101,10 @@ export function AnnouncementComposer({
     const [loading, setLoading] = useState(false);
     const [selectedClientIds, setSelectedClientIds] = useState<string[]>([]);
     const [comboboxOpen, setComboboxOpen] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    
     const { clients } = useClients();
     const { templates, createTemplate } = useAnnouncements();
 
@@ -105,6 +127,99 @@ export function AnnouncementComposer({
             content: message,
             department
         });
+    };
+
+    const [isAiProcessing, setIsAiProcessing] = useState(false);
+
+    const handleApplyStyle = (styleType: 'align' | 'color' | 'size', value: string) => {
+        const textarea = textareaRef.current;
+        if (!textarea) return;
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const text = textarea.value;
+        const selectedText = text.substring(start, end);
+
+        if (!selectedText) {
+            toast.warning("Selecione um texto para aplicar o estilo.");
+            return;
+        }
+
+        let formatted = '';
+        if (styleType === 'align') {
+            formatted = `<div style="text-align: ${value};">${selectedText}</div>`;
+        } else if (styleType === 'color') {
+            formatted = `<span style="color: ${value};">${selectedText}</span>`;
+        } else if (styleType === 'size') {
+            formatted = `<span style="font-size: ${value};">${selectedText}</span>`;
+        }
+
+        const newMessage = text.substring(0, start) + formatted + text.substring(end);
+        setMessage(newMessage);
+    };
+
+    const handleAiAction = async (action: 'refine' | 'summarize' | 'subject' | 'simplify') => {
+        if (!message && action !== 'subject') {
+            toast.warning("Escreva algo primeiro para a IA processar.");
+            return;
+        }
+
+        setIsAiProcessing(true);
+        try {
+            const result = await AiService.refineAnnouncement(message, action);
+            if (action === 'subject') {
+                setSubject(result);
+                toast.success("Assunto sugerido pela IA!");
+            } else {
+                setMessage(result);
+                toast.success("Texto refinado pela IA!");
+            }
+        } catch (error: any) {
+            toast.error("Erro na IA: " + error.message);
+        } finally {
+            setIsAiProcessing(false);
+        }
+    };
+
+    const handleApplyFormatting = (type: 'bold' | 'link') => {
+        const textarea = textareaRef.current;
+        if (!textarea) return;
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const text = textarea.value;
+        const selectedText = text.substring(start, end);
+
+        if (type === 'bold') {
+            const formatted = `**${selectedText || 'texto negrito'}**`;
+            const newMessage = text.substring(0, start) + formatted + text.substring(end);
+            setMessage(newMessage);
+        } else if (type === 'link') {
+            const url = prompt('Digite a URL do link:');
+            if (!url) return;
+            const formatted = `<a href="${url}">${selectedText || 'Clique Aqui'}</a>`;
+            const newMessage = text.substring(0, start) + formatted + text.substring(end);
+            setMessage(newMessage);
+        }
+    };
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsUploading(true);
+        try {
+            const result = await AiService.uploadFile(file);
+            const linkText = `\n\n<a href="${result.publicUrl}">Acesse O Documento - Clicando Aqui</a>`;
+            setMessage(prev => prev + linkText);
+            setAttachmentLink(result.publicUrl);
+            toast.success("Documento anexado ao comunicado!");
+        } catch (error: any) {
+            toast.error("Erro ao fazer upload: " + error.message);
+        } finally {
+            setIsUploading(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
     };
 
     const replaceVariables = (text: string, client: any) => {
@@ -176,9 +291,6 @@ export function AnnouncementComposer({
             const firstClient = clients.find(c => c.id === firstClientId);
             
             let finalMessage = message;
-            if (attachmentLink) {
-                finalMessage += `\n\nLink do documento: ${attachmentLink}`;
-            }
 
             // Replace variables for the first client if single send
             if (selectedClientIds.length === 1 && firstClient) {
@@ -419,71 +531,124 @@ export function AnnouncementComposer({
                             <Label className="text-[10px] font-normal text-muted-foreground uppercase tracking-widest flex items-center gap-2">
                                 <History className="h-3 w-3 opacity-40 text-primary" /> Conteúdo
                             </Label>
-                            <div className="flex gap-2">
-                                <Badge variant="outline" className="text-[8px] py-0 cursor-help opacity-40 hover:opacity-100" title="Substitui pelo nome fantástico do cliente">{"{{nome_fantasia}}"}</Badge>
-                                <Badge variant="outline" className="text-[8px] py-0 cursor-help opacity-40 hover:opacity-100" title="Substitui pelo mês atual">{"{{mes_atual}}"}</Badge>
+                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2">
+                                {/* AI Toolbar */}
+                                <div className="flex items-center bg-primary/5 rounded-lg p-0.5 border border-primary/20">
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button 
+                                                variant="ghost" 
+                                                size="sm" 
+                                                className="h-7 px-2 gap-2 text-[10px] uppercase tracking-wider font-semibold text-primary hover:bg-primary/10"
+                                                disabled={isAiProcessing}
+                                            >
+                                                {isAiProcessing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                                                Refinar IA
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end" className="w-56 rounded-xl border-border/40 shadow-elevated p-1">
+                                            <DropdownMenuItem onClick={() => handleAiAction('refine')} className="text-xs py-2 gap-2 cursor-pointer rounded-lg">
+                                                <Sparkles className="h-3.5 w-3.5 text-primary" /> Refinar Tom Profissional
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleAiAction('subject')} className="text-xs py-2 gap-2 cursor-pointer rounded-lg">
+                                                <MessageSquare className="h-3.5 w-3.5 text-primary" /> Gerar Assunto Criativo
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleAiAction('simplify')} className="text-xs py-2 gap-2 cursor-pointer rounded-lg">
+                                                <TextCursor className="h-3.5 w-3.5 text-primary" /> Traduzir com Clareza - Sem termos técnicos
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleAiAction('summarize')} className="text-xs py-2 gap-2 cursor-pointer rounded-lg">
+                                                <LayoutTemplate className="h-3.5 w-3.5 text-primary" /> Resumir para o Cliente
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </div>
+
+                                {/* Rich Text Toolbar */}
+                                <div className="flex items-center bg-muted/30 rounded-lg p-0.5 border border-border/40">
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-7 w-7 rounded-md hover:bg-card"
+                                        onClick={() => handleApplyFormatting('bold')}
+                                        title="Negrito"
+                                    >
+                                        <Bold className="h-3.5 w-3.5" />
+                                    </Button>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md hover:bg-card" title="Alinhamento">
+                                                <AlignLeft className="h-3.5 w-3.5" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent className="min-w-[40px] p-1 rounded-lg">
+                                            <DropdownMenuItem onClick={() => handleApplyStyle('align', 'left')} className="p-1.5 cursor-pointer"><AlignLeft className="h-3.5 w-3.5" /></DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleApplyStyle('align', 'center')} className="p-1.5 cursor-pointer"><AlignCenter className="h-3.5 w-3.5" /></DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleApplyStyle('align', 'right')} className="p-1.5 cursor-pointer"><AlignRight className="h-3.5 w-3.5" /></DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md hover:bg-card" title="Cor e Fonte">
+                                                <Palette className="h-3.5 w-3.5" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent className="p-2 grid grid-cols-4 gap-1 rounded-lg">
+                                            {['#EA4335', '#007bff', '#28a745', '#1a1a1a', '#ffc107', '#6f42c1', '#fd7e14', '#20c997'].map(color => (
+                                                <div 
+                                                    key={color} 
+                                                    onClick={() => handleApplyStyle('color', color)}
+                                                    className="w-6 h-6 rounded-full cursor-pointer hover:scale-110 transition-transform border border-border/40"
+                                                    style={{ backgroundColor: color }}
+                                                />
+                                            ))}
+                                            <DropdownMenuItem onClick={() => handleApplyStyle('size', '18px')} className="col-span-4 text-[10px] py-1 text-center cursor-pointer">Fonte Grande</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleApplyStyle('size', '12px')} className="col-span-4 text-[10px] py-1 text-center cursor-pointer">Fonte Pequena</DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-7 w-7 rounded-md hover:bg-card"
+                                        onClick={() => handleApplyFormatting('link')}
+                                        title="Inserir Link"
+                                    >
+                                        <LinkIcon className="h-3.5 w-3.5" />
+                                    </Button>
+                                    <div className="w-[1px] h-4 bg-border/40 mx-0.5" />
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-7 w-7 rounded-md hover:bg-card"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        disabled={isUploading}
+                                        title="Anexar Imagem/Arquivo"
+                                    >
+                                        {isUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImageIcon className="h-3.5 w-3.5" />}
+                                    </Button>
+                                    <input 
+                                        type="file" 
+                                        ref={fileInputRef}
+                                        onChange={handleFileUpload}
+                                        className="hidden"
+                                        accept="image/*,application/pdf"
+                                    />
+                                </div>
+                                <div className="hidden sm:flex gap-2 ml-2">
+                                    <Badge variant="outline" className="text-[8px] py-0 cursor-help opacity-40 hover:opacity-100" title="Substitui pelo nome fantástico do cliente">{"{{nome_fantasia}}"}</Badge>
+                                </div>
+                            </div>
                             </div>
                         </div>
                         <Textarea
-                            placeholder="Escreva aqui seu comunicado..."
+                            ref={textareaRef}
+                            placeholder="Escreva aqui seu comunicado. Use **texto** para negrito e o botão de link para URLs..."
                             value={message}
                             onChange={(e) => setMessage(e.target.value)}
-                            className="min-h-[180px] rounded-2xl border-border/50 bg-muted/10 text-sm font-light p-5 resize-none transition-all leading-relaxed shadow-inner"
+                            className="min-h-[220px] rounded-2xl border-border/50 bg-muted/10 text-sm font-light p-5 resize-none transition-all leading-relaxed shadow-inner"
                         />
-                    </div>
-
-                    {/* Anexo Link */}
-                    <div className="space-y-2">
-                        <Label className="text-[10px] font-normal text-muted-foreground uppercase tracking-widest flex items-center gap-2 ml-1">
-                            <Paperclip className="h-3 w-3 opacity-40 text-primary" /> Link de Documento / Anexo
-                        </Label>
-                        <Input
-                            placeholder="https://drive.google.com/..."
-                            value={attachmentLink}
-                            onChange={(e) => setAttachmentLink(e.target.value)}
-                            className="h-11 rounded-xl border-border/50 bg-muted/20 text-sm font-light transition-all"
-                        />
-                    </div>
-
-                    {/* Agendamento */}
-                    <div className={cn(
-                        "p-6 rounded-2xl border transition-all duration-500",
-                        isScheduled 
-                            ? "bg-amber-500/5 border-amber-500/20 shadow-sm" 
-                            : "bg-muted/10 border-border/40"
-                    )}>
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                                <div className={cn(
-                                    "h-10 w-10 rounded-xl flex items-center justify-center border transition-all",
-                                    isScheduled ? "bg-amber-500/20 border-amber-500/20" : "bg-card border-border/50"
-                                )}>
-                                    <Clock className={cn("h-4.5 w-4.5", isScheduled ? "text-amber-600" : "text-muted-foreground/40")} />
-                                </div>
-                                <div className="space-y-0.5">
-                                    <Label className="text-xs font-semibold tracking-tight text-foreground">Programar Envio</Label>
-                                    <p className="text-[10px] text-muted-foreground font-light uppercase tracking-widest">Agendar para data futura</p>
-                                </div>
-                            </div>
-                            <Switch
-                                checked={isScheduled}
-                                onCheckedChange={setIsScheduled}
-                                className="data-[state=checked]:bg-amber-500"
-                            />
-                        </div>
-
-                        {isScheduled && (
-                            <div className="grid grid-cols-2 gap-4 pt-6 animate-in fade-in slide-in-from-top-3">
-                                <div className="space-y-1.5">
-                                    <Label className="text-[9px] uppercase tracking-widest font-bold opacity-40 ml-1">Data</Label>
-                                    <Input type="date" value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)} className="h-10 bg-card rounded-xl border-border/50 text-xs font-light" />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <Label className="text-[9px] uppercase tracking-widest font-bold opacity-40 ml-1">Horário</Label>
-                                    <Input type="time" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)} className="h-10 bg-card rounded-xl border-border/50 text-xs font-light" />
-                                </div>
-                            </div>
-                        )}
                     </div>
 
                     {/* Footer Actions */}
@@ -502,7 +667,7 @@ export function AnnouncementComposer({
                                 <>
                                     <Button
                                         type="button"
-                                        disabled={loading}
+                                        disabled={loading || isUploading}
                                         onClick={() => handleSend('whatsapp')}
                                         className="flex-1 sm:flex-none rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20 border-none font-light text-[10px] uppercase tracking-widest px-6 h-12 transition-all active:scale-95 gap-2"
                                     >
@@ -510,31 +675,17 @@ export function AnnouncementComposer({
                                     </Button>
                                     <Button
                                         type="button"
-                                        disabled={loading}
+                                        disabled={loading || isUploading}
                                         onClick={() => handleSend('gmail')}
-                                        className="flex-1 sm:flex-none rounded-xl bg-white hover:bg-red-50 text-[#EA4335] border border-red-500/20 shadow-sm font-light text-[10px] uppercase tracking-widest px-6 h-12 transition-all active:scale-95 gap-2"
+                                        className="flex-1 sm:flex-none rounded-xl bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20 border-none font-light text-[10px] uppercase tracking-widest px-8 h-12 transition-all active:scale-95 gap-2"
                                     >
-                                        <div className="w-4 h-4 rounded-full bg-red-500 flex items-center justify-center">
-                                            <span className="text-[8px] font-bold text-white">G</span>
-                                        </div>
-                                        Gmail
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        disabled={loading}
-                                        onClick={() => handleSend('outlook')}
-                                        className="flex-1 sm:flex-none rounded-xl bg-white hover:bg-blue-50 text-[#0078D4] border border-blue-500/20 shadow-sm font-light text-[10px] uppercase tracking-widest px-6 h-12 transition-all active:scale-95 gap-2"
-                                    >
-                                        <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center">
-                                            <span className="text-[8px] font-bold text-white">O</span>
-                                        </div>
-                                        Outlook
+                                        <Mail className="h-4 w-4" /> Enviar E-mail
                                     </Button>
                                 </>
                             ) : (
                                 <Button
                                     type="button"
-                                    disabled={loading}
+                                    disabled={loading || isUploading}
                                     onClick={() => handleSend('gmail')}
                                     className="w-full sm:w-auto rounded-xl bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/20 border-none font-light text-[10px] uppercase tracking-widest px-10 h-12 transition-all active:scale-95 gap-2"
                                 >

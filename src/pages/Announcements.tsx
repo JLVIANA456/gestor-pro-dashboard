@@ -48,6 +48,7 @@ import { cn } from "@/lib/utils";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAnnouncements, AnnouncementFolder } from '@/hooks/useAnnouncements';
+import { useClients } from '@/hooks/useClients';
 import { AnnouncementComposer } from '@/components/announcements/AnnouncementComposer';
 import { AiDropZone, ProcessedFile } from '@/components/announcements/AiDropZone';
 import { AiConfigModal } from '@/components/announcements/AiConfigModal';
@@ -81,6 +82,7 @@ export default function Announcements() {
     const [isNewFolderDialogOpen, setIsNewFolderDialogOpen] = useState(false);
     const [newFolderName, setNewFolderName] = useState('');
     const [isAiConfigOpen, setIsAiConfigOpen] = useState(false);
+    const { clients } = useClients();
 
     // Folders of the active department
 
@@ -143,23 +145,67 @@ export default function Announcements() {
 
         const successCount = results.filter(r => r !== null).length;
 
-        // Redirect only if not scheduled
-        if (!isScheduled) {
-            if (provider === 'whatsapp') {
-                toast.success(`${successCount} comunicado(s) registrados e enviados via WhatsApp.`);
-                return;
-            }
+        // Send individual emails for tracking
+        if (!isScheduled && provider !== 'whatsapp') {
+            try {
+                for (const announcementRecord of results) {
+                    if (!announcementRecord) continue;
 
-            const toList = recipients.join(provider === 'gmail' ? ',' : ';');
-            const baseUrl = provider === 'gmail' 
-                ? 'https://mail.google.com/mail/?view=cm&fs=1&to=' 
-                : 'https://outlook.office.com/mail/deeplink/compose?to=';
-            const subjectParam = provider === 'gmail' ? '&su=' : '&subject=';
+                    const formattedMessage = message
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/<a href="(.*?)">(.*?)<\/a>/g, `
+                            <div style="margin: 35px 0; text-align: center;">
+                                <a href="$1" style="background-color: #EA4335; color: white !important; padding: 15px 35px; text-decoration: none !important; border-radius: 12px; font-weight: bold; display: inline-block; box-shadow: 0 4px 15px rgba(234, 67, 53, 0.3); font-size: 16px;">$2</a>
+                            </div>
+                        `)
+                        .replace(/\n/g, '<br>');
+
+                    const htmlContent = `
+                        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 35px; border: 1px solid #f0f0f0; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); background-color: #ffffff;">
+                            <div style="text-align: center; margin-bottom: 25px;">
+                                <h1 style="color: #1a1a1a; font-size: 24px; font-weight: 300; margin: 0;">Comunicado <span style="color: #EA4335; font-weight: 600;">Oficial</span></h1>
+                            </div>
+                            <div style="line-height: 1.8; color: #444; font-size: 16px; margin-bottom: 30px;">
+                                ${formattedMessage}
+                            </div>
+                            <hr style="border: 0; border-top: 1px solid #f0f0f0; margin: 30px 0;">
+                            <div style="text-align: center;">
+                                <p style="font-size: 12px; color: #999; margin-bottom: 5px;">
+                                    Este é um canal oficial de comunicação de seu escritório contábil.
+                                </p>
+                                <p style="font-size: 10px; color: #bbb;">
+                                    Enviado via <strong>Gestor Pro</strong>
+                                </p>
+                            </div>
+                            <!-- Tracking Pixel -->
+                            <img src="https://qvnktgjoarotzzkuptht.supabase.co/functions/v1/track-open?id=${announcementRecord.id}" width="1" height="1" style="display:none;" />
+                        </div>
+                    `;
+
+                    await ResendService.sendEmail({
+                        to: announcementRecord.recipient,
+                        subject,
+                        html: htmlContent
+                    });
+                }
+                toast.success(`${successCount} comunicado(s) enviado(s) via E-mail!`);
+            } catch (error: any) {
+                console.error('Manual Resend Error:', error);
+                toast.error("Erro ao enviar via E-mail: " + error.message);
+            }
+        } else if (!isScheduled && provider === 'whatsapp') {
+            // Already handled in loop or needs window.open
+            const plainTextMessage = message
+                .replace(/\*\*(.*?)\*\*/g, '$1')
+                .replace(/<a href="(.*?)">(.*?)<\/a>/g, '$2: $1');
             
-            const url = `${baseUrl}${encodeURIComponent(toList)}${subjectParam}${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
-            window.open(url, '_blank');
+            const client = clients.find(c => c.id === client_id);
+            const phone = client?.telefone?.replace(/\D/g, '');
             
-            toast.success(`${successCount} comunicado(s) preparados no ${provider.charAt(0).toUpperCase() + provider.slice(1)}.`);
+            if (phone) {
+                window.open(`https://web.whatsapp.com/send?phone=55${phone}&text=${encodeURIComponent(plainTextMessage)}`, '_blank');
+                toast.success("Mensagem preparada no WhatsApp.");
+            }
         } else {
             toast.success(`${successCount} comunicado(s) agendado(s) com sucesso!`);
         }
@@ -192,20 +238,32 @@ export default function Announcements() {
 
                     // Prepara o HTML profissional para o Resend
                     const htmlContent = `
-                        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-                            <h2 style="color: #333;">Comunicado de Guia</h2>
-                            <div style="line-height: 1.6; color: #555;">
+                        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; border: 1px solid #f0f0f0; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); background-color: #ffffff;">
+                            <div style="text-align: center; margin-bottom: 25px;">
+                                <h1 style="color: #1a1a1a; font-size: 24px; font-weight: 300; margin: 0;">Guia <span style="color: #EA4335; font-weight: 600;">Disponível</span></h1>
+                            </div>
+                            
+                            <div style="line-height: 1.8; color: #444; font-size: 16px; margin-bottom: 30px;">
                                 ${message.replace(/\n/g, '<br>').replace(/<a href="(.*?)">(.*?)<\/a>/g, `
-                                    <div style="margin: 25px 0; text-align: center;">
-                                        <a href="$1" style="background-color: #007bff; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Acessar Documento</a>
+                                    <div style="margin: 35px 0; text-align: center;">
+                                        <a href="$1" style="background-color: #EA4335; color: white !important; padding: 15px 35px; text-decoration: none !important; border-radius: 12px; font-weight: bold; display: inline-block; box-shadow: 0 4px 15px rgba(234, 67, 53, 0.3); font-size: 16px;">$2</a>
                                     </div>
                                 `)}
                             </div>
-                            <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
-                            <p style="font-size: 10px; color: #999; text-align: center;">
-                                Este é um comunicado automático enviado por Gestor Pro em nome de seu contador.<br>
-                                Resend Sandbox: Para enviar para e-mails que não o seu, é necessário validar seu domínio no painel do Resend.
-                            </p>
+
+                            <hr style="border: 0; border-top: 1px solid #f0f0f0; margin: 30px 0;">
+                            
+                            <div style="text-align: center;">
+                                <p style="font-size: 12px; color: #999; margin-bottom: 5px;">
+                                    Este é um comunicado automático enviado por <strong>Gestor Pro</strong>.
+                                </p>
+                                <p style="font-size: 10px; color: #bbb;">
+                                    Ao abrir este e-mail, seu contador será notificado do recebimento.
+                                </p>
+                            </div>
+
+                            <!-- Tracking Pixel -->
+                            <img src="https://qvnktgjoarotzzkuptht.supabase.co/functions/v1/track-open?id=${item.id}" width="1" height="1" style="display:none;" />
                         </div>
                     `;
 
@@ -444,8 +502,16 @@ export default function Announcements() {
                                                         "bg-muted/10 text-muted-foreground border-border/40"
                                                     )}>
                                                         {getStatusIcon(item.status)}
-                                                        {item.status}
+                                                        {item.status === 'read' ? 'Lido' : 
+                                                         item.status === 'sent' ? 'Enviado' :
+                                                         item.status === 'delivered' ? 'Entregue' :
+                                                         item.status === 'scheduled' ? 'Agendado' : 'Pendente'}
                                                     </div>
+                                                    {item.status === 'read' && item.read_at && (
+                                                        <span className="text-[10px] text-primary/60 font-medium">
+                                                            {format(new Date(item.read_at), "HH:mm")}h
+                                                        </span>
+                                                    )}
                                                     <Button 
                                                         variant="ghost" 
                                                         size="icon" 

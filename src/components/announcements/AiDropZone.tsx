@@ -64,7 +64,6 @@ export function AiDropZone({ onSendAll, activeDept }: AiDropZoneProps) {
 Esta comunicação refere-se à empresa {{razao_social}}.
 Em continuidade ao nosso compromisso em garantir que todas as obrigações contabéis fiscais e legais estejam sempre em conformidade, encaminhamos em anexo: {{tipo_guia}}, referente à competência {{mes_referencia}}.
 
-Para sua conveniência, o documento também pode ser acessado diretamente pelo link abaixo:
 {{link_documento}}
 
 - Vencimento: {{vencimento}} ({{valor}})
@@ -355,9 +354,9 @@ Atenciosamente`;
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-[600px] mx-auto">
                                     <Button 
                                         onClick={() => onSendAll(processedFiles.filter(f => f.status === 'completed'), 'gmail')}
-                                        className="rounded-2xl h-16 shadow-lg shadow-primary/20 gap-4 text-[10px] uppercase tracking-[0.2em] font-bold bg-primary hover:bg-primary/90 transition-all active:scale-[0.98]"
+                                        className="rounded-2xl h-16 shadow-lg shadow-red-500/20 gap-4 text-[10px] uppercase tracking-[0.2em] font-bold bg-[#EA4335] hover:bg-[#EA4335]/90 transition-all active:scale-[0.98] border-none text-white"
                                     >
-                                        <Mail className="h-5 w-5" /> Enviar E-mails (Resend)
+                                        <Mail className="h-5 w-5" /> Enviar E-mail
                                     </Button>
                                     <Button 
                                         onClick={() => onSendAll(processedFiles.filter(f => f.status === 'completed'), 'whatsapp')}

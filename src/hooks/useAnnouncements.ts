@@ -13,6 +13,7 @@ export interface Announcement {
     content: string;
     status: AnnouncementStatus;
     sent_at: string | null;
+    read_at: string | null;
     scheduled_for?: string | null;
     is_scheduled?: boolean;
     folder_id?: string | null;

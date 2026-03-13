@@ -96,6 +96,49 @@ export class AiService {
     return { publicUrl, filePath };
   }
 
+  static async refineAnnouncement(text: string, action: 'refine' | 'summarize' | 'subject' | 'simplify'): Promise<string> {
+    const apiKey = this.getApiKey();
+    if (!apiKey) {
+      throw new Error('API Key não configurada.');
+    }
+
+    const prompts = {
+      refine: "Transforme este rascunho em um comunicado contábil ultra-profissional, polido e cordial. Mantenha as variáveis entre chaves como {{nome_fantasia}}. Use negrito (Markdown **) para pontos cruciais.",
+      summarize: "Resuma este texto técnico em 3 pontos claros e simples para um cliente leigo entender o que precisa ser feito.",
+      subject: "Sugira um assunto de e-mail curto e impactante para este comunicado. Retorne apenas o texto do assunto.",
+      simplify: "Traduza o 'contabilês' deste texto para uma linguagem simples e clara, sem perder a precisão legal."
+    };
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: "Você é um consultor contábil e especialista em comunicação corporativa. Sua tarefa é processar o texto do usuário conforme a instrução. Retorne apenas o texto processado, sem introduções ou explicações."
+          },
+          {
+            role: "user",
+            content: `${prompts[action]}\n\nTexto:\n${text}`
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error?.message || 'Erro na IA');
+    }
+
+    const result = await response.json();
+    return result.choices[0].message.content.trim();
+  }
+
   private static fileToBase64(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
