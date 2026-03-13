@@ -45,7 +45,8 @@ import {
     Info,
     Search,
     ChevronsUpDown,
-    Check
+    Check,
+    Layers
 } from "lucide-react";
 import { Client, Socio } from "@/hooks/useClients";
 import { ProfitWithdrawal } from "@/hooks/useProfitWithdrawals";
@@ -133,21 +134,21 @@ export function ProfitWithdrawalFormDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-xl bg-card border-none rounded-[2rem] p-0 overflow-hidden shadow-2xl shadow-black/20 animate-in fade-in zoom-in duration-300">
+            <DialogContent className="max-w-2xl bg-card border-none rounded-[2.5rem] p-0 overflow-hidden shadow-2xl shadow-black/20 animate-in fade-in zoom-in duration-300">
                 {/* Header with Background/Gradient */}
-                <div className="bg-primary/[0.03] border-b border-primary/5 p-8 pb-6 relative">
-                    <div className="absolute top-4 right-4 h-8 w-8 flex items-center justify-center rounded-full bg-muted/40 text-muted-foreground/40 hover:text-foreground hover:bg-muted/80 transition-all cursor-pointer" onClick={() => onOpenChange(false)}>
-                        <X className="h-4 w-4" />
-                    </div>
-                    <div className="flex items-center gap-5">
-                        <div className="h-14 w-14 flex items-center justify-center rounded-2xl bg-primary/10 border border-primary/20 shadow-sm transition-transform hover:scale-110 active:scale-95 duration-300">
-                            {withdrawal ? <History className="h-7 w-7 text-primary" /> : <PlusCircle className="h-7 w-7 text-primary" />}
+                <div className="bg-primary/[0.03] border-b border-primary/5 p-10 pb-8 relative overflow-hidden">
+                    {/* Decorative Background Elements */}
+                    <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-primary/[0.03] rounded-full blur-3xl pointer-events-none" />
+                    
+                    <div className="flex items-center gap-6 relative">
+                        <div className="h-16 w-16 flex items-center justify-center rounded-[1.25rem] bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 shadow-sm transition-transform hover:scale-105 duration-300">
+                            {withdrawal ? <History className="h-8 w-8 text-primary" /> : <Banknote className="h-8 w-8 text-primary" />}
                         </div>
                         <div>
-                            <DialogTitle className="text-2xl font-light tracking-tight text-foreground">
+                            <DialogTitle className="text-3xl font-light tracking-tight text-foreground">
                                 {withdrawal ? 'Editar' : 'Nova'} <span className="font-light text-primary">Retirada de Lucro</span>
                             </DialogTitle>
-                            <p className="text-xs text-muted-foreground/60 font-light mt-1 uppercase tracking-widest">
+                            <p className="text-xs text-muted-foreground/60 font-light mt-1.5 uppercase tracking-[0.2em]">
                                 {withdrawal ? 'Atualize as informações da retirada realizada' : 'Registre uma nova extração de dividendos para o sócio'}
                             </p>
                         </div>
@@ -298,17 +299,23 @@ export function ProfitWithdrawalFormDialog({
                                 </div>
                             </div>
 
-                            {/* Banco */}
+                            {/* Competência da REINF */}
                             <div className="md:col-span-12 space-y-2.5 pt-1">
                                 <Label className="text-[10px] font-light text-muted-foreground uppercase tracking-widest flex items-center gap-2 ml-1">
-                                    <CreditCard className="h-3 w-3 opacity-50" /> Banco / Método de Pagamento
+                                    <Layers className="h-3 w-3 opacity-50" /> Competência da REINF
                                 </Label>
-                                <Input
-                                    placeholder="Ex: Itaú, PIX, Bradesco, Dinheiro..."
+                                <Select
                                     value={formData.bank || ''}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, bank: e.target.value }))}
-                                    className="h-11 rounded-xl border-border/50 bg-card text-sm font-light transition-all hover:border-emerald-500/10"
-                                />
+                                    onValueChange={(value) => setFormData(prev => ({ ...prev, bank: value }))}
+                                >
+                                    <SelectTrigger className="h-11 rounded-xl border-border/50 bg-card text-sm font-light transition-all hover:border-emerald-500/10 focus:border-emerald-500/30 ring-emerald-500/10">
+                                        <SelectValue placeholder="Selecione a competência..." />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-card border-border rounded-xl">
+                                        <SelectItem value="mensal" className="font-light text-sm uppercase tracking-widest">Mensal</SelectItem>
+                                        <SelectItem value="trimestral" className="font-light text-sm uppercase tracking-widest">Trimestral</SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </div>
                     </div>

@@ -19,6 +19,7 @@ import {
     DollarSign,
     User,
     BarChart3,
+    Layers,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -108,13 +109,20 @@ export default function ProfitWithdrawals() {
 
     // KPIs calculados sobre o mês selecionado
     const kpis = useMemo(() => {
+        // Total do mês (todas as empresas) - Ignora busca
+        const monthTotalAll = withdrawals
+            .filter(w => !selectedMes || w.withdrawal_date?.substring(0, 7) === selectedMes)
+            .reduce((sum, w) => sum + w.amount, 0);
+
+        // Total filtrado (o que está na busca/selecionado)
         const totalAmount = filteredWithdrawals.reduce((sum, w) => sum + w.amount, 0);
+        
         const count = filteredWithdrawals.length;
         const uniquePartners = new Set(filteredWithdrawals.map(w => w.partner_cpf)).size;
         const uniqueClients = new Set(filteredWithdrawals.map(w => w.client_id)).size;
 
-        return { totalAmount, count, uniquePartners, uniqueClients };
-    }, [filteredWithdrawals]);
+        return { monthTotalAll, totalAmount, count, uniquePartners, uniqueClients };
+    }, [withdrawals, filteredWithdrawals, selectedMes]);
 
     const handleEdit = (withdrawal: ProfitWithdrawal) => {
         setSelectedWithdrawal(withdrawal);
@@ -133,7 +141,7 @@ export default function ProfitWithdrawals() {
                 'CPF do Sócio': '000.000.000-00',
                 'Data da Retirada (DD-MM-AAAA)': '05-03-2024',
                 'Valor': 1500.00,
-                'Banco': 'Itaú',
+                'REINF': 'mensal',
                 'Observações': 'Retirada mensal antecipada'
             },
             {
@@ -141,7 +149,7 @@ export default function ProfitWithdrawals() {
                 'CPF do Sócio': '111.111.111-11',
                 'Data da Retirada (DD-MM-AAAA)': '05-03-2024',
                 'Valor': 2000.00,
-                'Banco': 'PIX',
+                'REINF': 'trimestral',
                 'Observações': ''
             }
         ];
@@ -154,7 +162,7 @@ export default function ProfitWithdrawals() {
             { wch: 20 }, // CPF do Sócio
             { wch: 30 }, // Data da Retirada
             { wch: 12 }, // Valor
-            { wch: 15 }, // Banco
+            { wch: 15 }, // REINF
             { wch: 30 }, // Observações
         ];
 
@@ -197,22 +205,6 @@ export default function ProfitWithdrawals() {
                             <p className="text-xs text-muted-foreground font-light uppercase tracking-widest">Controle de Retiradas dos Sócios</p>
                         </div>
                     </div>
-
-                    <div className="flex items-center gap-3 bg-muted/30 p-1.5 rounded-2xl border border-border/50">
-                        <div className="flex items-center gap-2 pl-2">
-                            <Calendar className="h-4 w-4 text-muted-foreground/50" />
-                            <span className="text-[10px] uppercase tracking-widest font-light text-muted-foreground">Período:</span>
-                        </div>
-                        <select
-                            value={selectedMes}
-                            onChange={e => setSelectedMes(e.target.value)}
-                            className="bg-transparent border-none text-sm font-light text-foreground focus:ring-0 cursor-pointer pr-8"
-                        >
-                            {getLast12Months().map(m => (
-                                <option key={m} value={m}>{formatMesAno(m)}</option>
-                            ))}
-                        </select>
-                    </div>
                 </div>
 
                 {/* KPI Summary Banner */}
@@ -221,19 +213,33 @@ export default function ProfitWithdrawals() {
                         <BarChart3 className="h-24 w-24 text-primary" />
                     </div>
                     
-                    <div className="lg:col-span-4 space-y-4">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-xs font-light uppercase tracking-widest text-muted-foreground">Total Retirado no Mês</h3>
+                    <div className="lg:col-span-4 space-y-6">
+                        <div className="space-y-1">
+                            <h3 className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground">Total Retirado no Mês <span className="text-[8px] opacity-70">(Todas as Empresas)</span></h3>
+                            <div className="flex items-baseline gap-1">
+                                <span className="text-3xl font-light text-primary">
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(kpis.monthTotalAll)}
+                                </span>
+                            </div>
                         </div>
-                        <div className="flex items-baseline gap-1">
-                            <span className="text-3xl font-light text-primary">
-                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(kpis.totalAmount)}
-                            </span>
-                        </div>
-                        <div className="h-1.5 w-full rounded-full bg-muted/50 overflow-hidden mt-2">
-                            <div className="h-full bg-primary/40 animate-pulse-slow" style={{ width: '40%' }} />
-                        </div>
-                        <p className="text-[10px] text-muted-foreground font-light uppercase tracking-tighter">Referente a {formatMesAno(selectedMes)}</p>
+
+                        {searchQuery && (
+                            <div className="space-y-1 animate-in fade-in slide-in-from-left-2 duration-500">
+                                <h3 className="text-[10px] font-medium uppercase tracking-[0.2em] text-emerald-600/80">Total da Busca / Empresa</h3>
+                                <div className="flex items-baseline gap-1">
+                                    <span className="text-xl font-light text-emerald-600">
+                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(kpis.totalAmount)}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
+                        
+                        {!searchQuery && (
+                            <div className="h-1.5 w-full rounded-full bg-muted/50 overflow-hidden mt-4">
+                                <div className="h-full bg-primary/40 animate-pulse-slow" style={{ width: '100%' }} />
+                            </div>
+                        )}
+                        <p className="text-[10px] text-muted-foreground font-light uppercase tracking-widest">Mês de Referência: <span className="font-medium text-foreground/60">{formatMesAno(selectedMes)}</span></p>
                     </div>
 
                     <div className="lg:col-span-8 grid grid-cols-2 sm:grid-cols-3 gap-4 pl-0 lg:pl-6 lg:border-l border-border/30">
@@ -410,12 +416,21 @@ export default function ProfitWithdrawals() {
                                                 </div>
                                                 <div className="flex flex-col gap-1">
                                                     <span className="text-[9px] font-light text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-                                                        <DollarSign className="h-3 w-3 opacity-40" /> Valor
+                                                        <Layers className="h-3 w-3 opacity-40" /> REINF
                                                     </span>
-                                                    <p className="text-sm font-light text-emerald-600">
-                                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(w.amount)}
+                                                    <p className="text-xs font-light text-foreground uppercase">
+                                                        {w.bank || '—'}
                                                     </p>
                                                 </div>
+                                            </div>
+
+                                            <div className="flex flex-col gap-1 pt-2 border-t border-border/10">
+                                                <span className="text-[9px] font-light text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
+                                                    <DollarSign className="h-3 w-3 opacity-40" /> Valor
+                                                </span>
+                                                <p className="text-sm font-light text-emerald-600">
+                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(w.amount)}
+                                                </p>
                                             </div>
                                         </div>
 
@@ -436,6 +451,7 @@ export default function ProfitWithdrawals() {
                                         <TableHead className="text-[10px] font-light uppercase tracking-[0.1em] py-4 pl-6">Sócio</TableHead>
                                         <TableHead className="text-[10px] font-light uppercase tracking-[0.1em] py-4">Empresa</TableHead>
                                         <TableHead className="text-[10px] font-light uppercase tracking-[0.1em] py-4 text-center">Data</TableHead>
+                                        <TableHead className="text-[10px] font-light uppercase tracking-[0.1em] py-4 text-center">REINF</TableHead>
                                         <TableHead className="text-[10px] font-light uppercase tracking-[0.1em] py-4 text-right">Valor</TableHead>
                                         <TableHead className="text-[10px] font-light uppercase tracking-[0.1em] py-4 text-center pr-6">Ações</TableHead>
                                     </TableRow>
@@ -455,6 +471,11 @@ export default function ProfitWithdrawals() {
                                             <TableCell className="text-center">
                                                 <span className="text-xs font-light text-muted-foreground italic">
                                                     {w.withdrawal_date ? format(new Date(w.withdrawal_date), 'dd/MM/yyyy') : '-'}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                                <span className="text-[10px] font-light text-muted-foreground uppercase tracking-widest">
+                                                    {w.bank || '—'}
                                                 </span>
                                             </TableCell>
                                             <TableCell className="text-right">

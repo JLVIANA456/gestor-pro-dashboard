@@ -2,7 +2,7 @@
 import { useState, useCallback, useMemo } from "react";
 import { useDropzone } from "react-dropzone";
 import { 
-    Sparkles, 
+    Wand2, 
     Upload, 
     FileText, 
     Loader2, 
@@ -14,7 +14,8 @@ import {
     Eye,
     ChevronDown,
     ChevronUp,
-    Mail
+    Mail,
+    BrainCircuit
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AiService, ExtractedGuideData } from "@/services/aiService";
@@ -197,13 +198,13 @@ Atenciosamente`;
                 
                 <div className="relative z-10 space-y-6">
                     <div className="w-24 h-24 bg-primary/10 rounded-[2.5rem] flex items-center justify-center mx-auto group-hover:scale-110 transition-transform duration-500 shadow-xl shadow-primary/5">
-                        <Sparkles className="h-12 w-12 text-primary animate-pulse" />
+                        <BrainCircuit className="h-12 w-12 text-primary opacity-60" />
                     </div>
                     
                     <div className="space-y-2">
                         <h3 className="text-2xl font-light text-foreground tracking-tight">Processamento <span className="text-primary font-medium">Inteligente</span></h3>
                         <p className="text-sm text-muted-foreground font-light max-w-[320px] mx-auto leading-relaxed">
-                            Arraste suas guias aqui. A IA identificará os clientes e preparará o rascunho automaticamente para você revisar.
+                            Arraste suas guias aqui. O sistema identificará os clientes e preparará o rascunho automaticamente para você revisar.
                         </p>
                     </div>
 

@@ -119,7 +119,7 @@ function buildCompanySheet(
     aoa.push([]); // linha vazia
 
     // Cabeçalho
-    aoa.push(['Data', 'Sócio', 'CPF', 'Banco', 'Observações', 'Valor (R$)']);
+    aoa.push(['Data', 'Sócio', 'CPF', 'REINF', 'Observações', 'Valor (R$)']);
 
     // Agrupar por sócio
     const bySocio: Record<string, ProfitWithdrawal[]> = {};
@@ -144,7 +144,7 @@ function buildCompanySheet(
                 fmtDate(w.withdrawal_date),
                 w.partner_name,
                 w.partner_cpf,
-                w.bank || '—',
+                w.bank?.toUpperCase() || '—',
                 w.observations || '',
                 w.amount,
             ]);
@@ -167,7 +167,7 @@ function buildCompanySheet(
         { wch: 12 }, // Data
         { wch: 30 }, // Sócio
         { wch: 16 }, // CPF
-        { wch: 14 }, // Banco
+        { wch: 14 }, // REINF
         { wch: 35 }, // Observações
         { wch: 16 }, // Valor
     ];
@@ -192,7 +192,7 @@ function buildSummarySheet(
     aoa.push(['RELATÓRIO CONSOLIDADO — RETIRADAS DE LUCRO']);
     aoa.push([`Emitido em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`]);
     aoa.push([]);
-    aoa.push(['Empresa', 'CNPJ', 'Sócio', 'CPF', 'Data', 'Banco', 'Observações', 'Valor (R$)']);
+    aoa.push(['Empresa', 'CNPJ', 'Sócio', 'CPF', 'Data', 'REINF', 'Observações', 'Valor (R$)']);
 
     // Agrupar por empresa
     const byCompany: Record<string, ProfitWithdrawal[]> = {};
@@ -223,7 +223,7 @@ function buildSummarySheet(
                 w.partner_name,
                 w.partner_cpf,
                 fmtDate(w.withdrawal_date),
-                w.bank || '—',
+                w.bank?.toUpperCase() || '—',
                 w.observations || '',
                 w.amount,
             ]);
@@ -244,7 +244,7 @@ function buildSummarySheet(
         { wch: 28 }, // Sócio
         { wch: 16 }, // CPF
         { wch: 12 }, // Data
-        { wch: 14 }, // Banco
+        { wch: 14 }, // REINF
         { wch: 32 }, // Observações
         { wch: 16 }, // Valor
     ];

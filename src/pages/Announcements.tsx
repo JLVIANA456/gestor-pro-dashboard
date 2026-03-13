@@ -23,7 +23,12 @@ import {
     Inbox,
     Target,
     Building2,
-    Sparkles,
+    Wand2,
+    Briefcase,
+    FileBarChart,
+    Calculator,
+    Coins,
+    LayoutGrid,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -53,14 +58,16 @@ import { AnnouncementComposer } from '@/components/announcements/AnnouncementCom
 import { AiDropZone, ProcessedFile } from '@/components/announcements/AiDropZone';
 import { AiConfigModal } from '@/components/announcements/AiConfigModal';
 import { Settings } from 'lucide-react';
+import { Badge } from "@/components/ui/badge";
 import { ResendService } from '@/services/resendService';
+import { BrandingService } from '@/services/brandingService';
 
 const DEPARTMENTS = [
-    { id: 'fiscal', name: 'Fiscal', color: 'text-orange-500', bg: 'bg-orange-500/10' },
-    { id: 'pessoal', name: 'Pessoal', color: 'text-blue-500', bg: 'bg-blue-500/10' },
-    { id: 'contabil', name: 'Contábil', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-    { id: 'financeiro', name: 'Financeiro', color: 'text-purple-500', bg: 'bg-purple-500/10' },
-    { id: 'geral', name: 'Geral', color: 'text-slate-500', bg: 'bg-slate-500/10' },
+    { id: 'fiscal', name: 'Fiscal', icon: <FileBarChart className="h-4 w-4" />, color: 'text-orange-500', bg: 'bg-orange-500/10' },
+    { id: 'pessoal', name: 'Pessoal', icon: <Users className="h-4 w-4" />, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+    { id: 'contabil', name: 'Contábil', icon: <Calculator className="h-4 w-4" />, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+    { id: 'financeiro', name: 'Financeiro', icon: <Coins className="h-4 w-4" />, color: 'text-purple-500', bg: 'bg-purple-500/10' },
+    { id: 'geral', name: 'Geral', icon: <LayoutGrid className="h-4 w-4" />, color: 'text-slate-500', bg: 'bg-slate-500/10' },
 ];
 
 export default function Announcements() {
@@ -125,17 +132,41 @@ export default function Announcements() {
     };
 
     const handleSendSubmit = async (data: any, provider: 'gmail' | 'outlook' | 'whatsapp') => {
-        const { recipients, subject, message, isScheduled, scheduled_for, client_id } = data;
+        const { recipients, subject, message, isScheduled, scheduled_for, client_id, client_ids } = data;
+
+        const replaceVariables = (text: string, client: any) => {
+            if (!client) return text;
+            const now = new Date();
+            const variables: Record<string, string> = {
+                '{{nome_fantasia}}': client.nome_fantasia || client.nomeFantasia || '',
+                '{{razao_social}}': client.razao_social || client.razaoSocial || '',
+                '{{cnpj}}': client.cnpj || '',
+                '{{mes_atual}}': format(now, 'MMMM', { locale: ptBR }),
+                '{{ano_atual}}': format(now, 'yyyy'),
+                '{{dia_atual}}': format(now, 'dd'),
+            };
+
+            let result = text;
+            Object.entries(variables).forEach(([key, value]) => {
+                result = result.replace(new RegExp(key, 'g'), value);
+            });
+            return result;
+        };
 
         // Process all recipients
         const results = await Promise.all(recipients.map(async (email: string) => {
+            // Find client for this email to personalize
+            const client = clients.find(c => c.email === email) || (client_id ? clients.find(c => c.id === client_id) : null);
+            const personalizedMessage = replaceVariables(message, client);
+            const personalizedSubject = replaceVariables(subject, client);
+
             return await sendAnnouncement({
                 department: activeDept,
                 folder_id: selectedFolderId || undefined,
-                client_id: client_id || undefined,
+                client_id: client?.id || client_id || undefined,
                 recipient: email,
-                subject,
-                content: message,
+                subject: personalizedSubject,
+                content: personalizedMessage,
                 status: isScheduled ? 'scheduled' : 'sent',
                 sent_at: isScheduled ? null : new Date().toISOString(),
                 scheduled_for: isScheduled ? scheduled_for : null,
@@ -147,15 +178,16 @@ export default function Announcements() {
 
         // Send individual emails for tracking
         if (!isScheduled && provider !== 'whatsapp') {
+            const branding = BrandingService.getBranding();
             try {
                 for (const announcementRecord of results) {
                     if (!announcementRecord) continue;
 
-                    const formattedMessage = message
+                    const formattedMessage = announcementRecord.content
                         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                         .replace(/<a href="(.*?)">(.*?)<\/a>/g, `
                             <div style="margin: 35px 0; text-align: center;">
-                                <a href="$1" style="background-color: #EA4335; color: white !important; padding: 15px 35px; text-decoration: none !important; border-radius: 12px; font-weight: bold; display: inline-block; box-shadow: 0 4px 15px rgba(234, 67, 53, 0.3); font-size: 16px;">$2</a>
+                                <a href="$1" style="background-color: ${branding.primaryColor}; color: white !important; padding: 15px 35px; text-decoration: none !important; border-radius: 12px; font-weight: bold; display: inline-block; box-shadow: 0 4px 15px rgba(0,0,0,0.1); font-size: 16px;">${branding.buttonText || '$2'}</a>
                             </div>
                         `)
                         .replace(/\n/g, '<br>');
@@ -163,7 +195,7 @@ export default function Announcements() {
                     const htmlContent = `
                         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 35px; border: 1px solid #f0f0f0; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); background-color: #ffffff;">
                             <div style="text-align: center; margin-bottom: 25px;">
-                                <h1 style="color: #1a1a1a; font-size: 24px; font-weight: 300; margin: 0;">Comunicado <span style="color: #EA4335; font-weight: 600;">Oficial</span></h1>
+                                <h1 style="color: #1a1a1a; font-size: 24px; font-weight: 300; margin: 0;">${branding.headerTitle.split(' ')[0]} <span style="color: ${branding.primaryColor}; font-weight: 600;">${branding.headerTitle.split(' ').slice(1).join(' ')}</span></h1>
                             </div>
                             <div style="line-height: 1.8; color: #444; font-size: 16px; margin-bottom: 30px;">
                                 ${formattedMessage}
@@ -171,10 +203,10 @@ export default function Announcements() {
                             <hr style="border: 0; border-top: 1px solid #f0f0f0; margin: 30px 0;">
                             <div style="text-align: center;">
                                 <p style="font-size: 12px; color: #999; margin-bottom: 5px;">
-                                    Este é um canal oficial de comunicação de seu escritório contábil.
+                                    ${branding.footerText}
                                 </p>
                                 <p style="font-size: 10px; color: #bbb;">
-                                    Enviado via <strong>Gestor Pro</strong>
+                                    Enviado via <strong>${branding.companyName}</strong>
                                 </p>
                             </div>
                             <!-- Tracking Pixel -->
@@ -184,8 +216,9 @@ export default function Announcements() {
 
                     await ResendService.sendEmail({
                         to: announcementRecord.recipient,
-                        subject,
-                        html: htmlContent
+                        subject: announcementRecord.subject,
+                        html: htmlContent,
+                        reply_to: branding.replyToEmail || undefined
                     });
                 }
                 toast.success(`${successCount} comunicado(s) enviado(s) via E-mail!`);
@@ -230,6 +263,7 @@ export default function Announcements() {
                     successCount++;
                 }
             } else {
+                const branding = BrandingService.getBranding();
                 // DISPARO VIA RESEND (GMAIL/OUTLOOK AGORA SÃO AUTOMÁTICOS)
                 try {
                     if (!item.client.email) {
@@ -240,13 +274,13 @@ export default function Announcements() {
                     const htmlContent = `
                         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; border: 1px solid #f0f0f0; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); background-color: #ffffff;">
                             <div style="text-align: center; margin-bottom: 25px;">
-                                <h1 style="color: #1a1a1a; font-size: 24px; font-weight: 300; margin: 0;">Guia <span style="color: #EA4335; font-weight: 600;">Disponível</span></h1>
+                                <h1 style="color: #1a1a1a; font-size: 24px; font-weight: 300; margin: 0;">Guia <span style="color: ${branding.primaryColor}; font-weight: 600;">Disponível</span></h1>
                             </div>
                             
                             <div style="line-height: 1.8; color: #444; font-size: 16px; margin-bottom: 30px;">
                                 ${message.replace(/\n/g, '<br>').replace(/<a href="(.*?)">(.*?)<\/a>/g, `
                                     <div style="margin: 35px 0; text-align: center;">
-                                        <a href="$1" style="background-color: #EA4335; color: white !important; padding: 15px 35px; text-decoration: none !important; border-radius: 12px; font-weight: bold; display: inline-block; box-shadow: 0 4px 15px rgba(234, 67, 53, 0.3); font-size: 16px;">$2</a>
+                                        <a href="$1" style="background-color: ${branding.primaryColor}; color: white !important; padding: 15px 35px; text-decoration: none !important; border-radius: 12px; font-weight: bold; display: inline-block; box-shadow: 0 4px 15px rgba(0,0,0,0.1); font-size: 16px;">${branding.buttonText || '$2'}</a>
                                     </div>
                                 `)}
                             </div>
@@ -255,7 +289,7 @@ export default function Announcements() {
                             
                             <div style="text-align: center;">
                                 <p style="font-size: 12px; color: #999; margin-bottom: 5px;">
-                                    Este é um comunicado automático enviado por <strong>Gestor Pro</strong>.
+                                    Este é um comunicado automático enviado por <strong>${branding.companyName}</strong>.
                                 </p>
                                 <p style="font-size: 10px; color: #bbb;">
                                     Ao abrir este e-mail, seu contador será notificado do recebimento.
@@ -270,7 +304,8 @@ export default function Announcements() {
                     await ResendService.sendEmail({
                         to: item.client.email,
                         subject: subject,
-                        html: htmlContent
+                        html: htmlContent,
+                        reply_to: branding.replyToEmail || undefined
                     });
                     successCount++;
                 } catch (error: any) {
@@ -322,7 +357,7 @@ export default function Announcements() {
                         variant="outline"
                         className="rounded-2xl text-[10px] uppercase font-bold tracking-widest h-12 px-8 hover:bg-primary/5 text-muted-foreground gap-3 transition-all border-border/40 shadow-sm"
                     >
-                        <Settings className="h-4 w-4 opacity-40" /> IA Config
+                        <Settings className="h-4 w-4 opacity-40" /> Configurações
                     </Button>
                     <Button 
                         onClick={() => setIsComposerOpen(true)}
@@ -334,7 +369,7 @@ export default function Announcements() {
             </div>
 
             {/* Navegação de Departamentos (Modern Tiles) */}
-            <div className="flex flex-wrap gap-3">
+            <div className="bg-muted/30 p-1.5 rounded-[2rem] border border-border/40 inline-flex flex-wrap gap-2">
                 {DEPARTMENTS.map(dept => (
                     <button
                         key={dept.id}
@@ -343,81 +378,124 @@ export default function Announcements() {
                             setSelectedFolderId(null);
                         }}
                         className={cn(
-                            "px-8 py-3 rounded-2xl transition-all text-[10px] uppercase tracking-[0.15em] font-bold border",
+                            "flex items-center gap-3 px-6 py-3 rounded-[1.5rem] transition-all text-[10px] uppercase tracking-[0.15em] font-bold",
                             activeDept === dept.id 
-                                ? "bg-primary text-primary-foreground border-primary shadow-xl shadow-primary/20 scale-[1.02]" 
-                                : "bg-card text-muted-foreground hover:text-foreground border-border/40 hover:bg-muted/50"
+                                ? "bg-card text-primary shadow-lg shadow-black/5 scale-[1.02] border border-primary/10" 
+                                : "text-muted-foreground hover:text-foreground hover:bg-white/40"
                         )}
                     >
+                        <span className={cn(
+                            "p-2 rounded-xl transition-colors",
+                            activeDept === dept.id ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground/40"
+                        )}>
+                            {dept.icon}
+                        </span>
                         {dept.name}
                     </button>
                 ))}
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-10 items-start">
                 {/* Sidebar Lado Esquerdo: Navegação de Pastas */}
-                <aside className="xl:col-span-2 space-y-8">
-                    <section className="space-y-4">
+                <aside className="xl:col-span-3 space-y-10">
+                    <section className="bg-card rounded-[2.5rem] border border-border/50 p-6 shadow-sm space-y-6">
                         <div className="flex items-center justify-between px-2">
-                            <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/50 flex items-center gap-2">
-                                <FolderOpen className="h-3.5 w-3.5" /> Organização
+                            <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60 flex items-center gap-2">
+                                <Tags className="h-3.5 w-3.5 text-primary" /> Pastas do Setor
                             </h2>
                             <Button 
                                 onClick={() => setIsNewFolderDialogOpen(true)}
                                 variant="ghost" 
                                 size="icon" 
-                                className="h-7 w-7 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors text-muted-foreground"
+                                className="h-8 w-8 rounded-xl bg-primary/5 text-primary hover:bg-primary/10 transition-all"
                             >
-                                <Plus className="h-3.5 w-3.5" />
+                                <Plus className="h-4 w-4" />
                             </Button>
                         </div>
 
-                        <div className="grid grid-cols-1 gap-2">
+                        <div className="space-y-1.5">
                             <button
                                 onClick={() => setSelectedFolderId(null)}
                                 className={cn(
-                                    "flex items-center justify-between px-5 py-3.5 rounded-2xl transition-all text-sm font-light border",
+                                    "w-full flex items-center justify-between px-4 py-4 rounded-2xl transition-all group",
                                     selectedFolderId === null 
-                                        ? "bg-card text-primary border-primary/20 shadow-md" 
-                                        : "bg-transparent text-muted-foreground hover:bg-muted/30 border-transparent shadow-none"
+                                        ? "bg-primary/5 text-primary font-medium" 
+                                        : "text-muted-foreground hover:bg-muted/50"
                                 )}
                             >
-                                <span className="flex items-center gap-3"><Inbox className="h-4 w-4 opacity-40" /> Geral</span>
-                                <span className="text-[10px] font-bold opacity-30 bg-muted px-2 py-0.5 rounded-md">{announcements.filter(a => a.department === activeDept && !a.folder_id).length}</span>
+                                <div className="flex items-center gap-4">
+                                    <div className={cn(
+                                        "h-10 w-10 rounded-xl flex items-center justify-center transition-all",
+                                        selectedFolderId === null ? "bg-primary text-white shadow-xl shadow-primary/20" : "bg-muted/50 text-muted-foreground"
+                                    )}>
+                                        <Inbox className="h-5 w-5" />
+                                    </div>
+                                    <span className="text-sm">Arquivo Geral</span>
+                                </div>
+                                <Badge variant="secondary" className="rounded-lg font-bold text-[10px] bg-muted/40 border-none px-2.5">
+                                    {announcements.filter(a => a.department === activeDept && !a.folder_id).length}
+                                </Badge>
                             </button>
 
-                            {deptFolders.map(folder => (
-                                <div key={folder.id} className="relative group">
-                                    <button
-                                        onClick={() => setSelectedFolderId(folder.id)}
-                                        className={cn(
-                                            "w-full flex items-center justify-between px-5 py-3.5 rounded-2xl transition-all text-sm font-light border",
-                                            selectedFolderId === folder.id 
-                                                ? "bg-card text-primary border-primary/20 shadow-md" 
-                                                : "bg-transparent text-muted-foreground hover:bg-muted/30 border-transparent shadow-none"
-                                        )}
-                                    >
-                                        <span className="flex items-center gap-3 truncate pr-8"><Target className="h-4 w-4 opacity-40" /> {folder.name}</span>
-                                        <span className="text-[10px] font-bold opacity-30 bg-muted px-2 py-0.5 rounded-md">{announcements.filter(a => a.folder_id === folder.id).length}</span>
-                                    </button>
-                                    <button 
-                                        onClick={(e) => { e.stopPropagation(); deleteFolder(folder.id); }}
-                                        className="absolute right-10 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 h-7 w-7 flex items-center justify-center rounded-lg hover:bg-destructive/10 hover:text-destructive transition-all text-muted-foreground/30"
-                                    >
-                                        <Trash2 className="h-3.5 w-3.5" />
-                                    </button>
-                                </div>
-                            ))}
+                            <div className="pt-4 pb-2 px-2">
+                                <hr className="border-border/40" />
+                            </div>
+
+                            <div className="max-h-[400px] overflow-y-auto custom-scrollbar pr-1 space-y-1.5">
+                                {deptFolders.map(folder => (
+                                    <div key={folder.id} className="relative group/folder">
+                                        <button
+                                            onClick={() => setSelectedFolderId(folder.id)}
+                                            className={cn(
+                                                "w-full flex items-center justify-between px-4 py-4 rounded-2xl transition-all",
+                                                selectedFolderId === folder.id 
+                                                    ? "bg-primary/5 text-primary font-medium" 
+                                                    : "text-muted-foreground hover:bg-muted/50"
+                                            )}
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <div className={cn(
+                                                    "h-10 w-10 rounded-xl flex items-center justify-center transition-all",
+                                                    selectedFolderId === folder.id ? "bg-primary text-white shadow-xl shadow-primary/20" : "bg-muted text-muted-foreground/40"
+                                                )}>
+                                                    <FolderOpen className="h-4 w-4" />
+                                                </div>
+                                                <span className="text-sm truncate max-w-[120px]">{folder.name}</span>
+                                            </div>
+                                            <Badge variant="secondary" className="rounded-lg font-bold text-[10px] bg-muted/40 border-none px-2.5">
+                                                {announcements.filter(a => a.folder_id === folder.id).length}
+                                            </Badge>
+                                        </button>
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); deleteFolder(folder.id); }}
+                                            className="absolute right-12 top-1/2 -translate-y-1/2 opacity-0 group-hover/folder:opacity-100 h-8 w-8 flex items-center justify-center rounded-xl bg-destructive/5 text-destructive hover:bg-destructive/10 transition-all"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                ))}
+
+                                {deptFolders.length === 0 && (
+                                    <div className="py-10 text-center space-y-3">
+                                        <div className="h-12 w-12 bg-muted/30 rounded-full flex items-center justify-center mx-auto">
+                                            <Tags className="h-6 w-6 text-muted-foreground/20" />
+                                        </div>
+                                        <p className="text-[11px] text-muted-foreground font-light px-4">
+                                            Nenhuma pasta temática criada neste setor.
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </section>
                 </aside>
 
                 {/* Centro: Zona de Processamento de IA (Foco Principal) */}
-                <main className="xl:col-span-10 space-y-10">
+                <main className="xl:col-span-9 space-y-10">
                     <section className="max-w-[1000px] mx-auto w-full space-y-8 animate-in slide-in-from-bottom duration-700">
                         <div className="text-center space-y-2">
                              <h2 className="text-[11px] font-bold uppercase tracking-[0.3em] text-primary flex items-center justify-center gap-3">
-                                <Sparkles className="h-4 w-4" /> Inteligência Documental
+                                <Wand2 className="h-4 w-4" /> Inteligência Documental
                             </h2>
                             <p className="text-sm text-muted-foreground font-light">Processe suas guias de forma massiva com revisão em tempo real</p>
                         </div>

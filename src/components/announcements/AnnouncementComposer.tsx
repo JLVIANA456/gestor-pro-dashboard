@@ -12,30 +12,38 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { 
-    Send, 
-    Mail, 
+    Wand2, 
+    Upload, 
+    FileText, 
+    Loader2, 
+    CheckCircle2, 
+    AlertCircle, 
+    Send,
+    Trash2,
+    X,
+    Eye,
+    ChevronDown,
+    ChevronUp,
+    Mail,
+    BrainCircuit,
     Calendar as CalendarIcon, 
     Clock, 
     Info, 
     History,
-    X,
     MessageSquare,
     Tags,
     Phone,
     Paperclip,
     LayoutTemplate,
     UserPlus,
-    Trash2,
     Bold,
     Link as LinkIcon,
     Image as ImageIcon,
-    Loader2,
-    Sparkles,
     AlignLeft,
     AlignCenter,
     AlignRight,
     Palette,
-    TextCursor
+    TextCursor,
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { format } from 'date-fns';
@@ -254,6 +262,12 @@ export function AnnouncementComposer({
             return;
         }
 
+        if (clientId === "all") {
+            const allIds = clients.map(c => c.id);
+            setSelectedClientIds(allIds);
+            return;
+        }
+
         setSelectedClientIds(prev => {
             if (prev.includes(clientId)) {
                 return prev.filter(id => id !== clientId);
@@ -465,13 +479,22 @@ export function AnnouncementComposer({
                                     <CommandList className="max-h-[300px] overflow-y-auto custom-scrollbar">
                                         <CommandEmpty className="py-6 text-center text-xs text-muted-foreground font-light">Nenhuma empresa encontrada.</CommandEmpty>
                                         <CommandGroup>
-                                            <CommandItem
-                                                value="none"
-                                                onSelect={() => handleClientSelect("none")}
-                                                className="text-xs font-light py-2.5 px-3 cursor-pointer hover:bg-destructive/5 text-destructive rounded-lg m-1"
-                                            >
-                                                Limpar seleção
-                                            </CommandItem>
+                                            <div className="flex gap-1 p-1">
+                                                <CommandItem
+                                                    value="all"
+                                                    onSelect={() => handleClientSelect("all")}
+                                                    className="flex-1 text-[10px] font-bold uppercase tracking-wider py-2 justify-center cursor-pointer hover:bg-primary/5 text-primary rounded-lg"
+                                                >
+                                                    Selecionar Todos
+                                                </CommandItem>
+                                                <CommandItem
+                                                    value="none"
+                                                    onSelect={() => handleClientSelect("none")}
+                                                    className="flex-1 text-[10px] font-bold uppercase tracking-wider py-2 justify-center cursor-pointer hover:bg-destructive/5 text-destructive rounded-lg"
+                                                >
+                                                    Limpar
+                                                </CommandItem>
+                                            </div>
                                             {clients.map((client) => (
                                                 <CommandItem
                                                     key={client.id}
@@ -543,13 +566,13 @@ export function AnnouncementComposer({
                                                 className="h-7 px-2 gap-2 text-[10px] uppercase tracking-wider font-semibold text-primary hover:bg-primary/10"
                                                 disabled={isAiProcessing}
                                             >
-                                                {isAiProcessing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                                                {isAiProcessing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
                                                 Refinar IA
                                             </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end" className="w-56 rounded-xl border-border/40 shadow-elevated p-1">
                                             <DropdownMenuItem onClick={() => handleAiAction('refine')} className="text-xs py-2 gap-2 cursor-pointer rounded-lg">
-                                                <Sparkles className="h-3.5 w-3.5 text-primary" /> Refinar Tom Profissional
+                                                <Wand2 className="h-3.5 w-3.5 text-primary" /> Refinar Tom Profissional
                                             </DropdownMenuItem>
                                             <DropdownMenuItem onClick={() => handleAiAction('subject')} className="text-xs py-2 gap-2 cursor-pointer rounded-lg">
                                                 <MessageSquare className="h-3.5 w-3.5 text-primary" /> Gerar Assunto Criativo

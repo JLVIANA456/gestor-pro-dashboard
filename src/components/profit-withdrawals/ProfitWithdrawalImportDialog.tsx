@@ -177,7 +177,7 @@ export function ProfitWithdrawalImportDialog({
                 const parsedDate = parseDateDDMMYYYY(dateRaw);
                 const amountRaw = String(row['Valor'] || row['valor'] || '0').replace(',', '.');
                 const amount = parseFloat(amountRaw);
-                const bank = String(row['Banco'] || row['banco'] || '').trim();
+                const bank = String(row['REINF'] || row['REINF Competência'] || row['Banco'] || row['banco'] || '').trim();
                 const observations = String(row['Observações'] || row['observacoes'] || '').trim();
 
                 if (!partnerName) { errors.push(`Linha ${index + 2}: Nome do sócio ausente.`); return; }
