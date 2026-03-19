@@ -209,11 +209,7 @@ export function ClientGuidesModal({
                     </div>
                     
                     <div style="line-height: 1.8; color: #444; font-size: 16px; margin-bottom: 30px;">
-                        ${message.replace(/\n/g, '<br>').replace(/<a href="(.*?)">(.*?)<\/a>/g, `
-                            <div style="margin: 35px 0; text-align: center;">
-                                <a href="$1" style="background-color: ${branding.primaryColor}; color: white !important; padding: 10px 24px; text-decoration: none !important; border-radius: 8px; font-weight: 500; display: inline-block; box-shadow: 0 2px 8px rgba(0,0,0,0.1); font-size: 14px;">${branding.buttonText || '$2'}</a>
-                            </div>
-                        `)}
+                        ${message.replace(/\n/g, '<br>').replace(/<a href="(.*?)">(.*?)<\/a>/g, `<div style="margin: 15px 0 25px 0; text-align: center;"><a href="$1" style="background-color: ${branding.primaryColor}; color: white !important; padding: 10px 24px; text-decoration: none !important; border-radius: 8px; font-weight: 500; display: inline-block; box-shadow: 0 2px 8px rgba(0,0,0,0.1); font-size: 14px;">${branding.buttonText || '$2'}</a></div>`)}
                     </div>
 
                     <hr style="border: 0; border-top: 1px solid #f0f0f0; margin: 30px 0;">
