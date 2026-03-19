@@ -211,7 +211,7 @@ export function ClientGuidesModal({
                     <div style="line-height: 1.8; color: #444; font-size: 16px; margin-bottom: 30px;">
                         ${message.replace(/\n/g, '<br>').replace(/<a href="(.*?)">(.*?)<\/a>/g, `
                             <div style="margin: 35px 0; text-align: center;">
-                                <a href="$1" style="background-color: ${branding.primaryColor}; color: white !important; padding: 15px 35px; text-decoration: none !important; border-radius: 12px; font-weight: bold; display: inline-block; box-shadow: 0 4px 15px rgba(0,0,0,0.1); font-size: 16px;">$2</a>
+                                <a href="$1" style="background-color: ${branding.primaryColor}; color: white !important; padding: 10px 24px; text-decoration: none !important; border-radius: 8px; font-weight: 500; display: inline-block; box-shadow: 0 2px 8px rgba(0,0,0,0.1); font-size: 14px;">${branding.buttonText || '$2'}</a>
                             </div>
                         `)}
                     </div>
