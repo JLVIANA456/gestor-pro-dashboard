@@ -11,6 +11,7 @@ import Clients from "./pages/Clients";
 import Reports from "./pages/Reports";
 import Branding from "./pages/Branding";
 import Announcements from "./pages/Announcements";
+import RecurringAnnouncements from "./pages/RecurringAnnouncements";
 import Honorarios from "./pages/Honorarios";
 import NotFound from "./pages/NotFound";
 import Accounting from "./pages/Accounting";
@@ -64,6 +65,7 @@ const AppContent = () => {
         <Route path="/alertas" element={<Alerts />} />
         <Route path="/personalizar" element={<Branding />} />
         <Route path="/comunicados" element={<Announcements />} />
+        <Route path="/comunicados-recorrentes" element={<RecurringAnnouncements />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </MainLayout>

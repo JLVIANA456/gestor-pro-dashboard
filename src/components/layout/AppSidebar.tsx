@@ -19,7 +19,8 @@ import {
   ClipboardCheck,
   LogOut,
   Settings,
-  Bell
+  Bell,
+  Clock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useBranding } from '@/context/BrandingContext';
@@ -63,6 +64,7 @@ const sections = [
       { name: 'Gestão de Tarefas', href: '/gestao-tarefas', icon: ShieldCheck },
       { name: 'Calendário', href: '/calendario', icon: CalendarIcon },
       { name: 'Comunicados', href: '/comunicados', icon: Send },
+      { name: 'Recorrentes', href: '/comunicados-recorrentes', icon: Clock },
     ]
   },
   {

@@ -21,15 +21,20 @@ serve(async (req) => {
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
       )
 
-      // Update status to 'read' (visualizado)
+      // Get Client IP from headers
+      const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || 
+                      req.headers.get('x-real-ip') || 
+                      'Unknown';
+
+      // Update status to 'read' (visualizado) and capture recipient IP
       await supabaseClient
         .from('announcements')
         .update({ 
           status: 'read',
-          read_at: new Date().toISOString()
+          read_at: new Date().toISOString(),
+          recipient_ip: clientIp
         })
-        .eq('id', announcementId)
-        .eq('status', 'sent') // Only update if it hasn't been read yet
+        .eq('id', announcementId);
     }
 
     // Return a 1x1 transparent PNG pixel

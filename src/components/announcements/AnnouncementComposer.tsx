@@ -95,9 +95,11 @@ interface AnnouncementComposerProps {
         isScheduled: boolean;
         scheduled_for?: string;
         client_id?: string;
+        sendDay?: number;
     }, provider: 'gmail' | 'outlook' | 'whatsapp') => Promise<void>;
     isInternalBulletin?: boolean;
     internalRecipients?: string[];
+    showRecurringOptions?: boolean;
 }
 
 export function AnnouncementComposer({
@@ -108,7 +110,8 @@ export function AnnouncementComposer({
     folderName = 'Geral',
     onSend,
     isInternalBulletin = false,
-    internalRecipients = []
+    internalRecipients = [],
+    showRecurringOptions = false
 }: AnnouncementComposerProps) {
     const [to, setTo] = useState('');
     const [subject, setSubject] = useState('');
@@ -117,6 +120,7 @@ export function AnnouncementComposer({
     const [isScheduled, setIsScheduled] = useState(false);
     const [scheduledDate, setScheduledDate] = useState('');
     const [scheduledTime, setScheduledTime] = useState('');
+    const [sendDay, setSendDay] = useState(1);
     const [loading, setLoading] = useState(false);
     const [selectedClientIds, setSelectedClientIds] = useState<string[]>([]);
     const [comboboxOpen, setComboboxOpen] = useState(false);
@@ -460,7 +464,8 @@ export function AnnouncementComposer({
                     message: finalMessage,
                     isScheduled,
                     scheduled_for: isScheduled ? `${scheduledDate}T${scheduledTime}:00` : undefined,
-                    client_id: selectedClientIds.length === 1 ? selectedClientIds[0] : undefined
+                    client_id: selectedClientIds.length === 1 ? selectedClientIds[0] : undefined,
+                    sendDay: showRecurringOptions ? sendDay : undefined
                 }, provider);
             }
             
@@ -817,6 +822,32 @@ export function AnnouncementComposer({
                             />
                         </div>
                     </div>
+
+                    {showRecurringOptions && (
+                        <div className="bg-primary/5 p-6 rounded-3xl border border-primary/10 animate-in fade-in slide-in-from-top-2 duration-500">
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-1">
+                                    <Label className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2 ml-1">
+                                        <Clock className="h-4 w-4" /> Agendamento Mensal
+                                    </Label>
+                                    <p className="text-[10px] text-muted-foreground ml-7 uppercase tracking-wider">O e-mail será disparado todo mês no dia escolhido</p>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <div className="flex flex-col items-end gap-1.5">
+                                        <span className="text-[10px] uppercase font-black text-muted-foreground/60 tracking-widest">Dia do Mês</span>
+                                        <input 
+                                            type="number" 
+                                            min="1" 
+                                            max="31"
+                                            value={sendDay}
+                                            onChange={(e) => setSendDay(parseInt(e.target.value) || 1)}
+                                            className="h-12 w-20 rounded-xl border border-primary/20 bg-white text-center font-bold text-primary text-lg focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Mensagem e Placeholders */}
                     <div className="space-y-2 relative">

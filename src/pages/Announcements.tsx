@@ -103,8 +103,6 @@ export default function Announcements() {
     const { clients } = useClients();
 
     // Folders of the active department
-
-    // Folders of the active department
     const deptFolders = useMemo(() => 
         folders.filter(f => f.department === activeDept),
     [folders, activeDept]);
@@ -235,7 +233,6 @@ export default function Announcements() {
                 toast.error("Erro ao enviar via E-mail: " + error.message);
             }
         } else if (!isScheduled && provider === 'whatsapp') {
-            // Already handled in loop or needs window.open
             const plainTextMessage = message
                 .replace(/\*\*(.*?)\*\*/g, '$1')
                 .replace(/<a href="(.*?)">(.*?)<\/a>/g, '$2: $1');
@@ -261,7 +258,6 @@ export default function Announcements() {
             const subject = item.generatedSubject || `Guia de ${item.data.type} - ${item.data.referenceMonth}`;
             let message = item.generatedMessage || `Olá, segue guia de ${item.data.type}.`;
 
-            // Lógica de disparo por provedor
             if (provider === 'whatsapp') {
                 const plainTextMessage = message.replace(/<a href="(.*?)">(.*?)<\/a>/g, '$2: $1');
                 const phone = (item.client.phone || item.client.telefone)?.replace(/\D/g, '');
@@ -272,13 +268,11 @@ export default function Announcements() {
                 }
             } else {
                 const branding = BrandingService.getBranding();
-                // DISPARO VIA RESEND (GMAIL/OUTLOOK AGORA SÃO AUTOMÁTICOS)
                 try {
                     if (!item.client.email) {
                         throw new Error('E-mail do cliente não cadastrado.');
                     }
 
-                    // Prepara o HTML profissional para o Resend
                     const htmlContent = `
                         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; border: 1px solid #f0f0f0; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); background-color: #ffffff;">
                             <div style="text-align: center; margin-bottom: 25px;">
@@ -315,11 +309,10 @@ export default function Announcements() {
                 } catch (error: any) {
                     console.error('Falha ao enviar via Resend:', error);
                     toast.error(`Erro ao enviar para ${item.client.nomeFantasia || item.client.razaoSocial}: ${error.message}`);
-                    continue; // Pula para o próximo sem parar o loop
+                    continue;
                 }
             }
 
-            // Registrar no histórico independente do provedor
             await sendAnnouncement({
                 department: activeDept,
                 folder_id: selectedFolderId || undefined,
@@ -347,7 +340,6 @@ export default function Announcements() {
 
     return (
         <div className="max-w-[1600px] mx-auto space-y-10 px-4 sm:px-8 pb-12 animate-in fade-in duration-700">
-            {/* Header com Design Premium */}
             <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between pt-8">
                 <div>
                     <h1 className="text-4xl font-extralight tracking-tight text-foreground">Comunicados</h1>
@@ -365,7 +357,6 @@ export default function Announcements() {
                 </div>
             </div>
 
-            {/* Navegação de Departamentos (Modern Tiles) */}
             <div className="bg-muted/30 p-1.5 rounded-[2rem] border border-border/40 inline-flex flex-wrap gap-2">
                 {DEPARTMENTS.map(dept => (
                     <button
@@ -393,7 +384,6 @@ export default function Announcements() {
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-10 items-start">
-                {/* Sidebar Lado Esquerdo: Navegação de Pastas */}
                 <aside className="xl:col-span-3 space-y-10">
                     <section className="bg-card rounded-[2.5rem] border border-border/50 p-6 shadow-sm space-y-6">
                         <div className="flex items-center justify-between px-2">
@@ -487,7 +477,6 @@ export default function Announcements() {
                     </section>
                 </aside>
 
-                {/* Centro: Zona de Processamento de IA (Foco Principal) */}
                 <main className="xl:col-span-9 space-y-10">
                     {activeDept !== 'boletim' && (
                     <section className="max-w-[1000px] mx-auto w-full space-y-8 animate-in slide-in-from-bottom duration-700">
@@ -524,7 +513,6 @@ export default function Announcements() {
                     </section>
                     )}
 
-                    {/* Histórico Abaixo (Muito mais amplo e fácil de ler) */}
                     <section className="space-y-6 pt-10 border-t border-border/20">
                         <div className="bg-card rounded-[3rem] border border-border/50 shadow-elevated overflow-hidden">
                             <div className="p-10 border-b border-border/20 flex flex-col sm:flex-row sm:items-center justify-between gap-8 bg-muted/5">
@@ -587,10 +575,21 @@ export default function Announcements() {
                                                             <div className="flex items-center flex-wrap gap-3 text-[13px] text-foreground/80 font-semibold bg-primary/5 px-5 py-3 rounded-2xl border border-primary/10 shadow-sm">
                                                                 <span className="text-primary font-black text-xl leading-none select-none">•</span>
                                                                 <span className="text-foreground">{format(new Date(item.created_at), "dd/MM/yyyy HH:mm")}</span>
-                                                                <span className="text-primary/70 bg-primary/10 px-2 py-0.5 rounded-lg text-[11px] uppercase tracking-wider">(Destinatário)</span>
-                                                                <span className="text-foreground/70">acessou o arquivo (via link do e-mail) através do IP:</span>
-                                                                <span className="text-primary font-bold font-mono bg-white/50 px-3 py-1 rounded-xl border border-primary/10 shadow-inner">{item.sender_ip || '---'}</span>
-                                                                <span className="text-muted-foreground/60 font-medium">- e-mail: {item.recipient}</span>
+                                                                <span className="text-primary/70 bg-primary/10 px-2 py-0.5 rounded-lg text-[11px] uppercase tracking-wider">
+                                                                    {item.recipient_ip ? '(Visualizado pelo Cliente)' : '(Enviado pelo Escritório)'}
+                                                                </span>
+                                                                <span className="text-foreground/70">
+                                                                    {item.recipient_ip ? 'acessou o arquivo através do IP:' : 'comunicado enviado do IP:'}
+                                                                </span>
+                                                                <span className={cn(
+                                                                    "font-bold font-mono px-3 py-1 rounded-xl border shadow-inner",
+                                                                    item.recipient_ip 
+                                                                        ? "text-primary bg-white/50 border-primary/10" 
+                                                                        : "text-muted-foreground bg-muted/20 border-border/40 opacity-60"
+                                                                )}>
+                                                                    {item.recipient_ip || item.sender_ip || '---'}
+                                                                </span>
+                                                                {!item.recipient_ip && <span className="text-[10px] text-muted-foreground animate-pulse ml-2 italic">Aguardando acesso do cliente...</span>}
                                                             </div>
                                                         </div>
                                                      </div>
@@ -634,7 +633,6 @@ export default function Announcements() {
                 </main>
             </div>
 
-            {/* DIALOG: New Folder */}
             <Dialog open={isNewFolderDialogOpen} onOpenChange={setIsNewFolderDialogOpen}>
                 <DialogContent className="max-w-md bg-card border-border rounded-3xl p-0 overflow-hidden shadow-elevated">
                     <div className="bg-primary/5 border-b border-primary/10 p-6 pb-5">
@@ -677,9 +675,6 @@ export default function Announcements() {
                 </DialogContent>
             </Dialog>
 
-
-
-            {/* COMPOSER DIALOG */}
             <AnnouncementComposer 
                 open={isComposerOpen}
                 onOpenChange={setIsComposerOpen}

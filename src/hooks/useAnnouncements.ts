@@ -23,6 +23,7 @@ export interface Announcement {
         razao_social: string;
     } | null;
     sender_ip: string | null;
+    recipient_ip: string | null;
 }
 
 export interface AnnouncementFolder {
