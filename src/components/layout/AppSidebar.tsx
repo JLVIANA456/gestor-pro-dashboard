@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useBranding } from '@/context/BrandingContext';
+import { useAuth } from '@/context/AuthContext';
 import {
   Tooltip,
   TooltipContent,
@@ -84,6 +85,7 @@ export function AppSidebar({ collapsed, setCollapsed, isMobileOpen, setIsMobileO
   const location = useLocation();
   const navigate = useNavigate();
   const { logoUrl, officeName } = useBranding();
+  const { user, signOut } = useAuth();
 
   // Close mobile sidebar on route change
   useEffect(() => {
@@ -238,25 +240,35 @@ export function AppSidebar({ collapsed, setCollapsed, isMobileOpen, setIsMobileO
               collapsed && "justify-center"
             )}>
               <div className="relative">
-                <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold shadow-md shadow-primary/20 ring-2 ring-white overflow-hidden group-hover/user:scale-110 transition-transform duration-300">
-                  J
+                <div className="h-10 w-10 min-w-[40px] rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold shadow-md shadow-primary/20 ring-2 ring-white overflow-hidden group-hover/user:scale-110 transition-transform duration-300">
+                  {user?.avatar ? (
+                    <img src={user.avatar} alt="Avatar" className="h-full w-full object-cover" />
+                  ) : (
+                    user?.name?.charAt(0).toUpperCase() || 'U'
+                  )}
                 </div>
                 <div className="absolute bottom-0.5 right-0.5 h-3 w-3 bg-emerald-500 border-2 border-white rounded-full shadow-sm" />
               </div>
 
               {!collapsed && (
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-black !text-slate-950 truncate leading-tight">Jefferson</p>
-                  <p className="text-[10px] !text-slate-500 font-black uppercase tracking-wider truncate mt-0.5 opacity-60">Administrador</p>
+                  <p className="text-sm font-black !text-slate-950 truncate leading-tight">{user?.name || 'Usuário'}</p>
+                  <p className="text-[10px] !text-slate-500 font-black uppercase tracking-wider truncate mt-0.5 opacity-60">{user?.role || 'Acesso'}</p>
                 </div>
               )}
 
               {!collapsed && (
                 <div className="flex gap-0.5 opacity-0 group-hover/user:opacity-100 transition-all duration-300 translate-x-2 group-hover/user:translate-x-0">
-                  <button className="p-1.5 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors !text-slate-400">
+                  <button 
+                    onClick={() => navigate('/personalizar')}
+                    className="p-1.5 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors !text-slate-400"
+                  >
                     <Settings className="h-4 w-4" />
                   </button>
-                  <button className="p-1.5 rounded-lg hover:bg-destructive/10 hover:text-destructive transition-colors !text-slate-400">
+                  <button 
+                    onClick={() => signOut()}
+                    className="p-1.5 rounded-lg hover:bg-destructive/10 hover:text-destructive transition-colors !text-slate-400"
+                  >
                     <LogOut className="h-4 w-4" />
                   </button>
                 </div>

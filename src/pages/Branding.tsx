@@ -8,6 +8,9 @@ import { Palette, Building2, RotateCcw, Check, Users, Plus, Trash2, Edit, Loader
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTechnicians, Department } from '@/hooks/useTechnicians';
+import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { User as UserIcon } from 'lucide-react';
 
 import { AiService } from '@/services/aiService';
 import { BrandingService } from '@/services/brandingService';
@@ -47,6 +50,11 @@ export default function Branding() {
     const [localName, setLocalName] = useState(officeName);
     const [localLogo, setLocalLogo] = useState(logoUrl || '');
     
+    // Profile State
+    const { user } = useAuth();
+    const [profileName, setProfileName] = useState(user?.name || '');
+    const [profileAvatar, setProfileAvatar] = useState(user?.avatar || '');
+
     // AI Branding State
     const [apiKey, setApiKey] = useState("");
     const [emailSettings, setEmailSettings] = useState({
@@ -185,6 +193,9 @@ export default function Branding() {
                     </TabsTrigger>
                     <TabsTrigger value="technicians" className="rounded-xl px-6 h-full data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all text-xs uppercase tracking-widest font-light">
                         <Users className="w-4 h-4 mr-2" /> Responsáveis Técnicos
+                    </TabsTrigger>
+                    <TabsTrigger value="profile" className="rounded-xl px-6 h-full data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all text-xs uppercase tracking-widest font-light">
+                        <UserIcon className="w-4 h-4 mr-2" /> Meu Perfil
                     </TabsTrigger>
 
                 </TabsList>
@@ -510,6 +521,80 @@ export default function Branding() {
                                 })}
                             </div>
                         </div>
+                    </div>
+                </TabsContent>
+
+                {/* ABA 5: MEU PERFIL */}
+                <TabsContent value="profile" className="animate-in fade-in slide-in-from-bottom-2 duration-400">
+                    <div className="max-w-2xl mx-auto">
+                        <Card className="border-border/50 shadow-card rounded-2xl overflow-hidden bg-card">
+                            <CardHeader className="border-b border-border/30 bg-muted/5">
+                                <CardTitle className="text-lg font-light tracking-wide flex items-center gap-3">
+                                    <UserIcon className="h-5 w-5 text-primary" /> Configurações de Perfil
+                                </CardTitle>
+                                <CardDescription className="font-light">Altere seu nome de exibição e avatar no sistema</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-6 pt-6">
+                                <div className="space-y-4">
+                                    <div className="flex justify-center pb-6">
+                                        <div className="h-24 w-24 rounded-full bg-primary/10 border-4 border-white shadow-xl flex items-center justify-center text-primary text-3xl font-black overflow-hidden">
+                                            {profileAvatar ? (
+                                                <img src={profileAvatar} alt="Preview" className="h-full w-full object-cover" />
+                                            ) : (
+                                                profileName.charAt(0).toUpperCase() || "U"
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] uppercase tracking-widest font-normal text-muted-foreground">Nome de Exibição</Label>
+                                        <Input
+                                            value={profileName}
+                                            onChange={(e) => setProfileName(e.target.value)}
+                                            placeholder="Ex: Jefferson Administrador"
+                                            className="font-light h-11 border-border/50 rounded-xl"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] uppercase tracking-widest font-normal text-muted-foreground">URL do Avatar (Foto)</Label>
+                                        <Input
+                                            value={profileAvatar}
+                                            onChange={(e) => setProfileAvatar(e.target.value)}
+                                            placeholder="https://exemplo.com/sua-foto.png"
+                                            className="font-light h-11 border-border/50 rounded-xl"
+                                        />
+                                    </div>
+
+                                    <div className="pt-4">
+                                        <Button 
+                                            onClick={async () => {
+                                                setIsSaving(true);
+                                                try {
+                                                    const { error } = await supabase.auth.updateUser({
+                                                        data: { 
+                                                            name: profileName,
+                                                            avatar_url: profileAvatar
+                                                        }
+                                                    });
+                                                    if (error) throw error;
+                                                    toast.success('Perfil atualizado com sucesso!');
+                                                } catch (err: any) {
+                                                    toast.error('Erro ao atualizar perfil: ' + err.message);
+                                                } finally {
+                                                    setIsSaving(false);
+                                                }
+                                            }} 
+                                            disabled={isSaving} 
+                                            className="w-full rounded-xl h-12 font-light text-xs uppercase tracking-widest shadow-sm shadow-primary/10"
+                                        >
+                                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                                            Atualizar Meus Dados
+                                        </Button>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
                     </div>
                 </TabsContent>
 

@@ -15,13 +15,13 @@ export function MainLayout({ children }: MainLayoutProps) {
 
   return (
     <div className="min-h-screen bg-background font-sans flex overflow-x-hidden">
-      <AppSidebar 
-        collapsed={collapsed} 
-        setCollapsed={setCollapsed} 
+      <AppSidebar
+        collapsed={collapsed}
+        setCollapsed={setCollapsed}
         isMobileOpen={isMobileOpen}
         setIsMobileOpen={setIsMobileOpen}
       />
-      
+
       {/* Mobile Header */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-sidebar border-b border-sidebar-border z-30 flex items-center justify-between px-4 no-print">
         <div className="flex items-center gap-2">
@@ -37,7 +37,7 @@ export function MainLayout({ children }: MainLayoutProps) {
             <span className="text-[8px] font-medium text-sidebar-muted uppercase tracking-[0.2em] mt-0.5">JLConecta</span>
           </div>
         </div>
-        <button 
+        <button
           onClick={() => setIsMobileOpen(!isMobileOpen)}
           className="h-10 w-10 flex items-center justify-center rounded-xl bg-sidebar-foreground/5 text-sidebar-foreground"
         >
