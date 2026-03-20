@@ -103,7 +103,7 @@ export function AppSidebar({ collapsed, setCollapsed, isMobileOpen, setIsMobileO
 
       <aside
         className={cn(
-          'fixed left-0 top-0 h-[117.65vh] z-50 !bg-white border-r !border-slate-100 transition-all duration-500 ease-in-out no-print flex flex-col shadow-[10px_0_40px_rgba(0,0,0,0.03)] overflow-hidden',
+          'fixed left-0 top-0 h-[117.65vh] z-50 bg-slate-100/50 backdrop-blur-md border-r border-slate-200 transition-all duration-500 ease-in-out no-print flex flex-col shadow-[1px_0_10px_rgba(0,0,0,0.02)]',
           collapsed ? 'w-[80px]' : 'w-[280px]',
           // Mobile adjustments
           'max-md:w-[280px] max-md:z-50',
@@ -136,10 +136,10 @@ export function AppSidebar({ collapsed, setCollapsed, isMobileOpen, setIsMobileO
 
             {!collapsed && (
               <div className="flex flex-col min-w-0 transition-opacity duration-300 pr-2">
-                <h1 className="text-[14px] font-bold !text-slate-900 tracking-tight uppercase leading-tight break-words">
+                <h1 className="text-[14px] font-black !text-slate-950 tracking-tight uppercase leading-tight break-words">
                   {officeName}
                 </h1>
-                <p className="text-[9px] font-semibold !text-slate-600 tracking-[0.2em] uppercase opacity-70 mt-0.5">
+                <p className="text-[9px] font-bold !text-primary tracking-[0.2em] uppercase opacity-80 mt-0.5">
                   JLConecta
                 </p>
               </div>
@@ -148,13 +148,13 @@ export function AppSidebar({ collapsed, setCollapsed, isMobileOpen, setIsMobileO
         </div>
 
         {/* Main Navigation */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar py-4 px-3 space-y-6 !bg-white">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar py-6 px-4 space-y-8 bg-transparent">
           <TooltipProvider delayDuration={0}>
             {sections.map((section, sectionIdx) => (
               <div key={section.title} className="space-y-1.5">
                 {!collapsed && (
                   <h2 className={cn(
-                    "px-4 text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400 mb-2 transition-opacity duration-300",
+                    "px-4 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500/70 mb-2 transition-opacity duration-300",
                     sectionIdx !== 0 && "mt-2"
                   )}>
                     {section.title}
@@ -172,10 +172,10 @@ export function AppSidebar({ collapsed, setCollapsed, isMobileOpen, setIsMobileO
                         key={item.name}
                         to={item.href}
                         className={cn(
-                          'group relative flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm transition-all duration-300 ease-out overflow-hidden',
+                          'group relative flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition-all duration-300 ease-out overflow-hidden mb-1',
                           isActive
-                            ? 'bg-primary/10 !text-primary shadow-[0_4px_12px_rgba(200,30,30,0.05)] ring-1 ring-primary/20'
-                            : '!text-slate-700 hover:!text-slate-900 hover:bg-slate-50',
+                            ? 'bg-white shadow-sm ring-1 ring-slate-200 text-primary'
+                            : 'text-slate-600 font-medium hover:text-slate-900 hover:bg-white/40',
                           collapsed && 'px-0 justify-center h-12 w-full mx-auto'
                         )}
                       >
@@ -185,15 +185,15 @@ export function AppSidebar({ collapsed, setCollapsed, isMobileOpen, setIsMobileO
                         )}
 
                         <item.icon className={cn(
-                          'transition-all duration-300 stroke-[1.8px]',
+                          'transition-all duration-300 stroke-[2px]',
                           collapsed ? 'h-5.5 w-5.5' : 'h-5 w-5',
-                          isActive ? 'text-primary' : '!text-slate-500 group-hover:!text-slate-900'
+                          isActive ? 'text-primary scale-110' : 'text-slate-500 group-hover:text-primary'
                         )} />
 
                         {!collapsed && (
                           <span className={cn(
                             "whitespace-nowrap transition-all duration-300 tracking-wide font-normal",
-                            isActive ? "font-semibold" : "group-hover:translate-x-1"
+                            isActive ? "font-black" : "group-hover:translate-x-1"
                           )}>
                             {item.name}
                           </span>
@@ -210,7 +210,11 @@ export function AppSidebar({ collapsed, setCollapsed, isMobileOpen, setIsMobileO
                       return (
                         <Tooltip key={item.name}>
                           <TooltipTrigger asChild>{content}</TooltipTrigger>
-                          <TooltipContent side="right" className="bg-slate-900 text-white border-none rounded-lg font-medium py-2 px-3 shadow-xl">
+                          <TooltipContent 
+                            side="right" 
+                            sideOffset={15}
+                            className="z-[9999] bg-slate-950 text-white border border-white/10 rounded-xl font-black py-2.5 px-4 shadow-elevated text-sm animate-in fade-in zoom-in slide-in-from-left-2 duration-300"
+                          >
                             {item.name}
                           </TooltipContent>
                         </Tooltip>
@@ -225,7 +229,7 @@ export function AppSidebar({ collapsed, setCollapsed, isMobileOpen, setIsMobileO
         </div>
 
         {/* Bottom Section - User & Settings */}
-        <div className="relative mt-auto border-t !border-slate-100 !bg-white flex flex-col no-print transition-colors duration-500">
+        <div className="relative mt-auto border-t border-slate-200 bg-slate-100/30 backdrop-blur-sm flex flex-col no-print transition-colors duration-500">
           {/* User Profile */}
           <div className="px-4 pt-4 pb-1">
             <div className={cn(
@@ -242,8 +246,8 @@ export function AppSidebar({ collapsed, setCollapsed, isMobileOpen, setIsMobileO
 
               {!collapsed && (
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold !text-slate-900 truncate leading-tight">Jefferson</p>
-                  <p className="text-[10px] !text-slate-500 font-bold uppercase tracking-wider truncate mt-0.5">Administrador</p>
+                  <p className="text-sm font-black !text-slate-950 truncate leading-tight">Jefferson</p>
+                  <p className="text-[10px] !text-slate-500 font-black uppercase tracking-wider truncate mt-0.5 opacity-60">Administrador</p>
                 </div>
               )}
 
@@ -274,7 +278,7 @@ export function AppSidebar({ collapsed, setCollapsed, isMobileOpen, setIsMobileO
               ) : (
                 <>
                   <ChevronLeft className="h-4 w-4" />
-                  <span className="text-[9px] font-bold uppercase tracking-[0.25em] text-slate-500">Recolher Menu</span>
+                  <span className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-500">Recolher Menu</span>
                 </>
               )}
             </button>
