@@ -36,8 +36,16 @@ export class AiService {
       throw new Error('API Key não configurada. Clique no ícone de engrenagem para configurar.');
     }
 
-    // Convert file to base64
-    const base64 = await this.fileToBase64(file);
+    let base64: string;
+    let mimeType: string = file.type;
+
+    if (file.type === 'application/pdf') {
+      // Convert PDF to Image first to avoid OpenAI MIME type errors
+      base64 = await this.pdfToImage(file);
+      mimeType = 'image/png';
+    } else {
+      base64 = await this.fileToBase64(file);
+    }
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -69,7 +77,7 @@ export class AiService {
               {
                 type: "image_url",
                 image_url: {
-                  url: `data:${file.type};base64,${base64}`
+                  url: `data:${mimeType};base64,${base64}`
                 }
               }
             ]
@@ -151,6 +159,38 @@ export class AiService {
 
     const result = await response.json();
     return result.choices[0].message.content.trim();
+  }
+
+  private static async pdfToImage(file: File): Promise<string> {
+    // Dynamic import to keep the initial bundle light
+    const pdfjs = await import('pdfjs-dist');
+    // Using unpkg for worker to avoid local path complications in different environments
+    pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+
+    const arrayBuffer = await file.arrayBuffer();
+    const loadingTask = pdfjs.getDocument({ data: arrayBuffer });
+    const pdf = await loadingTask.promise;
+    const page = await pdf.getPage(1); // Usually we only need the first page for tax guides
+    
+    const viewport = page.getViewport({ scale: 2.0 }); // Scale 2.0 for high resolution OCR
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    
+    if (!context) throw new Error('Could not create canvas context');
+    
+    canvas.height = viewport.height;
+    canvas.width = viewport.width;
+
+    const renderContext = {
+      canvasContext: context,
+      viewport: viewport,
+    };
+
+    // @ts-ignore
+    await page.render(renderContext).promise;
+    
+    // Return base64 without the data:image/png;base64, prefix
+    return canvas.toDataURL('image/png').split(',')[1];
   }
 
   private static fileToBase64(file: File): Promise<string> {
