@@ -3,6 +3,7 @@ import { LayoutDashboard, Users, FileText, Palette, Mail, Building2, Menu, X, Se
 import { useNavigate, NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useBranding } from '@/context/BrandingContext';
+import { useAuth } from '@/context/AuthContext';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,6 +32,7 @@ export function Header() {
   const location = useLocation();
   const navigate = useNavigate();
   const { logoUrl, officeName } = useBranding();
+  const { user } = useAuth();
 
   // Fechar menu mobile ao trocar de rota
   useEffect(() => {
@@ -115,12 +117,12 @@ export function Header() {
         {/* Right Section: User */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-3 rounded-2xl bg-sidebar-foreground/5 pl-1.5 pr-4 py-1.5 border border-sidebar-border hover:border-sidebar-foreground/20 transition-all cursor-pointer group shadow-sm">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-[12px] font-normal text-primary-foreground ring-2 ring-sidebar-foreground/5 shadow-inner">
-              J
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-[12px] font-normal text-primary-foreground ring-2 ring-sidebar-foreground/5 shadow-inner uppercase">
+              {(user?.name || 'A')[0]}
             </div>
             <div className="hidden sm:block">
-              <p className="text-[11px] font-light text-sidebar-foreground leading-none">Jefferson</p>
-              <p className="text-[9px] font-normal text-sidebar-muted uppercase tracking-[0.2em] leading-none mt-1">Administrador</p>
+              <p className="text-[11px] font-light text-sidebar-foreground leading-none">{user?.name || 'Usuário'}</p>
+              <p className="text-[9px] font-normal text-sidebar-muted uppercase tracking-[0.2em] leading-none mt-1">{user?.role || 'Administrador'}</p>
             </div>
           </div>
 

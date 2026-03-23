@@ -1,9 +1,11 @@
 import { Sun, Moon, CloudSun, Calendar } from 'lucide-react';
 import { useBranding } from '@/context/BrandingContext';
+import { useAuth } from '@/context/AuthContext';
 import { motion } from 'framer-motion';
 
 export function GreetingCard() {
   const { officeName } = useBranding();
+  const { user } = useAuth();
   const hour = new Date().getHours();
 
   let greeting = 'Boa noite';
@@ -43,7 +45,7 @@ export function GreetingCard() {
           </div>
           <div>
             <h1 className="text-2xl font-light tracking-tight text-foreground">
-              {greeting}, <span className="text-primary font-semibold">Jefferson</span>
+              {greeting}, <span className="text-primary font-semibold">{user?.name || 'Administrador'}</span>
             </h1>
             <div className="flex items-center gap-2 mt-1">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
