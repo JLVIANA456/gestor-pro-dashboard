@@ -42,7 +42,7 @@ export default function Login() {
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] animate-pulse duration-[10s]" />
         <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] animate-pulse duration-[8s]" />
-        
+
         {/* Subtle Grid Pattern */}
         <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
       </div>
@@ -56,24 +56,24 @@ export default function Login() {
 
           <div className="relative z-10">
             <div className="h-16 w-16 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center text-primary mb-8 border border-white/10">
-                <ShieldCheck className="h-8 w-8" />
+              <ShieldCheck className="h-8 w-8" />
             </div>
             <h2 className="text-4xl font-light tracking-tight leading-tight mb-4">
-                Sua contabilidade <br />
-                <span className="text-primary font-semibold italic">inteligente & digital.</span>
+              Sua contabilidade <br />
+              <span className="text-primary font-semibold italic">Inteligente & digital.</span>
             </h2>
             <p className="text-slate-400 text-sm font-normal max-w-[280px] leading-relaxed">
-                Acesso exclusivo para clientes e colaboradores JLVIANA Consultoria.
+              Acesso exclusivo para clientes e colaboradores JLVIANA Consultoria.
             </p>
           </div>
 
           <div className="relative z-10 space-y-4">
             <div className="flex -space-x-3">
-                {[1,2,3,4].map(i => (
-                    <div key={i} className="h-10 w-10 rounded-full border-2 border-slate-900 bg-slate-800 flex items-center justify-center text-[10px] font-bold">
-                        U{i}
-                    </div>
-                ))}
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="h-10 w-10 rounded-full border-2 border-slate-900 bg-slate-800 flex items-center justify-center text-[10px] font-bold">
+                  U{i}
+                </div>
+              ))}
             </div>
             <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-slate-500 italic">+500 empresas gerenciadas hoje</p>
           </div>
@@ -81,85 +81,85 @@ export default function Login() {
 
         {/* Right Side: Form */}
         <div className="md:w-1/2 flex flex-col">
-            <CardHeader className="pt-16 pb-10 text-center space-y-8">
-              <div className="flex justify-center">
-                <div className="relative h-20 w-20 rounded-[2rem] bg-white flex items-center justify-center text-primary shadow-2xl shadow-primary/10 ring-1 ring-slate-100">
-                  {logoUrl ? (
-                    <img src={logoUrl} alt="Logo" className="h-full w-full object-contain p-3" />
-                  ) : (
-                    <Building2 className="h-10 w-10" />
-                  )}
-                </div>
+          <CardHeader className="pt-16 pb-10 text-center space-y-8">
+            <div className="flex justify-center">
+              <div className="relative h-20 w-20 rounded-[2rem] bg-white flex items-center justify-center text-primary shadow-2xl shadow-primary/10 ring-1 ring-slate-100">
+                {logoUrl ? (
+                  <img src={logoUrl} alt="Logo" className="h-full w-full object-contain p-3" />
+                ) : (
+                  <Building2 className="h-10 w-10" />
+                )}
               </div>
-              
-              <div className="space-y-2 px-8">
-                <CardTitle className="text-3xl font-light text-slate-900 tracking-tighter">
-                  Acesse sua <span className="text-primary font-medium">Conta</span>
-                </CardTitle>
-                <CardDescription className="text-slate-400 font-semibold uppercase tracking-[0.2em] text-[11px]">
-                    Painel Administrativo v2.0
-                </CardDescription>
-              </div>
-            </CardHeader>
+            </div>
 
-            <CardContent className="px-12 pb-16 flex-1 flex flex-col justify-center">
-              <form onSubmit={handleLogin} className="space-y-6">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold uppercase text-slate-400 tracking-[0.2em] ml-1">E-mail Corporativo</label>
-                    <div className="group relative">
-                      <Mail className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-primary transition-colors" />
-                      <Input 
-                        type="email" 
-                        placeholder="seu@dominio.com.br" 
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                        className="h-14 pl-14 rounded-2xl border-slate-100 bg-white/50 focus:bg-white focus:ring-4 focus:ring-primary/5 focus:border-primary/20 transition-all font-medium text-slate-600 placeholder:text-slate-300 shadow-sm"
-                      />
-                    </div>
-                  </div>
+            <div className="space-y-2 px-8">
+              <CardTitle className="text-3xl font-light text-slate-900 tracking-tighter">
+                Acesse sua <span className="text-primary font-medium">Conta</span>
+              </CardTitle>
+              <CardDescription className="text-slate-400 font-semibold uppercase tracking-[0.2em] text-[11px]">
 
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between px-1">
-                        <label className="text-[10px] font-bold uppercase text-slate-400 tracking-[0.2em]">Sua Senha</label>
-                    </div>
-                    <div className="group relative">
-                      <Fingerprint className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 group-focus-within:text-primary transition-colors" />
-                      <Input 
-                        type={showPassword ? "text" : "password"}
-                        placeholder="••••••••" 
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        className="h-14 pl-14 pr-14 rounded-2xl border-slate-100 bg-white/50 focus:bg-white focus:ring-4 focus:ring-primary/5 focus:border-primary/20 transition-all font-medium text-slate-600 placeholder:text-slate-300 shadow-sm"
-                      />
-                      <button 
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 hover:text-primary transition-colors focus:outline-none"
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
+              </CardDescription>
+            </div>
+          </CardHeader>
+
+          <CardContent className="px-12 pb-16 flex-1 flex flex-col justify-center">
+            <form onSubmit={handleLogin} className="space-y-6">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase text-slate-400 tracking-[0.2em] ml-1">E-mail Corporativo</label>
+                  <div className="group relative">
+                    <Mail className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-primary transition-colors" />
+                    <Input
+                      type="email"
+                      placeholder="seu@dominio.com.br"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      className="h-14 pl-14 rounded-2xl border-slate-100 bg-white/50 focus:bg-white focus:ring-4 focus:ring-primary/5 focus:border-primary/20 transition-all font-medium text-slate-600 placeholder:text-slate-300 shadow-sm"
+                    />
                   </div>
                 </div>
 
-                <Button 
-                  type="submit" 
-                  disabled={loading}
-                  className="w-full h-14 rounded-2xl bg-slate-900 text-white font-bold uppercase tracking-[0.2em] text-[11px] shadow-xl hover:bg-slate-800 hover:scale-[1.01] active:scale-95 transition-all disabled:opacity-70 mt-4"
-                >
-                  {loading ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <span className="flex items-center gap-3">
-                      Entrar na plataforma <ArrowRight className="h-4 w-4" />
-                    </span>
-                  )}
-                </Button>
-              </form>
-            </CardContent>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between px-1">
+                    <label className="text-[10px] font-bold uppercase text-slate-400 tracking-[0.2em]">Sua Senha</label>
+                  </div>
+                  <div className="group relative">
+                    <Fingerprint className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 group-focus-within:text-primary transition-colors" />
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      className="h-14 pl-14 pr-14 rounded-2xl border-slate-100 bg-white/50 focus:bg-white focus:ring-4 focus:ring-primary/5 focus:border-primary/20 transition-all font-medium text-slate-600 placeholder:text-slate-300 shadow-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 hover:text-primary transition-colors focus:outline-none"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <Button
+                type="submit"
+                disabled={loading}
+                className="w-full h-14 rounded-2xl bg-slate-900 text-white font-bold uppercase tracking-[0.2em] text-[11px] shadow-xl hover:bg-slate-800 hover:scale-[1.01] active:scale-95 transition-all disabled:opacity-70 mt-4"
+              >
+                {loading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <span className="flex items-center gap-3">
+                    Entrar na plataforma <ArrowRight className="h-4 w-4" />
+                  </span>
+                )}
+              </Button>
+            </form>
+          </CardContent>
         </div>
       </Card>
     </div>

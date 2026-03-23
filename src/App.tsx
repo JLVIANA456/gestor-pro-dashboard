@@ -24,6 +24,7 @@ import TaskManagement from "./pages/TaskManagement";
 import Obligations from "./pages/Obligations";
 import Alerts from "./pages/Alerts";
 import Login from "./pages/Login";
+import Landing from "./pages/Landing";
 
 const queryClient = new QueryClient();
 
@@ -44,7 +45,7 @@ const AppContent = () => {
   }
 
   if (!session) {
-    return <Login />;
+    return <Landing />;
   }
 
   return (
