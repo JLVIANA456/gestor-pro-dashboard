@@ -282,7 +282,7 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[95vh] overflow-y-auto bg-card border-border">
+      <DialogContent className="max-w-6xl max-h-[92vh] overflow-y-auto bg-card border-border">
         <DialogHeader>
           <DialogTitle className="text-2xl font-light text-foreground">
             {isEditing ? 'Editar Registro do Cliente' : 'Cadastrar Novo Cliente'}
@@ -294,8 +294,8 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
           <div className="space-y-6">
             <h3 className="text-xs font-normal text-muted-foreground uppercase tracking-[0.2em] border-b border-border/50 pb-2">1. Identificação Corporativa</h3>
 
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <div className="space-y-2">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+              <div className="md:col-span-1 space-y-2">
                 <Label className="text-xs font-normal">Razão Social *</Label>
                 <Input
                   placeholder="Nome oficial da empresa"
@@ -305,7 +305,7 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
                   required
                 />
               </div>
-              <div className="space-y-2">
+              <div className="md:col-span-1 space-y-2">
                 <Label className="text-xs font-normal">Nome Fantasia</Label>
                 <Input
                   placeholder="Nome comercial"
@@ -314,10 +314,7 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
                   onChange={(e) => handleInputChange('nomeFantasia', e.target.value)}
                 />
               </div>
-            </div>
-            
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <div className="space-y-2">
+              <div className="md:col-span-1 space-y-2">
                 <Label className="text-xs font-normal">Responsável pela Empresa (Pessoa de Contato)</Label>
                 <Input
                   placeholder="Nome do responsável direto na empresa"
@@ -326,14 +323,17 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
                   onChange={(e) => handleInputChange('responsavelEmpresa', e.target.value)}
                 />
               </div>
-              <div className="flex flex-col justify-center space-y-3 p-4 rounded-xl bg-muted/20 border border-border/50">
+            </div>
+            
+            <div className="grid grid-cols-1">
+              <div className="flex flex-row items-center gap-8 p-4 rounded-xl bg-muted/20 border border-border/50">
                 <div className="flex items-center space-x-2">
                   <Checkbox 
                     id="hasEmployees" 
                     checked={formData.hasEmployees}
                     onCheckedChange={(checked) => handleInputChange('hasEmployees', checked === true)}
                   />
-                  <Label htmlFor="hasEmployees" className="text-xs font-medium cursor-pointer">Possui Funcionários / Folha de Pagamento</Label>
+                  <Label htmlFor="hasEmployees" className="text-xs font-light cursor-pointer">Possui Funcionários / Folha de Pagamento</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox 
@@ -341,7 +341,7 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
                     checked={formData.isServiceTaker}
                     onCheckedChange={(checked) => handleInputChange('isServiceTaker', checked === true)}
                   />
-                  <Label htmlFor="isServiceTaker" className="text-xs font-medium cursor-pointer">Cunho Tomador de Serviços (Retenções)</Label>
+                  <Label htmlFor="isServiceTaker" className="text-xs font-light cursor-pointer">Cunho Tomador de Serviços (Retenções)</Label>
                 </div>
               </div>
             </div>
@@ -416,55 +416,53 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
           <div className="space-y-6">
             <h3 className="text-xs font-normal text-muted-foreground uppercase tracking-[0.2em] border-b border-border/50 pb-2">2. Fiscal & Credenciais</h3>
 
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <div className="p-4 rounded-2xl bg-muted/20 border border-border/50 space-y-4">
-                <h4 className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Prefeitura</h4>
-                <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
+              <div className="md:col-span-1 p-4 rounded-2xl bg-muted/20 border border-border/50 space-y-4">
+                <h4 className="text-[10px] uppercase font-light text-muted-foreground tracking-widest">Prefeitura</h4>
+                <div className="grid grid-cols-1 gap-3">
                   <div className="space-y-2">
-                    <Label className="text-[10px]">CCM</Label>
-                    <Input value={formData.ccm} onChange={(e) => handleInputChange('ccm', e.target.value)} className="h-9 text-sm rounded-lg" />
+                    <Label className="text-[10px] font-light">CCM</Label>
+                    <Input value={formData.ccm} onChange={(e) => handleInputChange('ccm', e.target.value)} className="h-9 text-sm rounded-lg font-light" />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-[10px]">Senha Prefeitura</Label>
-                    <Input type="password" value={formData.senhaPrefeitura} onChange={(e) => handleInputChange('senhaPrefeitura', e.target.value)} className="h-9 text-sm rounded-lg" />
+                    <Label className="text-[10px] font-light">Senha Prefeitura</Label>
+                    <Input type="password" value={formData.senhaPrefeitura} onChange={(e) => handleInputChange('senhaPrefeitura', e.target.value)} className="h-9 text-sm rounded-lg font-light" />
                   </div>
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-muted/20 border border-border/50 space-y-4">
-                <h4 className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Estado (SEFAZ)</h4>
-                <div className="grid grid-cols-2 gap-3">
+              <div className="md:col-span-1 p-4 rounded-2xl bg-muted/20 border border-border/50 space-y-4">
+                <h4 className="text-[10px] uppercase font-light text-muted-foreground tracking-widest">Estado (SEFAZ)</h4>
+                <div className="grid grid-cols-1 gap-3">
                   <div className="space-y-2">
-                    <Label className="text-[10px]">Inscr. Estadual (IE)</Label>
-                    <Input value={formData.ie} onChange={(e) => handleInputChange('ie', e.target.value)} className="h-9 text-sm rounded-lg" />
+                    <Label className="text-[10px] font-light">Inscr. Estadual (IE)</Label>
+                    <Input value={formData.ie} onChange={(e) => handleInputChange('ie', e.target.value)} className="h-9 text-sm rounded-lg font-light" />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-[10px]">Senha SEFAZ / Posto</Label>
-                    <Input type="password" value={formData.sefazSenha} onChange={(e) => handleInputChange('sefazSenha', e.target.value)} className="h-9 text-sm rounded-lg" />
+                    <Label className="text-[10px] font-light">Senha SEFAZ / Posto</Label>
+                    <Input type="password" value={formData.sefazSenha} onChange={(e) => handleInputChange('sefazSenha', e.target.value)} className="h-9 text-sm rounded-lg font-light" />
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-              <div className="p-4 rounded-2xl bg-muted/20 border border-border/50 space-y-4">
-                <h4 className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Simples Nacional</h4>
+              <div className="md:col-span-1 p-4 rounded-2xl bg-muted/20 border border-border/50 space-y-4">
+                <h4 className="text-[10px] uppercase font-light text-muted-foreground tracking-widest">Simples Nacional</h4>
                 <div className="space-y-2">
-                  <Label className="text-[10px]">Código de Acesso / Senha</Label>
-                  <Input type="password" value={formData.simplesNacionalSenha} onChange={(e) => handleInputChange('simplesNacionalSenha', e.target.value)} className="h-9 text-sm rounded-lg" />
+                  <Label className="text-[10px] font-light">Código de Acesso / Senha</Label>
+                  <Input type="password" value={formData.simplesNacionalSenha} onChange={(e) => handleInputChange('simplesNacionalSenha', e.target.value)} className="h-9 text-sm rounded-lg font-light" />
                 </div>
               </div>
 
-              <div className="md:col-span-2 p-4 rounded-2xl bg-muted/20 border border-border/50 space-y-4">
-                <h4 className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Portal e-CAC (Receita Federal)</h4>
-                <div className="grid grid-cols-2 gap-3">
+              <div className="md:col-span-1 p-4 rounded-2xl bg-muted/20 border border-border/50 space-y-4">
+                <h4 className="text-[10px] uppercase font-light text-muted-foreground tracking-widest">Portal e-CAC (Receita)</h4>
+                <div className="grid grid-cols-1 gap-3">
                   <div className="space-y-2">
-                    <Label className="text-[10px]">Código de Acesso</Label>
-                    <Input value={formData.ecacCodigoAcesso} onChange={(e) => handleInputChange('ecacCodigoAcesso', e.target.value)} className="h-9 text-sm rounded-lg" />
+                    <Label className="text-[10px] font-light">Código de Acesso</Label>
+                    <Input value={formData.ecacCodigoAcesso} onChange={(e) => handleInputChange('ecacCodigoAcesso', e.target.value)} className="h-9 text-sm rounded-lg font-light" />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-[10px]">Senha e-CAC</Label>
-                    <Input type="password" value={formData.ecacSenha} onChange={(e) => handleInputChange('ecacSenha', e.target.value)} className="h-9 text-sm rounded-lg" />
+                    <Label className="text-[10px] font-light">Senha e-CAC</Label>
+                    <Input type="password" value={formData.ecacSenha} onChange={(e) => handleInputChange('ecacSenha', e.target.value)} className="h-9 text-sm rounded-lg font-light" />
                   </div>
                 </div>
               </div>
@@ -574,10 +572,10 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
           {/* Seção 5: Responsáveis Técnicos */}
           <div className="space-y-6">
             <h3 className="text-xs font-normal text-muted-foreground uppercase tracking-[0.2em] border-b border-border/50 pb-2">5. Responsáveis Técnicos</h3>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-3 p-4 rounded-2xl bg-secondary/20 border border-border/50">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-5 p-4 rounded-2xl bg-secondary/20 border border-border/50">
 
               <div className="space-y-2">
-                <Label className="text-xs font-normal">Departamento Pessoal</Label>
+                <Label className="text-xs font-normal">Dep. Pessoal</Label>
                 <Select value={formData.responsavelDp} onValueChange={(v) => handleInputChange('responsavelDp', v)}>
                   <SelectTrigger className="h-10 rounded-xl">
                     <SelectValue placeholder="Selecione..." />
@@ -591,7 +589,7 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
               </div>
 
               <div className="space-y-2">
-                <Label className="text-xs font-normal">Departamento Fiscal</Label>
+                <Label className="text-xs font-normal">Dep. Fiscal</Label>
                 <Select value={formData.responsavelFiscal} onValueChange={(v) => handleInputChange('responsavelFiscal', v)}>
                   <SelectTrigger className="h-10 rounded-xl">
                     <SelectValue placeholder="Selecione..." />
@@ -605,7 +603,7 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
               </div>
 
               <div className="space-y-2">
-                <Label className="text-xs font-normal">Departamento Contábil</Label>
+                <Label className="text-xs font-normal">Dep. Contábil</Label>
                 <Select value={formData.responsavelContabil} onValueChange={(v) => handleInputChange('responsavelContabil', v)}>
                   <SelectTrigger className="h-10 rounded-xl">
                     <SelectValue placeholder="Selecione..." />
@@ -619,7 +617,7 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
               </div>
 
               <div className="space-y-2">
-                <Label className="text-xs font-normal">Departamento Financeiro</Label>
+                <Label className="text-xs font-normal">Dep. Financeiro</Label>
                 <Select value={formData.responsavelFinanceiro} onValueChange={(v) => handleInputChange('responsavelFinanceiro', v)}>
                   <SelectTrigger className="h-10 rounded-xl">
                     <SelectValue placeholder="Selecione..." />
@@ -637,7 +635,7 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
               </div>
 
               <div className="space-y-2">
-                <Label className="text-xs font-normal">Departamento Qualidade</Label>
+                <Label className="text-xs font-normal">Dep. Qualidade</Label>
                 <Select value={formData.responsavelQualidade} onValueChange={(v) => handleInputChange('responsavelQualidade', v)}>
                   <SelectTrigger className="h-10 rounded-xl">
                     <SelectValue placeholder="Selecione..." />
@@ -656,8 +654,8 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
           {/* Seção 6: Sócios */}
           <div className="space-y-6">
             <div className="flex items-center justify-between border-b border-border/50 pb-2">
-              <h3 className="text-xs font-normal text-muted-foreground uppercase tracking-[0.2em]">6. Quadro Societário</h3>
-              <Button type="button" variant="ghost" size="sm" onClick={addSocio} className="text-primary hover:text-primary hover:bg-primary/5 rounded-xl h-8 px-3 text-[10px] font-bold uppercase tracking-widest">
+              <h3 className="text-xs font-light text-muted-foreground uppercase tracking-[0.2em]">6. Quadro Societário</h3>
+              <Button type="button" variant="ghost" size="sm" onClick={addSocio} className="text-primary hover:text-primary hover:bg-primary/5 rounded-xl h-8 px-3 text-[10px] font-light uppercase tracking-widest">
                 <Plus className="mr-2 h-3 w-3" />
                 Adicionar Sócio
               </Button>

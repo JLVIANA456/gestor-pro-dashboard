@@ -163,7 +163,7 @@ export function AccountingModal({ client, isOpen, onClose, onUpdate, isAlreadyCl
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[800px] overflow-y-auto max-h-[90vh]">
+            <DialogContent className="max-w-6xl max-h-[92vh] overflow-y-auto bg-card border-border">
                 <DialogHeader>
                     <DialogTitle>Fechamento Contábil - {client?.razaoSocial}</DialogTitle>
                     <DialogDescription>
@@ -180,15 +180,15 @@ export function AccountingModal({ client, isOpen, onClose, onUpdate, isAlreadyCl
                     <TabsContent value="new" className="space-y-4 py-4">
                         <Form {...form}>
                             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <FormField
                                         control={form.control}
                                         name="colaboradorResponsavel"
                                         render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Colaborador Responsável</FormLabel>
+                                            <FormItem className="md:col-span-2">
+                                                <FormLabel className="text-xs font-normal uppercase tracking-wider opacity-60">Colaborador Responsável</FormLabel>
                                                 <FormControl>
-                                                    <Input placeholder="Nome do colaborador" {...field} />
+                                                    <Input placeholder="Nome completo do colaborador" className="rounded-xl h-12 bg-muted/20 border-border/50" {...field} />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
@@ -200,9 +200,9 @@ export function AccountingModal({ client, isOpen, onClose, onUpdate, isAlreadyCl
                                         name="mesAnoFechamento"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Mês/Ano Fechamento</FormLabel>
+                                                <FormLabel className="text-xs font-normal uppercase tracking-wider opacity-60">Mês/Ano Fechamento</FormLabel>
                                                 <FormControl>
-                                                    <Input type="month" {...field} />
+                                                    <Input type="month" className="rounded-xl h-12 bg-muted/20 border-border/50" {...field} />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
@@ -210,19 +210,19 @@ export function AccountingModal({ client, isOpen, onClose, onUpdate, isAlreadyCl
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
                                     <FormField
                                         control={form.control}
                                         name="conciliacaoContabil"
                                         render={({ field }) => (
-                                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                                                <div className="space-y-0.5">
-                                                    <FormLabel className="text-base">Conciliação Contábil</FormLabel>
-                                                </div>
-                                                <FormControl>
-                                                    <Switch checked={field.value} onCheckedChange={field.onChange} />
-                                                </FormControl>
-                                            </FormItem>
+                                            <FormItem className="flex flex-row items-center justify-between rounded-xl border border-border/50 bg-muted/10 p-4 shadow-sm h-16">
+                                                 <div className="space-y-0.5">
+                                                     <FormLabel className="text-sm font-light">Conciliação</FormLabel>
+                                                 </div>
+                                                 <FormControl>
+                                                     <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                                 </FormControl>
+                                             </FormItem>
                                         )}
                                     />
 
@@ -230,14 +230,14 @@ export function AccountingModal({ client, isOpen, onClose, onUpdate, isAlreadyCl
                                         control={form.control}
                                         name="controleLucros"
                                         render={({ field }) => (
-                                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                                                <div className="space-y-0.5">
-                                                    <FormLabel className="text-base">Controle de Lucros</FormLabel>
-                                                </div>
-                                                <FormControl>
-                                                    <Switch checked={field.value} onCheckedChange={field.onChange} />
-                                                </FormControl>
-                                            </FormItem>
+                                            <FormItem className="flex flex-row items-center justify-between rounded-xl border border-border/50 bg-muted/10 p-4 shadow-sm h-16">
+                                                 <div className="space-y-0.5">
+                                                     <FormLabel className="text-sm font-light">Lucros</FormLabel>
+                                                 </div>
+                                                 <FormControl>
+                                                     <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                                 </FormControl>
+                                             </FormItem>
                                         )}
                                     />
 
@@ -245,14 +245,14 @@ export function AccountingModal({ client, isOpen, onClose, onUpdate, isAlreadyCl
                                         control={form.control}
                                         name="controleAplicacaoFinanceira"
                                         render={({ field }) => (
-                                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                                                <div className="space-y-0.5">
-                                                    <FormLabel className="text-base">Controle Aplicação</FormLabel>
-                                                </div>
-                                                <FormControl>
-                                                    <Switch checked={field.value} onCheckedChange={field.onChange} />
-                                                </FormControl>
-                                            </FormItem>
+                                            <FormItem className="flex flex-row items-center justify-between rounded-xl border border-border/50 bg-muted/10 p-4 shadow-sm h-16">
+                                                 <div className="space-y-0.5">
+                                                     <FormLabel className="text-sm font-light">Aplicação</FormLabel>
+                                                 </div>
+                                                 <FormControl>
+                                                     <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                                 </FormControl>
+                                             </FormItem>
                                         )}
                                     />
 
@@ -260,9 +260,24 @@ export function AccountingModal({ client, isOpen, onClose, onUpdate, isAlreadyCl
                                         control={form.control}
                                         name="controleAnual"
                                         render={({ field }) => (
-                                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                            <FormItem className="flex flex-row items-center justify-between rounded-xl border border-border/50 bg-muted/10 p-4 shadow-sm h-16">
+                                                 <div className="space-y-0.5">
+                                                     <FormLabel className="text-sm font-light">Anual</FormLabel>
+                                                 </div>
+                                                 <FormControl>
+                                                     <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                                 </FormControl>
+                                             </FormItem>
+                                        )}
+                                    />
+
+                                    <FormField
+                                        control={form.control}
+                                        name="empresaEmAndamento"
+                                        render={({ field }) => (
+                                            <FormItem className="flex flex-row items-center justify-between rounded-xl border border-blue-500/20 bg-blue-500/5 p-4 shadow-sm h-16">
                                                 <div className="space-y-0.5">
-                                                    <FormLabel className="text-base">Controle Anual</FormLabel>
+                                                    <FormLabel className="text-sm font-light text-blue-600">Em Andamento</FormLabel>
                                                 </div>
                                                 <FormControl>
                                                     <Switch checked={field.value} onCheckedChange={field.onChange} />
@@ -276,16 +291,16 @@ export function AccountingModal({ client, isOpen, onClose, onUpdate, isAlreadyCl
                                         name="empresaEncerrada"
                                         render={({ field }) => (
                                             <FormItem className={cn(
-                                                "flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm transition-all",
-                                                canCloseCompany ? "bg-destructive/5 border-destructive/20" : "bg-muted/50 border-border/50 opacity-60"
+                                                "flex flex-row items-center justify-between rounded-xl border p-4 shadow-sm transition-all h-16 md:col-span-2 lg:col-span-3",
+                                                canCloseCompany ? "bg-destructive/5 border-destructive/20" : "bg-muted/50 border-border/50 opacity-40 hover:opacity-100"
                                             )}>
-                                                <div className="space-y-0.5">
-                                                    <FormLabel className={cn("text-base", canCloseCompany ? "text-destructive" : "text-muted-foreground")}>
-                                                        Empresa Encerrada?
+                                                <div className="flex items-center gap-4">
+                                                    <FormLabel className={cn("text-sm font-light", canCloseCompany ? "text-destructive uppercase tracking-widest" : "text-muted-foreground")}>
+                                                        Encerrar Empresa?
                                                     </FormLabel>
                                                     {!canCloseCompany && (
-                                                        <p className="text-[10px] text-muted-foreground italic">
-                                                            Marque todas as opções acima primeiro
+                                                        <p className="text-[9px] text-muted-foreground italic uppercase tracking-tighter">
+                                                            (Marque todas as opções acima para liberar o encerramento)
                                                         </p>
                                                     )}
                                                 </div>
@@ -295,21 +310,6 @@ export function AccountingModal({ client, isOpen, onClose, onUpdate, isAlreadyCl
                                                         onCheckedChange={field.onChange}
                                                         disabled={!canCloseCompany}
                                                     />
-                                                </FormControl>
-                                            </FormItem>
-                                        )}
-                                    />
-
-                                    <FormField
-                                        control={form.control}
-                                        name="empresaEmAndamento"
-                                        render={({ field }) => (
-                                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm bg-blue-500/5 border-blue-500/20">
-                                                <div className="space-y-0.5">
-                                                    <FormLabel className="text-base text-blue-600">Empresa em Andamento?</FormLabel>
-                                                </div>
-                                                <FormControl>
-                                                    <Switch checked={field.value} onCheckedChange={field.onChange} />
                                                 </FormControl>
                                             </FormItem>
                                         )}
@@ -372,9 +372,9 @@ export function AccountingModal({ client, isOpen, onClose, onUpdate, isAlreadyCl
                                     ) : (
                                         closings.map((closing) => (
                                             <TableRow key={closing.id}>
-                                                <TableCell className="font-medium">{closing.mesAnoFechamento}</TableCell>
-                                                <TableCell>{closing.colaboradorResponsavel}</TableCell>
-                                                <TableCell className="text-center">{closing.conciliacaoContabil ? '✅' : '❌'}</TableCell>
+                                                <TableCell className="px-6 py-4 font-light">{closing.mesAnoFechamento}</TableCell>
+                                                <TableCell className="px-6 py-4">{closing.colaboradorResponsavel}</TableCell>
+                                                <TableCell className="px-6 py-4 text-center">{closing.conciliacaoContabil ? '✅' : '❌'}</TableCell>
                                                 <TableCell className="text-center">
                                                     {closing.empresaEncerrada ? (
                                                         <Badge variant="destructive" className="text-[9px] px-1 py-0 h-4 uppercase">Encerrada</Badge>
@@ -384,12 +384,12 @@ export function AccountingModal({ client, isOpen, onClose, onUpdate, isAlreadyCl
                                                         <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 uppercase">Normal</Badge>
                                                     )}
                                                 </TableCell>
-                                                <TableCell className="text-right">
+                                                <TableCell className="px-6 py-4 text-right">
                                                     <div className="flex justify-end gap-2">
-                                                        <Button variant="ghost" size="icon" onClick={() => handleEdit(closing)}>
+                                                        <Button variant="ghost" size="icon" onClick={() => handleEdit(closing)} className="rounded-xl hover:bg-muted/20">
                                                             <Edit className="h-4 w-4" />
                                                         </Button>
-                                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/90" onClick={() => handleDelete(closing.id)}>
+                                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/90 rounded-xl hover:bg-destructive/5" onClick={() => handleDelete(closing.id)}>
                                                             <Trash2 className="h-4 w-4" />
                                                         </Button>
                                                     </div>

@@ -22,7 +22,8 @@ import {
     Columns,
     List,
     GripVertical,
-    Send
+    Send,
+    UserCircle2
 } from 'lucide-react';
 import { format, parseISO, startOfMonth, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -39,6 +40,7 @@ import {
     TableRow 
 } from "@/components/ui/table";
 import { useDeliveryList, AccountingGuide } from '@/hooks/useDeliveryList';
+import { useClients } from '@/hooks/useClients';
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useBranding } from '@/context/BrandingContext';
@@ -58,10 +60,13 @@ export default function TaskManagement() {
     const [filterStatus, setFilterStatus] = useState('all');
     const [filterType, setFilterType] = useState('all');
     const [competencyFilter, setCompetencyFilter] = useState('all');
+    const [clientFilter, setClientFilter] = useState('all');
     const [selectedMonth, setSelectedMonth] = useState(() => format(new Date(), 'yyyy-MM'));
     const [selectedTask, setSelectedTask] = useState<AccountingGuide | null>(null);
     const [isSyncing, setIsSyncing] = useState(false);
     const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
+
+    const { clients } = useClients();
 
     // Fetch guides for the selected month
     const { guides, loading, fetchGuides, updateGuide } = useDeliveryList(selectedMonth || undefined);
@@ -113,10 +118,11 @@ export default function TaskManagement() {
             const matchesStatus = filterStatus === 'all' || guide.status === filterStatus;
             const matchesType = filterType === 'all' || guide.type === filterType;
             const matchesCompetency = competencyFilter === 'all' || guide.competency === competencyFilter;
+            const matchesClient = clientFilter === 'all' || guide.client_id === clientFilter;
 
-            return matchesSearch && matchesStatus && matchesType && matchesCompetency;
+            return matchesSearch && matchesStatus && matchesType && matchesCompetency && matchesClient;
         });
-    }, [guides, searchTerm, filterStatus, filterType, competencyFilter]);
+    }, [guides, searchTerm, filterStatus, filterType, competencyFilter, clientFilter]);
 
     const kanbanColumns = useMemo(() => {
         return {
@@ -131,6 +137,7 @@ export default function TaskManagement() {
         setFilterStatus('all');
         setFilterType('all');
         setCompetencyFilter('all');
+        setClientFilter('all');
         toast.info("Filtros limpos");
     };
 
@@ -180,15 +187,15 @@ export default function TaskManagement() {
     const getStatusBadge = (status: string) => {
         switch (status) {
             case 'sent':
-                return <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20 gap-1.5 rounded-lg px-2 text-[10px] font-bold uppercase"><CheckCircle2 className="h-3 w-3" /> Enviado</Badge>;
+                return <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20 gap-1.5 rounded-lg px-2 text-xs font-semibold uppercase"><CheckCircle2 className="h-3 w-3" /> Enviado</Badge>;
             case 'pending':
-                return <Badge variant="outline" className="text-amber-600 border-amber-500/20 bg-amber-500/5 gap-1.5 rounded-lg px-2 text-[10px] font-bold uppercase"><Clock className="h-3 w-3" /> Pendente</Badge>;
+                return <Badge variant="outline" className="text-amber-600 border-amber-500/20 bg-amber-500/5 gap-1.5 rounded-lg px-2 text-xs font-semibold uppercase"><Clock className="h-3 w-3" /> Pendente</Badge>;
             case 'scheduled':
-                return <Badge variant="outline" className="text-blue-600 border-blue-500/20 bg-blue-500/5 gap-1.5 rounded-lg px-2 text-[10px] font-bold uppercase"><CalendarIcon className="h-3 w-3" /> Agendado</Badge>;
+                return <Badge variant="outline" className="text-blue-600 border-blue-500/20 bg-blue-500/5 gap-1.5 rounded-lg px-2 text-xs font-semibold uppercase"><CalendarIcon className="h-3 w-3" /> Agendado</Badge>;
             case 'expired':
-                return <Badge variant="outline" className="text-red-600 border-red-500/20 bg-red-500/5 gap-1.5 rounded-lg px-2 text-[10px] font-bold uppercase"><XCircle className="h-3 w-3" /> Expirado</Badge>;
+                return <Badge variant="outline" className="text-red-600 border-red-500/20 bg-red-500/5 gap-1.5 rounded-lg px-2 text-xs font-semibold uppercase"><XCircle className="h-3 w-3" /> Expirado</Badge>;
             default:
-                return <Badge variant="outline" className="text-[10px] font-bold uppercase rounded-lg px-2">{status}</Badge>;
+                return <Badge variant="outline" className="text-xs font-semibold uppercase rounded-lg px-2">{status}</Badge>;
         }
     };
 
@@ -197,8 +204,8 @@ export default function TaskManagement() {
             {/* Header */}
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between pt-4">
                 <div>
-                    <h1 className="text-4xl font-extralight tracking-tight text-foreground">Gestão de <span className="text-primary font-normal">Tarefas</span></h1>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.3em] mt-2 opacity-70">
+                    <h1 className="text-4xl font-light tracking-tight text-foreground">Gestão de <span className="text-primary font-medium">Tarefas</span></h1>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-[0.2em] mt-2">
                         {officeName} • Auditoria & Visão Kanban
                     </p>
                 </div>
@@ -210,7 +217,7 @@ export default function TaskManagement() {
                             variant={viewMode === 'list' ? 'secondary' : 'ghost'} 
                             size="sm" 
                             onClick={() => setViewMode('list')}
-                            className="rounded-xl h-10 px-4 text-[10px] uppercase font-bold tracking-widest gap-2"
+                            className="rounded-xl h-10 px-4 text-[10px] uppercase font-light tracking-widest gap-2"
                         >
                             <List className="h-4 w-4" /> Lista
                         </Button>
@@ -218,7 +225,7 @@ export default function TaskManagement() {
                             variant={viewMode === 'kanban' ? 'secondary' : 'ghost'} 
                             size="sm" 
                             onClick={() => setViewMode('kanban')}
-                            className="rounded-xl h-10 px-4 text-[10px] uppercase font-bold tracking-widest gap-2"
+                            className="rounded-xl h-10 px-4 text-[10px] uppercase font-light tracking-widest gap-2"
                         >
                             <Columns className="h-4 w-4" /> Kanban
                         </Button>
@@ -234,11 +241,11 @@ export default function TaskManagement() {
                         Sincronizar
                     </Button>
 
-                    <div className="flex items-center gap-4 bg-white/40 backdrop-blur-md p-2 rounded-2xl border border-border/10 shadow-sm">
+                    <div className="flex items-center gap-4 bg-white/60 backdrop-blur-md p-2 rounded-2xl border border-border/20 shadow-sm">
                         <div className="flex flex-col items-end px-4">
-                            <span className="text-[8px] uppercase font-black tracking-[0.2em] text-muted-foreground/40 mb-1">Mês de Referência (Trabalho)</span>
+                            <span className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground mb-1">Mês de Referência (Trabalho)</span>
                             <select 
-                                className="bg-transparent text-sm font-medium outline-none text-right cursor-pointer text-foreground appearance-none"
+                                className="bg-transparent text-sm font-normal outline-none text-right cursor-pointer text-foreground appearance-none"
                                 value={selectedMonth}
                                 onChange={(e) => setSelectedMonth(e.target.value)}
                             >
@@ -269,11 +276,11 @@ export default function TaskManagement() {
                     </div>
 
                     <div className="flex flex-col gap-1.5 min-w-[140px]">
-                        <label className="text-[8px] uppercase font-black tracking-widest text-muted-foreground/40 flex items-center gap-2">
-                           <CalendarIcon className="h-3 w-3" /> Competência
+                        <label className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground flex items-center gap-2">
+                           <CalendarIcon className="h-3.5 w-3.5" /> Competência
                         </label>
                         <select 
-                            className="bg-transparent text-xs font-light outline-none cursor-pointer"
+                            className="bg-transparent text-sm font-normal outline-none cursor-pointer"
                             value={competencyFilter}
                             onChange={(e) => setCompetencyFilter(e.target.value)}
                         >
@@ -285,17 +292,35 @@ export default function TaskManagement() {
                     </div>
 
                     <div className="flex flex-col gap-1.5 min-w-[140px]">
-                        <label className="text-[8px] uppercase font-black tracking-widest text-muted-foreground/40 flex items-center gap-2">
-                           <Building2 className="h-3 w-3" /> Obrigação
+                        <label className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground flex items-center gap-2">
+                           <Building2 className="h-3.5 w-3.5" /> Obrigação
                         </label>
                         <select 
-                            className="bg-transparent text-xs font-light outline-none cursor-pointer"
+                            className="bg-transparent text-sm font-normal outline-none cursor-pointer"
                             value={filterType}
                             onChange={(e) => setFilterType(e.target.value)}
                         >
                             <option value="all">Todos</option>
                             {obligationTypes.map(t => (
                                 <option key={t} value={t}>{t}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5 min-w-[200px]">
+                        <label className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground flex items-center gap-2">
+                           <Building2 className="h-3.5 w-3.5" /> Empresa / Cliente
+                        </label>
+                        <select 
+                            className="bg-transparent text-sm font-normal outline-none cursor-pointer max-w-[250px] truncate"
+                            value={clientFilter}
+                            onChange={(e) => setClientFilter(e.target.value)}
+                        >
+                            <option value="all">Todas as Empresas</option>
+                            {clients.sort((a,b) => (a.nomeFantasia || a.razaoSocial).localeCompare(b.nomeFantasia || b.razaoSocial)).map(client => (
+                                <option key={client.id} value={client.id}>
+                                    {client.nomeFantasia || client.razaoSocial}
+                                </option>
                             ))}
                         </select>
                     </div>
@@ -313,12 +338,12 @@ export default function TaskManagement() {
                 <div className="bg-primary/5 rounded-[2.5rem] p-6 border border-primary/20 flex items-center justify-around shadow-inner">
                     <div className="text-center">
                         <p className="text-[24px] font-light text-primary tracking-tighter">{filteredGuides.filter(g => g.status === 'sent').length}</p>
-                        <p className="text-[8px] uppercase font-black tracking-widest text-primary/40">Fizeram Check</p>
+                        <p className="text-[8px] uppercase font-light tracking-widest text-primary/40">Fizeram Check</p>
                     </div>
                     <div className="w-px h-10 bg-primary/10" />
                     <div className="text-center">
                         <p className="text-[24px] font-light text-amber-600 tracking-tighter">{filteredGuides.filter(g => g.status === 'pending').length}</p>
-                        <p className="text-[8px] uppercase font-black tracking-widest text-amber-600/40">Em Aberto</p>
+                        <p className="text-[8px] uppercase font-light tracking-widest text-amber-600/40">Em Aberto</p>
                     </div>
                 </div>
             </div>
@@ -330,11 +355,12 @@ export default function TaskManagement() {
                         <Table>
                             <TableHeader className="bg-muted/30">
                                 <TableRow className="hover:bg-transparent border-border/10">
-                                    <TableHead className="py-6 px-10 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 w-[25%]">Cliente</TableHead>
-                                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Obrigação</TableHead>
-                                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 text-center w-[150px]">Competência</TableHead>
-                                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 w-[150px]">Status</TableHead>
-                                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 text-right px-10">Ações</TableHead>
+                                    <TableHead className="py-6 px-10 text-xs font-bold uppercase tracking-wider text-muted-foreground w-[25%]">Cliente</TableHead>
+                                    <TableHead className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Obrigação</TableHead>
+                                    <TableHead className="text-xs font-bold uppercase tracking-wider text-muted-foreground text-center w-[120px]">Competência</TableHead>
+                                    <TableHead className="text-xs font-bold uppercase tracking-wider text-muted-foreground w-[120px]">Status</TableHead>
+                                    <TableHead className="text-xs font-bold uppercase tracking-wider text-muted-foreground w-[220px]">Dados de Envio</TableHead>
+                                    <TableHead className="text-xs font-bold uppercase tracking-wider text-muted-foreground text-right px-10">Ações</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -351,25 +377,47 @@ export default function TaskManagement() {
                                         <TableRow key={guide.id} className="group hover:bg-primary/[0.02] border-border/10 transition-all duration-300">
                                             <TableCell className="py-6 px-10">
                                                 <div className="flex flex-col">
-                                                    <span className="text-sm font-bold text-foreground/80 tracking-tight">{guide.client?.nome_fantasia || guide.client?.razao_social}</span>
-                                                    <span className="text-[9px] font-medium text-muted-foreground/50 tracking-wider mt-1 uppercase">{guide.client?.cnpj}</span>
+                                                    <span className="text-base font-medium text-foreground tracking-tight">{guide.client?.nome_fantasia || guide.client?.razao_social}</span>
+                                                    <span className="text-xs font-normal text-muted-foreground tracking-wider mt-1 uppercase">{guide.client?.cnpj}</span>
                                                 </div>
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex items-center gap-3">
-                                                    <div className="h-8 w-8 rounded-lg bg-primary/5 flex items-center justify-center text-primary group-hover:bg-primary/20 transition-colors">
-                                                        <Building2 className="h-4 w-4" />
+                                                    <div className="h-9 w-9 rounded-lg bg-primary/5 flex items-center justify-center text-primary group-hover:bg-primary/20 transition-colors">
+                                                        <Building2 className="h-5 w-5" />
                                                     </div>
-                                                    <span className="text-xs font-medium text-foreground/70">{guide.type}</span>
+                                                    <span className="text-sm font-medium text-foreground/80">{guide.type}</span>
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-center">
-                                                <Badge variant="outline" className="bg-muted/30 text-muted-foreground border-none rounded-md font-mono text-[10px] px-3 py-1">
+                                                <Badge variant="outline" className="bg-muted/30 text-muted-foreground border-none rounded-md font-mono text-xs px-3 py-1 font-semibold">
                                                     {guide.competency || '--'}
                                                 </Badge>
                                             </TableCell>
                                             <TableCell>
                                                 {getStatusBadge(guide.status)}
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex flex-col gap-1.5">
+                                                    {guide.status === 'sent' && guide.sent_at ? (
+                                                        <>
+                                                            <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs truncate max-w-[200px]" title={guide.client?.email}>
+                                                                <MailCheck className="h-3.5 w-3.5 shrink-0" />
+                                                                <span className="truncate">{guide.client?.email || 'Email não disponível'}</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-2 text-[10px] text-muted-foreground uppercase font-bold tracking-tight">
+                                                                <span className="shrink-0">{format(parseISO(guide.sent_at), 'dd/MM/yyyy • HH:mm', { locale: ptBR })}</span>
+                                                                {guide.sender_ip && (
+                                                                    <span className="flex items-center gap-1 border-l pl-2 border-border/10 truncate">
+                                                                        IP: {guide.sender_ip}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </>
+                                                    ) : (
+                                                        <span className="text-xs text-muted-foreground/50 italic font-medium">Aguardando envio...</span>
+                                                    )}
+                                                </div>
                                             </TableCell>
                                             <TableCell className="text-right px-10">
                                                 <div className="flex items-center justify-end gap-1 opacity-20 group-hover:opacity-100 transition-opacity">
@@ -398,7 +446,7 @@ export default function TaskManagement() {
                         <div className="flex items-center justify-between px-6 py-2">
                             <div className="flex items-center gap-3">
                                 <div className="h-3 w-3 rounded-full bg-red-400" />
-                                <h3 className="text-[11px] uppercase font-black tracking-[0.2em] text-muted-foreground/60">A Fazer</h3>
+                                <h3 className="text-[11px] uppercase font-light tracking-[0.2em] text-muted-foreground/60">A Fazer</h3>
                             </div>
                             <Badge variant="outline" className="bg-red-400/5 text-red-500 border-red-400/20 rounded-full h-6 px-3">{kanbanColumns.todo.length}</Badge>
                         </div>
@@ -421,7 +469,7 @@ export default function TaskManagement() {
                         <div className="flex items-center justify-between px-6 py-2">
                             <div className="flex items-center gap-3">
                                 <div className="h-3 w-3 rounded-full bg-amber-400" />
-                                <h3 className="text-[11px] uppercase font-black tracking-[0.2em] text-muted-foreground/60">Pronto para Enviar</h3>
+                                <h3 className="text-[11px] uppercase font-light tracking-[0.2em] text-muted-foreground/60">Pronto para Enviar</h3>
                             </div>
                             <Badge variant="outline" className="bg-amber-400/5 text-amber-500 border-amber-400/20 rounded-full h-6 px-3">{kanbanColumns.ready.length}</Badge>
                         </div>
@@ -444,7 +492,7 @@ export default function TaskManagement() {
                         <div className="flex items-center justify-between px-6 py-2">
                             <div className="flex items-center gap-3">
                                 <div className="h-3 w-3 rounded-full bg-emerald-400" />
-                                <h3 className="text-[11px] uppercase font-black tracking-[0.2em] text-muted-foreground/60">Enviado</h3>
+                                <h3 className="text-[11px] uppercase font-light tracking-[0.2em] text-muted-foreground/60">Enviado</h3>
                             </div>
                             <Badge variant="outline" className="bg-emerald-400/5 text-emerald-500 border-emerald-400/20 rounded-full h-6 px-3">{kanbanColumns.sent.length}</Badge>
                         </div>
@@ -472,8 +520,8 @@ export default function TaskManagement() {
                                             <ShieldCheck className="h-7 w-7" />
                                         </div>
                                         <div>
-                                            <SheetTitle className="text-2xl font-light">Auditoria de <span className="text-primary font-normal">Tarefa</span></SheetTitle>
-                                            <SheetDescription className="text-xs uppercase tracking-widest font-bold text-muted-foreground/60">
+                                            <SheetTitle className="text-2xl font-medium">Auditoria de <span className="text-primary font-bold">Tarefa</span></SheetTitle>
+                                            <SheetDescription className="text-xs uppercase tracking-widest font-semibold text-muted-foreground">
                                                 Rastreamento Completo • ID: {selectedTask.id.substring(0, 8)}
                                             </SheetDescription>
                                         </div>
@@ -487,18 +535,18 @@ export default function TaskManagement() {
                                         <Card className="rounded-[2rem] border-border/10 bg-muted/10 overflow-hidden shadow-sm">
                                             <CardContent className="p-8 space-y-8">
                                                 <div>
-                                                    <p className="text-[10px] uppercase font-black text-muted-foreground/30 tracking-widest mb-2">Empresa Atendida</p>
-                                                    <p className="text-xl font-light leading-snug text-foreground">{selectedTask.client?.razao_social}</p>
-                                                    <p className="text-xs font-mono text-muted-foreground/60 mt-1">{selectedTask.client?.cnpj}</p>
+                                                    <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest mb-2">Empresa Atendida</p>
+                                                    <p className="text-xl font-medium leading-snug text-foreground">{selectedTask.client?.razao_social}</p>
+                                                    <p className="text-sm font-mono text-muted-foreground mt-1">{selectedTask.client?.cnpj}</p>
                                                 </div>
-                                                <div className="grid grid-cols-2 gap-8 pt-8 border-t border-border/5 text-center">
+                                                <div className="grid grid-cols-2 gap-8 pt-8 border-t border-border/10 text-center">
                                                     <div>
-                                                        <p className="text-[10px] uppercase font-black text-muted-foreground/30 tracking-widest mb-2">Obrigação / Guia</p>
-                                                        <Badge className="bg-primary/10 text-primary border-none text-[11px] font-bold uppercase rounded-md">{selectedTask.type}</Badge>
+                                                        <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest mb-2">Obrigação / Guia</p>
+                                                        <Badge className="bg-primary/10 text-primary border-none text-xs font-bold uppercase rounded-md">{selectedTask.type}</Badge>
                                                     </div>
                                                     <div>
-                                                        <p className="text-[10px] uppercase font-black text-muted-foreground/30 tracking-widest mb-2">Período de Competência</p>
-                                                        <p className="text-sm font-medium text-foreground">{selectedTask.competency || '--'}</p>
+                                                        <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest mb-2">Período de Competência</p>
+                                                        <p className="text-sm font-semibold text-foreground">{selectedTask.competency || '--'}</p>
                                                     </div>
                                                 </div>
                                             </CardContent>
@@ -515,7 +563,7 @@ export default function TaskManagement() {
                                                     <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground" />
                                                 </div>
                                                 <div>
-                                                    <p className="text-[12px] font-bold text-foreground">Tarefa Criada no Sistema</p>
+                                                    <p className="text-[12px] font-light text-foreground">Tarefa Criada no Sistema</p>
                                                     <p className="text-[10px] text-muted-foreground/70 mt-1">{format(parseISO(selectedTask.created_at), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })}</p>
                                                 </div>
                                             </div>
@@ -525,7 +573,7 @@ export default function TaskManagement() {
                                                         <MailCheck className="h-3 w-3 text-white" />
                                                     </div>
                                                     <div>
-                                                        <p className="text-[12px] font-bold text-foreground">E-mail Despachado</p>
+                                                        <p className="text-[12px] font-light text-foreground">E-mail Despachado</p>
                                                         <p className="text-[10px] text-muted-foreground/70 mt-1">{format(parseISO(selectedTask.sent_at), "dd/MM/yyyy 'às' HH:mm:ss")}</p>
                                                     </div>
                                                 </div>
@@ -537,9 +585,9 @@ export default function TaskManagement() {
 
                             <div className="p-10 border-t border-border/10 bg-muted/20 flex gap-4">
                                 {selectedTask.file_url && (
-                                    <Button variant="outline" className="flex-1 h-14 rounded-2xl gap-3 text-[10px] font-bold uppercase border-border/50" onClick={() => window.open(selectedTask.file_url!, '_blank')}><Eye className="h-4 w-4" /> Ver PDF</Button>
+                                    <Button variant="outline" className="flex-1 h-14 rounded-2xl gap-3 text-[10px] font-light uppercase border-border/50" onClick={() => window.open(selectedTask.file_url!, '_blank')}><Eye className="h-4 w-4" /> Ver PDF</Button>
                                 )}
-                                <Button className="flex-1 h-14 rounded-2xl gap-3 text-[10px] font-bold uppercase shadow-xl shadow-primary/20" onClick={() => toast.success("Exportando relatório...")}><Download className="h-4 w-4" /> Protocolo PDF</Button>
+                                <Button className="flex-1 h-14 rounded-2xl gap-3 text-[10px] font-light uppercase shadow-xl shadow-primary/20" onClick={() => toast.success("Exportando relatório...")}><Download className="h-4 w-4" /> Protocolo PDF</Button>
                             </div>
                         </>
                     )}
@@ -560,15 +608,15 @@ function KanbanCard({ guide, onDragStart, onClick }: { guide: AccountingGuide, o
             <div className="flex flex-col gap-4">
                 <div className="flex items-start justify-between gap-3">
                     <div className="flex flex-col gap-1">
-                        <span className="text-sm font-bold text-foreground/80 leading-tight tracking-tight">{guide.client?.nome_fantasia || guide.client?.razao_social}</span>
-                        <span className="text-[9px] font-black uppercase text-muted-foreground/50 tracking-widest">{guide.client?.cnpj}</span>
+                        <span className="text-base font-semibold text-foreground leading-tight tracking-tight">{guide.client?.nome_fantasia || guide.client?.razao_social}</span>
+                        <span className="text-[10px] font-bold uppercase text-muted-foreground/70 tracking-widest">{guide.client?.cnpj}</span>
                     </div>
-                    <GripVertical className="h-4 w-4 text-muted-foreground/30 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <GripVertical className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
 
                 <div className="flex flex-wrap gap-2 pt-2 border-t border-border/10">
-                    <Badge variant="outline" className="bg-primary/5 text-primary border-none text-[9px] px-2 py-0.5 font-bold uppercase tracking-tight">{guide.type}</Badge>
-                    <Badge variant="outline" className="bg-muted/30 text-muted-foreground border-none text-[9px] px-2 py-0.5 font-mono">{guide.competency}</Badge>
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-none text-[10px] px-2 py-0.5 font-bold uppercase tracking-tight">{guide.type}</Badge>
+                    <Badge variant="outline" className="bg-muted text-muted-foreground border-none text-[10px] px-2 py-0.5 font-mono font-bold">{guide.competency}</Badge>
                 </div>
 
                 <div className="flex items-center justify-between mt-2 pt-4 border-t border-border/20">

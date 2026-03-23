@@ -16,7 +16,8 @@ import {
     SortDesc,
     Building2,
     Eye,
-    Eraser
+    Eraser,
+    ArrowRight
 } from 'lucide-react';
 import {
     AlertDialog,
@@ -205,73 +206,74 @@ export default function Accounting() {
             {filteredClients.length === 0 ? (
                 <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-16">
                     <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="font-semibold text-foreground mb-1">Nenhum cliente encontrado</h3>
-                    <p className="text-sm text-muted-foreground">Tente ajustar os filtros.</p>
+                    <h3 className="font-light text-foreground mb-1">Nenhum cliente encontrado</h3>
+                    <p className="text-sm font-light text-muted-foreground">Tente ajustar os filtros.</p>
                 </div>
             ) : viewMode === 'grid' ? (
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 animate-slide-in-up stagger-2">
+                <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 animate-slide-in-up stagger-2">
                     {filteredClients.map((client, index) => {
                         const isClosed = closedCompanyIds.has(client.id);
                         return (
                             <div
                                 key={client.id}
                                 className={cn(
-                                    'group relative rounded-2xl border border-border/50 bg-card p-6 shadow-card transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1 cursor-pointer',
-                                    isClosed ? 'border-destructive/20 bg-destructive/[0.02]' : 'hover:border-primary/20',
-                                    !client.isActive && 'opacity-75 bg-muted/30 border-dashed'
+                                    "group relative rounded-[3rem] border border-border/40 bg-white/40 backdrop-blur-md overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-primary/5 hover:-translate-y-1 cursor-pointer",
+                                    isClosed ? "ring-2 ring-destructive/30 border-transparent bg-destructive/[0.01]" : "hover:border-primary/20",
+                                    !client.isActive && "opacity-60 grayscale-[0.5]"
                                 )}
                                 style={{ animationDelay: `${index * 50}ms` }}
                                 onClick={() => handleClientClick(client)}
                             >
-                                {/* Content */}
-                                <div className="flex flex-col h-full">
-                                    <div className="flex items-center gap-4 mb-6 pt-2">
+                                {/* Card Content */}
+                                <div className="p-8 space-y-8">
+                                    <div className="flex gap-6">
                                         <div className={cn(
-                                            "flex h-12 w-12 items-center justify-center rounded-2xl border shadow-sm transition-colors",
-                                            isClosed ? "bg-destructive/10 border-destructive/20" : "bg-muted/30 border-border/10 group-hover:bg-primary/5 group-hover:border-primary/10"
+                                            "h-16 w-16 rounded-3xl flex items-center justify-center shadow-lg transition-transform group-hover:scale-110 duration-500 ring-1 ring-white/20",
+                                            isClosed 
+                                                ? "bg-destructive text-white shadow-destructive/20" 
+                                                : "bg-primary text-white shadow-primary/20"
                                         )}>
-                                            {isClosed ? (
-                                                <Lock className="h-6 w-6 text-destructive/60" />
-                                            ) : (
-                                                <Calculator className="h-6 w-6 text-muted-foreground/40 group-hover:text-primary/60 transition-colors" />
-                                            )}
+                                            {isClosed ? <Lock className="h-8 w-8" /> : <Calculator className="h-8 w-8" />}
                                         </div>
                                         <div className="min-w-0 flex-1">
                                             <h3 className={cn(
-                                                "font-light text-lg truncate transition-colors leading-tight",
-                                                isClosed ? "text-destructive" : "text-foreground group-hover:text-primary"
+                                                "text-xl font-light tracking-tight truncate transition-colors leading-tight pt-1",
+                                                isClosed ? "text-destructive" : "text-foreground/80 group-hover:text-primary"
                                             )}>
                                                 {client.nomeFantasia || client.razaoSocial}
                                             </h3>
-                                            <div className="flex items-center gap-2 mt-1.5">
-                                                <p className="text-[9px] font-normal text-muted-foreground uppercase tracking-[0.15em]">
-                                                    ID: {client.cnpj.substring(0, 8)}
-                                                </p>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <Badge variant="outline" className="text-[10px] font-light tracking-widest opacity-40 uppercase py-0.5 border-none p-0">ID: {client.cnpj.substring(0, 8)}</Badge>
                                                 {isClosed && (
-                                                    <span className="text-[9px] font-bold text-destructive uppercase tracking-widest border border-destructive/20 bg-destructive/5 px-1.5 py-0.5 rounded-lg">Encerrada</span>
+                                                    <span className="text-[8px] font-light text-destructive uppercase tracking-widest border border-destructive/20 bg-white px-1.5 py-0.5 rounded-lg shadow-sm">ENCERRADA</span>
                                                 )}
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="space-y-4 mb-4 flex-1">
-                                        <div className="flex flex-col gap-1.5">
-                                            <span className="text-[10px] font-normal text-muted-foreground uppercase tracking-[0.2em]">Cnpj / Cpf</span>
-                                            <p className="text-sm font-light text-foreground">{client.cnpj}</p>
+                                    <div className="grid grid-cols-1 gap-6 border-t border-border/5 pt-8 bg-muted/[0.01]">
+                                        <div className="space-y-4">
+                                            <div className="flex flex-col gap-1.5 text-center sm:text-left">
+                                                <label className="text-[9px] uppercase font-light tracking-widest text-muted-foreground/40">CNPJ / CPF</label>
+                                                <p className="text-sm font-light text-foreground/70">{client.cnpj}</p>
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <div className="pt-4 border-t border-border/20 flex items-center justify-between mt-auto">
+                                    <div className="pt-4 flex items-center justify-between border-t border-border/5">
                                         <div className="flex items-center gap-2">
-                                            <Badge variant={client.isActive ? 'default' : 'secondary'} className={client.isActive ? 'bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25 border-emerald-200' : ''}>
+                                            <Badge variant={client.isActive ? 'default' : 'secondary'} className={cn(
+                                                "rounded-xl px-4 py-1.5 text-[9px] font-light uppercase tracking-widest border border-transparent shadow-sm",
+                                                client.isActive ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-100' : ''
+                                            )}>
                                                 {client.isActive ? 'Ativo' : 'Inativo'}
                                             </Badge>
                                         </div>
                                         <div className={cn(
-                                            "text-[10px] font-light uppercase tracking-widest transition-all flex items-center gap-1",
+                                            "text-[10px] font-light uppercase tracking-widest transition-all flex items-center gap-2 group-hover:translate-x-1 duration-300",
                                             isClosed ? "text-destructive" : "text-primary opacity-0 group-hover:opacity-100"
                                         )}>
-                                            {isClosed ? 'Ver Fechamento' : 'Registrar'} <Eye className="h-3 w-3" />
+                                            {isClosed ? 'Ver Fechamento' : 'Registrar'} <ArrowRight className="h-4 w-4" />
                                         </div>
                                     </div>
                                 </div>

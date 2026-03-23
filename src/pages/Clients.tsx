@@ -16,10 +16,14 @@ import {
   SortAsc,
   SortDesc,
   ArrowUpDown,
-  AlertTriangle
+  AlertTriangle,
+  Mail,
+  ArrowRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -359,111 +363,97 @@ export default function Clients() {
           <p className="text-sm text-muted-foreground">Tente ajustar os filtros ou adicione um novo cliente.</p>
         </div>
       ) : viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 animate-slide-in-up stagger-2">
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 animate-slide-in-up stagger-2">
           {filteredClients.map((client, index) => (
             <div
               key={client.id}
               className={cn(
-                'group relative rounded-2xl border border-border/50 bg-card p-6 shadow-card transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1',
-                selectedClients.includes(client.id) && 'border-primary/50 ring-4 ring-primary/[0.03]',
-                !client.isActive && 'opacity-75 bg-muted/30 border-dashed'
+                "group relative rounded-[3rem] border border-border/40 bg-white/40 backdrop-blur-md overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-primary/5 hover:-translate-y-1 cursor-pointer",
+                selectedClients.includes(client.id) && "ring-2 ring-primary border-transparent",
+                !client.isActive && "opacity-60 grayscale-[0.5]"
               )}
               style={{ animationDelay: `${index * 50}ms` }}
+              onClick={() => handleView(client)}
             >
               {/* Selection Checkbox */}
-              <div className="absolute left-5 top-5 z-10">
-                <input
-                  type="checkbox"
-                  checked={selectedClients.includes(client.id)}
-                  onChange={() => toggleSelect(client.id)}
-                  className="h-4 w-4 rounded-md border-border text-primary focus:ring-primary/10 cursor-pointer opacity-40 hover:opacity-100 transition-opacity"
+              <div className="absolute top-10 left-8 z-10" onClick={(e) => e.stopPropagation()}>
+                <Checkbox 
+                  checked={selectedClients.includes(client.id)} 
+                  onCheckedChange={() => toggleSelect(client.id)}
+                  className="rounded-lg h-6 w-6 data-[state=checked]:bg-primary"
                 />
               </div>
 
               {/* Actions Menu */}
-              <div className="absolute right-5 top-5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+              <div className="absolute right-8 top-8 opacity-0 group-hover:opacity-100 transition-opacity z-10" onClick={(e) => e.stopPropagation()}>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted/20 hover:bg-muted transition-colors border border-border/30">
+                    <button className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white shadow-sm border border-border/10 hover:bg-muted transition-colors">
                       <MoreHorizontal className="h-4 w-4 text-muted-foreground/60" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-card border-border p-1 rounded-xl shadow-elevated">
-                    <DropdownMenuItem onClick={() => handleView(client)} className="rounded-lg gap-2 cursor-pointer font-light text-xs uppercase tracking-wider">
-                      <Eye className="h-4 w-4 text-primary/60" />
-                      Visualizar
+                  <DropdownMenuContent align="end" className="bg-white border-border p-1 rounded-xl shadow-elevated">
+                    <DropdownMenuItem onClick={() => handleView(client)} className="rounded-lg gap-2 cursor-pointer font-light text-[10px] uppercase tracking-wider">
+                      <Eye className="h-4 w-4 text-primary/60" /> Visualizar
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleEdit(client)} className="rounded-lg gap-2 cursor-pointer font-light text-xs uppercase tracking-wider">
-                      <Edit className="h-4 w-4 text-blue-500/60" />
-                      Editar
+                    <DropdownMenuItem onClick={() => handleEdit(client)} className="rounded-lg gap-2 cursor-pointer font-light text-[10px] uppercase tracking-wider">
+                      <Edit className="h-4 w-4 text-blue-500/60" /> Editar
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="text-amber-600 focus:text-amber-600 rounded-lg gap-2 cursor-pointer font-light text-xs uppercase tracking-wider"
+                      className="text-amber-600 focus:text-amber-600 rounded-lg gap-2 cursor-pointer font-light text-[10px] uppercase tracking-wider"
                       onClick={() => handleDeleteClick(client)}
                     >
-                      <AlertTriangle className="h-4 w-4 opacity-70" />
-                      Inativar
+                      <AlertTriangle className="h-4 w-4 opacity-70" /> Inativar
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
 
-              {/* Content */}
-              <div className="flex flex-col h-full cursor-pointer" onClick={() => handleView(client)}>
-                <div className="flex items-center gap-4 mb-6 pt-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/30 border border-border/10 shadow-sm group-hover:bg-primary/5 group-hover:border-primary/10 transition-colors">
-                    <Building2 className="h-6 w-6 text-muted-foreground/40 group-hover:text-primary/60 transition-colors" />
+              {/* Card Content */}
+              <div className="p-8 pl-20 space-y-8">
+                <div className="flex gap-6">
+                  <div className={cn(
+                    "h-16 w-16 rounded-3xl flex items-center justify-center shadow-lg transition-transform group-hover:scale-110 duration-500 ring-1 ring-white/20",
+                    client.isActive ? "bg-primary text-white shadow-primary/20" : "bg-muted text-muted-foreground"
+                  )}>
+                    <Building2 className="h-8 w-8" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h3 className="font-light text-lg text-foreground truncate group-hover:text-primary transition-colors leading-tight">
-                      {client.nomeFantasia || client.razaoSocial}
-                    </h3>
-                    <p className="text-[9px] font-normal text-muted-foreground uppercase tracking-[0.15em] mt-1.5">
-                      ID: {client.cnpj.substring(0, 8)}
-                    </p>
+                    <h3 className="text-xl font-light tracking-tight text-foreground/80 truncate">{client.nomeFantasia || client.razaoSocial}</h3>
+                    <Badge variant="outline" className="text-[10px] font-light tracking-widest opacity-40 uppercase py-0.5 border-none p-0 mt-1">ID: {client.cnpj.substring(0, 8)}</Badge>
                   </div>
                 </div>
 
-                <div className="space-y-4 mb-8 flex-1">
-                  <div className="flex flex-col gap-1.5">
-                    <span className="text-[10px] font-normal text-muted-foreground uppercase tracking-[0.2em]">Cnpj / Cpf</span>
-                    <p className="text-sm font-light text-foreground">{client.cnpj}</p>
-                    {!client.isActive && (
-                      <div className="flex flex-col gap-1 mt-1">
-                        <span className="inline-flex text-[9px] text-amber-600 uppercase tracking-widest font-bold border border-amber-600/20 bg-amber-600/5 px-2 py-0.5 rounded-lg w-fit">
-                          Inativo: {client.inactivationReason === 'baixada' ? 'Baixada' : client.inactivationReason === 'transferida' ? 'Transferida' : 'Outros'}
-                        </span>
-                        {client.inactivatedAt && (
-                          <span className="text-[8px] text-muted-foreground uppercase">Desde: {new Date(client.inactivatedAt).toLocaleDateString()}</span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-1.5 min-w-0">
-                    <span className="text-[10px] font-normal text-muted-foreground uppercase tracking-[0.2em]">E-mail corporativo</span>
-                    <p className="text-sm font-light text-foreground truncate opacity-80" title={client.email}>
-                      {client.email?.split(',')[0]}
-                      {client.email?.includes(',') && (
-                        <span className="ml-1.5 text-[9px] font-bold text-primary bg-primary/5 px-1.5 py-0.5 rounded-md">
-                          +{client.email.split(',').length - 1}
-                        </span>
+                <div className="grid grid-cols-1 gap-6 border-t border-border/5 pt-8 bg-muted/[0.02]">
+                  <div className="space-y-4">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[9px] uppercase font-light tracking-widest text-muted-foreground/40">CNPJ</label>
+                      <p className="text-sm font-light text-foreground/70">{client.cnpj}</p>
+                      {!client.isActive && (
+                        <Badge className="bg-amber-50 text-amber-600 border-none text-[8px] h-5 mt-1 font-light">INATIVO</Badge>
                       )}
-                    </p>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[9px] uppercase font-light tracking-widest text-muted-foreground/40">Comunicação</label>
+                      <div className="flex items-center gap-3 bg-white p-3 rounded-2xl border border-border/10 shadow-sm">
+                         <Mail className="h-4 w-4 text-primary/60" />
+                         <p className="text-[11px] font-light text-foreground/60 truncate">{client.email?.split(',')[0] || 'Sem e-mail'}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-border/20 flex items-center justify-between">
-                  <div
-                    className={cn(
-                      'px-3 py-1 rounded-full text-[9px] font-normal uppercase tracking-[0.15em] border transition-colors',
-                      regimeStyles[client.regimeTributario]
-                    )}
-                  >
-                    {regimeLabels[client.regimeTributario]}
-                  </div>
-                  <div className="text-primary text-[10px] font-light uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all flex items-center gap-1">
-                    Detalhes <Eye className="h-3 w-3" />
-                  </div>
+                <div className="pt-4 flex items-center justify-between border-t border-border/5">
+                   <div className={cn(
+                     "px-4 py-1.5 rounded-full text-[9px] font-light uppercase tracking-widest border border-transparent shadow-sm",
+                     regimeStyles[client.regimeTributario]
+                   )}>
+                     {regimeLabels[client.regimeTributario]}
+                   </div>
+                   <div className="group-hover:translate-x-1 transition-transform">
+                      <ArrowRight className="h-5 w-5 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+                   </div>
                 </div>
               </div>
             </div>
