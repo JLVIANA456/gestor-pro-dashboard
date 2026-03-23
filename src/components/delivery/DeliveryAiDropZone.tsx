@@ -351,7 +351,7 @@ export function DeliveryAiDropZone({ onSendAll }: DeliveryAiDropZoneProps) {
                                         onClick={() => onSendAll(processedFiles.filter(f => f.status === 'completed'), 'resend')}
                                         className="rounded-2xl h-16 shadow-lg shadow-red-500/20 gap-4 text-[10px] uppercase tracking-[0.2em] font-bold bg-[#EA4335] hover:bg-[#EA4335]/90 transition-all active:scale-[0.98] border-none text-white"
                                     >
-                                        <Mail className="h-5 w-5" /> Enviar E-mail (Resend)
+                                        <Mail className="h-5 w-5" /> Enviar e-mail
                                     </Button>
                                     <Button 
                                         onClick={() => onSendAll(processedFiles.filter(f => f.status === 'completed'), 'whatsapp')}

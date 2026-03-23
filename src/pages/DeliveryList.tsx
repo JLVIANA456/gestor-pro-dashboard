@@ -297,6 +297,8 @@ export default function DeliveryList() {
         let auditFailures = 0;
         const unmatched: ProcessedDeliveryFile[] = [];
 
+        // 1. Group by client
+        const filesByClient: Record<string, ProcessedDeliveryFile[]> = {};
         for (const item of processedFiles) {
             if (!item.client || !item.data) {
                 unmatched.push(item);
@@ -317,103 +319,170 @@ export default function DeliveryList() {
                 continue;
             }
 
+            if (!filesByClient[item.client.id]) {
+                filesByClient[item.client.id] = [];
+            }
+            filesByClient[item.client.id].push(item);
+        }
+
+        // 2. Process each client group
+        for (const clientId in filesByClient) {
+            const clientFiles = filesByClient[clientId];
+            const client = clientFiles[0].client;
+            
             try {
-                // Determine the subject and message
-                const subject = item.generatedSubject || `Guia de ${item.data.type} - ${item.data.referenceMonth}`;
-                const message = item.generatedMessage || `Olá, segue guia de ${item.data.type}.`;
+                const guideIds: string[] = [];
+                const consolidatedData: any[] = [];
 
-                let guideRecord: any = null;
+                // Process each file for this client to create/update records
+                for (const item of clientFiles) {
+                    let guideRecord: any = null;
+                    const existingGuide = guides.find(g =>
+                        g.client_id === item.client.id &&
+                        g.type.toLowerCase() === (item.data?.type || '').toLowerCase() &&
+                        g.status === 'pending'
+                    );
 
-                // 1. Create or Update the Guide in the Database
-                const existingGuide = guides.find(g =>
-                    g.client_id === item.client.id &&
-                    g.type.toLowerCase() === (item.data?.type || '').toLowerCase() &&
-                    g.status === 'pending'
-                );
-
-                if (existingGuide) {
-                    guideRecord = await updateGuide(existingGuide.id, {
-                        due_date: item.data.dueDate,
-                        amount: parseFloat(item.data.value),
-                        file_url: item.publicUrl || null,
-                        competency: item.data.referenceMonth
-                    });
-                    updateCount++;
-                } else {
-                    guideRecord = await createGuide({
-                        client_id: item.client.id,
-                        type: item.data.type,
-                        reference_month: selectedMonth,
-                        due_date: item.data.dueDate,
-                        amount: parseFloat(item.data.value),
-                        file_url: item.publicUrl || null,
-                        competency: item.data.referenceMonth,
-                        status: 'pending',
-                        scheduled_for: null,
-                        sent_at: null,
-                        delivered_at: null,
-                        opened_at: null
-                    });
-                    successCount++;
+                    if (existingGuide) {
+                        guideRecord = await updateGuide(existingGuide.id, {
+                            due_date: item.data!.dueDate,
+                            amount: parseFloat(item.data!.value),
+                            file_url: item.publicUrl || null,
+                            competency: item.data!.referenceMonth
+                        });
+                        updateCount++;
+                    } else {
+                        guideRecord = await createGuide({
+                            client_id: item.client.id,
+                            type: item.data!.type,
+                            reference_month: selectedMonth,
+                            due_date: item.data!.dueDate,
+                            amount: parseFloat(item.data!.value),
+                            file_url: item.publicUrl || null,
+                            competency: item.data!.referenceMonth,
+                            status: 'pending',
+                            scheduled_for: null,
+                            sent_at: null,
+                            delivered_at: null,
+                            opened_at: null
+                        });
+                        successCount++;
+                    }
+                    if (guideRecord) {
+                        guideIds.push(guideRecord.id);
+                        consolidatedData.push({
+                            ...item.data,
+                            publicUrl: item.publicUrl,
+                            guideId: guideRecord.id
+                        });
+                    }
                 }
 
-                // 2. Send the actual email or prepared WhatsApp
+                // Send the consolidated notification
                 if (provider === 'whatsapp') {
-                    const plainTextMessage = message.replace(/<a href="(.*?)">(.*?)<\/a>/g, '$2: $1');
-                    const phone = (item.client.phone || item.client.telefone)?.replace(/\D/g, '');
+                    let fullMessage = `Olá, seguem as guias para pagamento:\n\n`;
+                    consolidatedData.forEach(d => {
+                        const val = parseFloat(d.value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                        fullMessage += `• ${d.type} (${d.referenceMonth}): ${val} - Vencimento: ${new Date(d.dueDate).toLocaleDateString('pt-BR')}\n`;
+                        if (d.publicUrl) fullMessage += `🔗 ${d.publicUrl}\n`;
+                        fullMessage += `\n`;
+                    });
 
+                    const phone = (client.phone || client.telefone)?.replace(/\D/g, '');
                     if (phone) {
-                        window.open(`https://web.whatsapp.com/send?phone=55${phone}&text=${encodeURIComponent(plainTextMessage)}`, '_blank');
+                        window.open(`https://web.whatsapp.com/send?phone=55${phone}&text=${encodeURIComponent(fullMessage)}`, '_blank');
                     }
                 } else if (provider === 'resend') {
-                    const branding = BrandingService.getBranding();
-                    if (!item.client.email) {
-                        toast.error(`E-mail não cadastrado para ${item.client.nomeFantasia || item.client.razaoSocial}`);
+                    const branding = await BrandingService.getBranding();
+                    if (!client.email) {
+                        toast.error(`E-mail não cadastrado para ${client.nomeFantasia || client.razaoSocial}`);
                         continue;
                     }
 
-                    // Prepara o HTML profissional para o Resend (Identical to Announcements)
+                    let guidesHtml = `
+                        <table style="width: 100%; border-collapse: collapse; margin-bottom: 25px;">
+                            <thead>
+                                <tr style="background-color: #f8fafc;">
+                                    <th style="padding: 12px; text-align: left; font-size: 11px; border-bottom: 1px solid #e2e8f0; color: #64748b; text-transform: uppercase; font-weight: 800;">Guia / Imposto</th>
+                                    <th style="padding: 12px; text-align: left; font-size: 11px; border-bottom: 1px solid #e2e8f0; color: #64748b; text-transform: uppercase; font-weight: 800;">Competência</th>
+                                    <th style="padding: 12px; text-align: right; font-size: 11px; border-bottom: 1px solid #e2e8f0; color: #64748b; text-transform: uppercase; font-weight: 800;">Vencimento</th>
+                                    <th style="padding: 12px; text-align: right; font-size: 11px; border-bottom: 1px solid #e2e8f0; color: #64748b; text-transform: uppercase; font-weight: 800;">Valor</th>
+                                    <th style="padding: 12px; text-align: right; font-size: 11px; border-bottom: 1px solid #e2e8f0; color: #64748b; text-transform: uppercase; font-weight: 800;">Baixar</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+
+                    consolidatedData.forEach(d => {
+                        const val = parseFloat(d.value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                        const due = new Date(d.dueDate).toLocaleDateString('pt-BR');
+                        guidesHtml += `
+                            <tr>
+                                <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #1e293b; font-weight: 500;">${d.type}</td>
+                                <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">${d.referenceMonth}</td>
+                                <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; text-align: right; color: #1e293b;">${due}</td>
+                                <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; text-align: right; font-weight: 700; color: #1e293b;">${val}</td>
+                                <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; text-align: right;">
+                                    <a href="${d.publicUrl}" style="display: inline-block; padding: 6px 12px; background-color: ${branding.primaryColor}10; color: ${branding.primaryColor}; text-decoration: none; border-radius: 6px; font-size: 10px; font-weight: 800; text-transform: uppercase;">PDF</a>
+                                </td>
+                            </tr>
+                        `;
+                    });
+
+                    guidesHtml += `</tbody></table>`;
+
+                    const types = consolidatedData.length === 1 ? consolidatedData[0].type : 'Diversas Guias';
+                    const subject = `Guia(s) de Pagamento: ${types} - ${client.nomeFantasia || client.razaoSocial}`;
+
                     const htmlContent = `
-                        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; border: 1px solid #f0f0f0; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); background-color: #ffffff;">
-                            <div style="text-align: center; margin-bottom: 25px;">
-                                <h1 style="color: #1a1a1a; font-size: 24px; font-weight: 300; margin: 0;">Guia <span style="color: ${branding.primaryColor}; font-weight: 600;">Disponível</span></h1>
+                        <div style="font-family: 'Inter', system-ui, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px; border: 1px solid #f0f0f0; border-radius: 30px; background-color: #ffffff;">
+                            <div style="text-align: center; margin-bottom: 35px;">
+                                <h1 style="color: #1a1a1a; font-size: 26px; font-weight: 300; margin: 0; letter-spacing: -0.02em;">Suas Guia(s) de <span style="color: ${branding.primaryColor}; font-weight: 800;">Pagamento</span></h1>
+                                <p style="font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 8px;">Documentos Processados com Sucesso</p>
                             </div>
                             
-                            <div style="line-height: 1.8; color: #444; font-size: 16px; margin-bottom: 30px;">
-                                ${message.replace(/\n/g, '<br>').replace(/<a href="(.*?)">(.*?)<\/a>/g, `<div style="margin: 15px 0 25px 0; text-align: center;"><a href="$1" style="background-color: ${branding.primaryColor}; color: white !important; padding: 10px 24px; text-decoration: none !important; border-radius: 8px; font-weight: 500; display: inline-block; box-shadow: 0 2px 8px rgba(0,0,0,0.1); font-size: 14px;">${branding.buttonText || '$2'}</a></div>`)}
+                            <div style="line-height: 1.6; color: #475569; font-size: 15px; margin-bottom: 35px;">
+                                Olá <strong>${client.nomeFantasia || client.razaoSocial}</strong>,<br><br>
+                                Identificamos novas guias de impostos prontas para pagamento. Abaixo você encontrará o resumo detalhado e os links para download seguro:
                             </div>
 
-                            <hr style="border: 0; border-top: 1px solid #f0f0f0; margin: 30px 0;">
+                            ${guidesHtml}
+
+                            <div style="margin: 30px 0; padding: 20px; background-color: #f8fafc; border-radius: 15px; text-align: center; border: 1px dashed #e2e8f0;">
+                                <p style="font-size: 13px; color: #64748b; margin: 0;">⚠️ <strong>Atenção:</strong> Por favor, verifique as datas de vencimento para evitar multas por atraso.</p>
+                            </div>
+
+                            <hr style="border: 0; border-top: 1px solid #f1f5f9; margin: 40px 0;">
                             
                             <div style="text-align: center;">
-                                <p style="font-size: 12px; color: #999; margin-bottom: 5px;">
-                                    Este é um comunicado automático enviado por <strong>${branding.companyName}</strong>.
+                                <p style="font-size: 12px; color: #94a3b8; margin-bottom: 8px;">
+                                    Este é um comunicado oficial enviado por<br><strong style="color: #1e293b; font-size: 14px;">${branding.companyName}</strong>.
                                 </p>
-                                <p style="font-size: 10px; color: #bbb;">
-                                    Ao abrir este e-mail, seu contador será notificado do recebimento.
-                                </p>
+                                <div style="display: inline-block; padding: 8px 15px; background-color: #f1f5f9; border-radius: 20px; font-size: 10px; color: #64748b; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em;">
+                                    Confirmação de recebimento ativa
+                                </div>
                             </div>
 
-                            <!-- Tracking Pixel -->
-                            <img src="https://qvnktgjoarotzzkuptht.supabase.co/functions/v1/track-open?id=${guideRecord?.id || item.id}" width="1" height="1" style="display:none;" />
+                            <!-- Tracking Pixel (Using first guide ID) -->
+                            <img src="https://qvnktgjoarotzzkuptht.supabase.co/functions/v1/track-open?id=${guideIds[0]}" width="1" height="1" style="display:none;" />
                         </div>
                     `;
 
                     await ResendService.sendEmail({
-                        to: item.client.email,
+                        to: client.email,
                         subject: subject,
                         html: htmlContent,
                         reply_to: branding.replyToEmail || undefined
                     });
 
-                    // Update guide status to sent if we sent the email
-                    if (guideRecord) {
-                        await updateGuideStatus(guideRecord.id, 'sent', new Date().toISOString());
+                    // Update all guide statuses to sent
+                    for (const id of guideIds) {
+                        await updateGuideStatus(id, 'sent', new Date().toISOString());
                     }
                 }
             } catch (error: any) {
-                console.error("Erro ao processar guia via IA:", error);
-                toast.error(`Erro ao processar ${item.file.name}: ${error.message}`);
+                console.error("Erro ao processar guias agrupadas:", error);
+                toast.error(`Erro ao processar guias para o cliente ${client.nomeFantasia}: ${error.message}`);
             }
         }
 
@@ -422,7 +491,7 @@ export default function DeliveryList() {
             toast.info(`${unmatched.length} arquivos foram para a quarentena.`);
         }
 
-        toast.success(`Processamento finalizado com sucesso!`);
+        toast.success(`Disparo em lote finalizado!`);
         fetchGuides(selectedMonth);
     };
 
