@@ -1,0 +1,357 @@
+/* === HonorarioMaster.css === */
+
+:root {
+  --primary: #3b82f6;
+  --primary-glow: rgba(59, 130, 246, 0.3);
+  --bg-main: #f8fafc;
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-card-bg: rgba(255, 255, 255, 0.5);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --input-bg: rgba(255, 255, 255, 0.6);
+  --text-main: #0f172a;
+  --card-radius: 20px;
+  --font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+/* Glass effect */
+.hm-glass {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.hm-glass-card {
+  background: var(--glass-card-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: var(--card-radius);
+}
+
+/* Aura background blobs */
+.hm-aura-container {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.hm-aura-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.12;
+  animation: hm-float 8s ease-in-out infinite;
+}
+
+.hm-blob-1 {
+  width: 600px;
+  height: 600px;
+  top: -200px;
+  left: -200px;
+  background: var(--primary);
+  animation-delay: 0s;
+}
+
+.hm-blob-2 {
+  width: 500px;
+  height: 500px;
+  bottom: -150px;
+  right: -150px;
+  background: #8b5cf6;
+  animation-delay: -3s;
+}
+
+.hm-blob-3 {
+  width: 400px;
+  height: 400px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--primary);
+  animation-delay: -6s;
+}
+
+@keyframes hm-float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -30px) scale(1.05); }
+  66% { transform: translate(-20px, 20px) scale(0.95); }
+}
+
+/* Scrollbar */
+.hm-content::-webkit-scrollbar {
+  width: 4px;
+}
+.hm-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+.hm-content::-webkit-scrollbar-thumb {
+  background: var(--glass-border);
+  border-radius: 99px;
+}
+
+/* Stat Cards */
+.hm-stat-card {
+  background: var(--glass-card-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--card-radius);
+  padding: 1.25rem 1.5rem;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+.hm-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+}
+
+/* Progress Bar */
+.hm-progress-bar {
+  height: 6px;
+  border-radius: 99px;
+  background: var(--glass-border);
+  overflow: hidden;
+}
+.hm-progress-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--primary), #8b5cf6);
+  transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Nav items */
+.hm-nav-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 14px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  transition: all 0.2s ease;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-main);
+  opacity: 0.5;
+}
+.hm-nav-btn:hover {
+  opacity: 0.8;
+  background: var(--glass-card-bg);
+}
+.hm-nav-btn.active {
+  opacity: 1;
+  background: var(--glass-card-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+}
+
+/* Input */
+.hm-input {
+  background: var(--input-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: calc(var(--card-radius) / 2);
+  padding: 0.6rem 0.9rem;
+  font-size: 0.8rem;
+  width: 100%;
+  outline: none;
+  color: var(--text-main);
+  transition: all 0.2s ease;
+  font-family: var(--font-family);
+}
+.hm-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+.hm-select {
+  background: var(--input-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: calc(var(--card-radius) / 2);
+  padding: 0.6rem 0.9rem;
+  font-size: 0.8rem;
+  width: 100%;
+  outline: none;
+  color: var(--text-main);
+  transition: all 0.2s ease;
+  font-family: var(--font-family);
+  cursor: pointer;
+}
+.hm-select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+/* Buttons */
+.hm-btn-primary {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: calc(var(--card-radius) / 2);
+  padding: 0.6rem 1.2rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-family);
+}
+.hm-btn-primary:hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px var(--primary-glow);
+}
+
+.hm-btn-ghost {
+  background: transparent;
+  border: 1px solid var(--glass-border);
+  border-radius: calc(var(--card-radius) / 2);
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text-main);
+  font-family: var(--font-family);
+}
+.hm-btn-ghost:hover {
+  background: var(--glass-card-bg);
+}
+
+/* Status badges */
+.hm-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.7rem;
+  border-radius: 99px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.hm-badge-paid {
+  background: rgba(16, 185, 129, 0.1);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+.hm-badge-pending {
+  background: rgba(245, 158, 11, 0.1);
+  color: #d97706;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+.hm-badge-late {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+/* Modal overlay */
+.hm-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.hm-modal {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--card-radius);
+  padding: 2rem;
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+}
+
+/* Table */
+.hm-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.8rem;
+}
+.hm-table th {
+  text-align: left;
+  padding: 0.8rem 1rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.5;
+  border-bottom: 1px solid var(--glass-border);
+}
+.hm-table td {
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid var(--glass-border);
+  vertical-align: middle;
+}
+.hm-table tr:last-child td {
+  border-bottom: none;
+}
+.hm-table tbody tr {
+  transition: background 0.15s ease;
+}
+.hm-table tbody tr:hover {
+  background: var(--glass-card-bg);
+}
+
+/* Dark mode overrides */
+.dark .hm-input,
+.dark .hm-select {
+  color: #f1f5f9;
+}
+
+/* Calculator */
+.hm-calc-btn {
+  background: var(--glass-card-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  padding: 0.85rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: var(--text-main);
+  font-family: var(--font-family);
+}
+.hm-calc-btn:hover {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+  transform: scale(1.05);
+}
+.hm-calc-btn.operator {
+  color: var(--primary);
+}
+.hm-calc-btn.equals {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+/* Animation */
+@keyframes hm-slide-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.hm-animate-in {
+  animation: hm-slide-up 0.35s ease forwards;
+}
