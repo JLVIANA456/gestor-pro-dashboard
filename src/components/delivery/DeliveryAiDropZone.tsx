@@ -37,6 +37,8 @@ export interface ProcessedDeliveryFile {
     previewVisible?: boolean;
     generatedSubject?: string;
     generatedMessage?: string;
+    generatedTemplateTitle?: string;
+    matchedObligationName?: string;
     publicUrl?: string;
 }
 
@@ -52,26 +54,49 @@ export function DeliveryAiDropZone({ onSendAll }: DeliveryAiDropZoneProps) {
     const generatePreview = (data: ExtractedGuideData, client: any, publicUrl?: string) => {
         const branding = BrandingService.getBranding();
         
+        // Tenta encontrar a obrigação com o nome mais próximo do extraído
         const obligation = obligations.find(o => 
-            o.name.toLowerCase().includes(data.type.toLowerCase())
+            o.name.toLowerCase().includes(data.type.toLowerCase()) ||
+            data.type.toLowerCase().includes(o.name.toLowerCase())
         );
 
+        const formalName = obligation?.name || data.type;
         const formattedValue = parseFloat(data.value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-        const formattedDate = new Date(data.dueDate).toLocaleDateString('pt-BR');
+        const formattedDate = data.dueDate ? new Date(data.dueDate).toLocaleDateString('pt-BR') : '-';
 
-        let subject = branding.deliveryEmailSubject || "Envio de Guia - {{nome_imposto}} - {{competencia}} - {{nome_empresa}}";
-        let message = obligation?.name ? obligation.name : (branding.deliveryEmailBody || "");
+        let subject = "";
+        let templateTitle = "";
+
+        // Lógica de Assunto e Título baseada na Categoria da IA
+        if (data.category === 'folha') {
+            subject = `Folha Mensal - ${client?.nomeFantasia || client?.nome_fantasia || data.companyName} - ${data.referenceMonth}`;
+            templateTitle = "Folha de Pagamento";
+        } else if (data.category === 'extrato') {
+            subject = `Extrato Bancário - ${client?.nomeFantasia || client?.nome_fantasia || data.companyName} - ${data.referenceMonth}`;
+            templateTitle = "Extrato e Movimentação";
+        } else if (data.category === 'inss') {
+            subject = `Guia de INSS / Previdência - ${client?.nomeFantasia || client?.nome_fantasia || data.companyName}`;
+            templateTitle = "Guia de INSS";
+        } else {
+            subject = `Guia de Pagamento: ${formalName} - ${client?.nomeFantasia || client?.nome_fantasia || data.companyName}`;
+            templateTitle = "Guia de Pagamento";
+        }
+
+        let message = branding.deliveryEmailBody || "";
+        if (!message || message.trim() === "") {
+            message = `Olá {{nome_fantasia}},\n\nIdentificamos que sua {{nome_imposto}} referente a {{competencia}} está pronta.\n\nVencimento: {{vencimento}}\nValor: {{valor}}\n\n{{link_documento}}`;
+        }
 
         const linkTexto = publicUrl 
-            ? `<a href="${publicUrl}">Acesse o Documento - Clicando Aqui</a>`
-            : '(Documento em anexo)';
+            ? `<a href="${publicUrl}" style="color: ${branding.primaryColor}; font-weight: bold;">Acesse o Documento - Clicando Aqui</a>`
+            : '(Documento disponível no portal)';
 
-        const replacements = {
-            "{{nome_empresa}}": client?.nome_fantasia || data.companyName || 'Cliente',
-            "{{razao_social}}": data.companyName || client?.razao_social || 'Empresa',
-            "{{nome_fantasia}}": client?.nome_fantasia || data.companyName || 'Cliente',
-            "{{nome_imposto}}": data.type,
-            "{{tipo_guia}}": data.type,
+        const replacements: Record<string, string> = {
+            "{{nome_empresa}}": client?.nomeFantasia || client?.nome_fantasia || data.companyName || 'Cliente',
+            "{{razao_social}}": client?.razaoSocial || client?.razao_social || data.companyName || 'Empresa',
+            "{{nome_fantasia}}": client?.nomeFantasia || client?.nome_fantasia || data.companyName || 'Cliente',
+            "{{nome_imposto}}": formalName,
+            "{{tipo_guia}}": formalName,
             "{{competencia}}": data.referenceMonth,
             "{{mes_referencia}}": data.referenceMonth,
             "{{data_vencimento}}": formattedDate,
@@ -79,17 +104,17 @@ export function DeliveryAiDropZone({ onSendAll }: DeliveryAiDropZoneProps) {
             "{{valor_guia}}": formattedValue,
             "{{valor}}": formattedValue,
             "{{link_documento}}": linkTexto,
-            "{{companyName}}": branding.companyName || 'JLVIANA Consultoria Contábil',
-            "{{JLVIANA Consultoria Contábil}}": branding.companyName || 'JLVIANA Consultoria Contábil'
+            "{{companyName}}": branding.companyName || 'JLVIANA Consultoria Contábil'
         };
 
+        // Aplica substituições ricas
+        let finalMessage = message;
         Object.entries(replacements).forEach(([key, value]) => {
             const regex = new RegExp(key, 'g');
-            subject = subject.replace(regex, value);
-            message = message.replace(regex, value);
+            finalMessage = finalMessage.replace(regex, value);
         });
 
-        return { subject, message };
+        return { subject, message: finalMessage, templateTitle, formalName };
     };
 
     const onDrop = useCallback(async (acceptedFiles: File[]) => {
@@ -126,7 +151,7 @@ export function DeliveryAiDropZone({ onSendAll }: DeliveryAiDropZoneProps) {
             const cleanCnpj = data.cnpj.replace(/\D/g, '');
             const client = clients.find(c => c.cnpj?.replace(/\D/g, '') === cleanCnpj);
 
-            const { subject, message } = generatePreview(data, client, publicUrl);
+            const { subject, message, templateTitle, formalName } = generatePreview(data, client, publicUrl);
 
             setProcessedFiles(prev => prev.map(f => 
                 f.id === fileObj.id ? { 
@@ -136,6 +161,8 @@ export function DeliveryAiDropZone({ onSendAll }: DeliveryAiDropZoneProps) {
                     client,
                     generatedSubject: subject,
                     generatedMessage: message,
+                    generatedTemplateTitle: templateTitle,
+                    matchedObligationName: formalName,
                     publicUrl
                 } : f
             ));

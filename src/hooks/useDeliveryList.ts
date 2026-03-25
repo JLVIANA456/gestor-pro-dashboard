@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-export type DeliveryStatus = 'pending' | 'sent' | 'scheduled' | 'expired';
+export type DeliveryStatus = 'pending' | 'sent' | 'scheduled' | 'expired' | 'completed';
 
 export interface AccountingGuide {
   id: string;
@@ -18,6 +18,9 @@ export interface AccountingGuide {
   delivered_at: string | null;
   opened_at: string | null;
   competency: string | null;
+  completed_at?: string | null;
+  completed_by?: string | null;
+  justification?: string | null;
   created_at: string;
   updated_at: string;
   client?: {

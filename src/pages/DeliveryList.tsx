@@ -349,9 +349,11 @@ export default function DeliveryList() {
                 // Process each file for this client to create/update records
                 for (const item of clientFiles) {
                     let guideRecord: any = null;
+                    const guideTypeToMatch = item.matchedObligationName || item.data?.type || '';
+                    
                     const existingGuide = guides.find(g =>
                         g.client_id === item.client.id &&
-                        g.type.toLowerCase() === (item.data?.type || '').toLowerCase() &&
+                        g.type.toLowerCase() === guideTypeToMatch.toLowerCase() &&
                         g.status === 'pending'
                     );
 
@@ -366,7 +368,7 @@ export default function DeliveryList() {
                     } else {
                         guideRecord = await createGuide({
                             client_id: item.client.id,
-                            type: item.data!.type,
+                            type: guideTypeToMatch,
                             reference_month: selectedMonth,
                             due_date: item.data!.dueDate,
                             amount: parseFloat(item.data!.value),
@@ -384,6 +386,7 @@ export default function DeliveryList() {
                         guideIds.push(guideRecord.id);
                         consolidatedData.push({
                             ...item.data,
+                            type: guideTypeToMatch,
                             publicUrl: item.publicUrl,
                             guideId: guideRecord.id
                         });
@@ -443,19 +446,54 @@ export default function DeliveryList() {
 
                     guidesHtml += `</tbody></table>`;
 
-                    const types = consolidatedData.length === 1 ? consolidatedData[0].type : 'Diversas Guias';
-                    const subject = `Guia(s) de Pagamento: ${types} - ${client.nomeFantasia || client.razaoSocial}`;
+                    // Lógica Dinâmica de Assunto e Título para Envio Consolidado
+                    const hasFolha = clientFiles.some(f => f.data?.category === 'folha');
+                    const hasGuia = clientFiles.some(f => f.data?.category === 'guia' || f.data?.category === 'inss');
+                    const allFolha = clientFiles.every(f => f.data?.category === 'folha');
+                    const allGuia = clientFiles.every(f => f.data?.category === 'guia' || f.data?.category === 'inss');
+
+                    let subject = "";
+                    let templateTitlePrefix = "Suas Guia(s) de";
+                    let templateTitleSuffix = "Pagamento";
+
+                    if (clientFiles.length === 1) {
+                        // Se for apenas um arquivo, usa o rascunho exato da IA
+                        subject = clientFiles[0].generatedSubject || "";
+                        const category = clientFiles[0].data?.category;
+                        if (category === 'folha') {
+                            templateTitlePrefix = "Sua Folha de";
+                            templateTitleSuffix = "Pagamento";
+                        } else if (category === 'extrato') {
+                            templateTitlePrefix = "Seu Extrato";
+                            templateTitleSuffix = "Bancário";
+                        }
+                    } else {
+                        // Envio Agrupado / Consolidado
+                        if (allFolha) {
+                            subject = `Folha Mensal e Documentos - ${client.nomeFantasia || client.razao_social}`;
+                            templateTitlePrefix = "Suas Folhas de";
+                            templateTitleSuffix = "Pagamento";
+                        } else if (allGuia) {
+                            subject = `Guias de Pagamento - ${client.nomeFantasia || client.razao_social}`;
+                            templateTitlePrefix = "Suas Guia(s) de";
+                            templateTitleSuffix = "Pagamento";
+                        } else {
+                            subject = `Documentos e Guias - ${client.nomeFantasia || client.razao_social}`;
+                            templateTitlePrefix = "Seus Documentos e";
+                            templateTitleSuffix = "Guias";
+                        }
+                    }
 
                     const htmlContent = `
                         <div style="font-family: 'Inter', system-ui, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px; border: 1px solid #f0f0f0; border-radius: 30px; background-color: #ffffff;">
                             <div style="text-align: center; margin-bottom: 35px;">
-                                <h1 style="color: #1a1a1a; font-size: 26px; font-weight: 300; margin: 0; letter-spacing: -0.02em;">Suas Guia(s) de <span style="color: ${branding.primaryColor}; font-weight: 800;">Pagamento</span></h1>
+                                <h1 style="color: #1a1a1a; font-size: 26px; font-weight: 300; margin: 0; letter-spacing: -0.02em;">${templateTitlePrefix} <span style="color: ${branding.primaryColor}; font-weight: 800;">${templateTitleSuffix}</span></h1>
                                 <p style="font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 8px;">Documentos Processados com Sucesso</p>
                             </div>
                             
                             <div style="line-height: 1.6; color: #475569; font-size: 15px; margin-bottom: 35px;">
-                                Olá <strong>${client.nomeFantasia || client.razaoSocial}</strong>,<br><br>
-                                Identificamos novas guias de impostos prontas para pagamento. Abaixo você encontrará o resumo detalhado e os links para download seguro:
+                                Olá <strong>${client.nomeFantasia || client.razaoSocial || client.nome_fantasia}</strong>,<br><br>
+                                Identificamos novos documentos prontos. Abaixo você encontrará o resumo detalhado e os links para download seguro:
                             </div>
 
                             ${guidesHtml}

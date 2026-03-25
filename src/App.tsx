@@ -26,11 +26,18 @@ import Alerts from "./pages/Alerts";
 import EmailLogs from "./pages/EmailLogs";
 import Login from "./pages/Login";
 import Landing from "./pages/Landing";
+import ClientPortalAdmin from "./pages/ClientPortalAdmin";
+import ClientPortalView from "./pages/ClientPortalView";
+import PortalEntregas from "./pages/PortalEntregas";
+import PublicUpload from "./pages/PublicUpload";
+import ClientActivation from "./pages/ClientActivation";
+import ClientPortalConfig from "./pages/ClientPortalConfig";
+import DemandList from "./pages/DemandList";
 
 const queryClient = new QueryClient();
 
 const AppContent = () => {
-  const { session, loading } = useAuth();
+  const { session, loading, user } = useAuth();
 
   if (loading) {
     return (
@@ -45,33 +52,54 @@ const AppContent = () => {
     );
   }
 
+  // Se não estiver logado, mostra a Landing (que contém o Login)
   if (!session) {
-    return <Landing />;
+    return (
+      <Routes>
+        <Route path="/upload-publico/:token" element={<PublicUpload />} />
+        <Route path="/ativar-portal/:token" element={<ClientActivation />} />
+        <Route path="*" element={<Landing />} />
+      </Routes>
+    );
   }
 
+  // Se for Cliente logado no Portal, a visualização é diferente (se desejar isolar)
+  const isClient = user?.role === 'Cliente';
+
   return (
-    <MainLayout>
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/clientes" element={<Clients />} />
-        <Route path="/contabilidade" element={<Accounting />} />
-        <Route path="/progresso-contabil" element={<AccountingProgress />} />
-        <Route path="/honorarios" element={<Honorarios />} />
-        <Route path="/relatorios" element={<Reports />} />
-        <Route path="/retirada-lucro" element={<ProfitWithdrawals />} />
-        <Route path="/planilha-lucros" element={<ProfitSheetTasks />} />
-        <Route path="/lista-entrega" element={<DeliveryList />} />
-        <Route path="/calendario" element={<FiscalCalendar />} />
-        <Route path="/gestao-tarefas" element={<TaskManagement />} />
-        <Route path="/obrigacoes" element={<Obligations />} />
-        <Route path="/alertas" element={<Alerts />} />
-        <Route path="/personalizar" element={<Branding />} />
-        <Route path="/comunicados" element={<Announcements />} />
-        <Route path="/comunicados-recorrentes" element={<RecurringAnnouncements />} />
-        <Route path="/logs-envios" element={<EmailLogs />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </MainLayout>
+    <Routes>
+      <Route path="/upload-publico/:token" element={<PublicUpload />} />
+      <Route path="/*" element={
+        <MainLayout>
+          <Routes>
+            <Route path="" element={isClient ? <ClientPortalView /> : <Dashboard />} />
+            <Route path="clientes" element={<Clients />} />
+            <Route path="contabilidade" element={<Accounting />} />
+            <Route path="progresso-contabil" element={<AccountingProgress />} />
+            <Route path="honorarios" element={<Honorarios />} />
+            <Route path="relatorios" element={<Reports />} />
+            <Route path="retirada-lucro" element={<ProfitWithdrawals />} />
+            <Route path="planilha-lucros" element={<ProfitSheetTasks />} />
+            <Route path="lista-entrega" element={<DeliveryList />} />
+            <Route path="lista-demandas" element={<DemandList />} />
+            <Route path="calendario" element={<FiscalCalendar />} />
+            <Route path="gestao-tarefas" element={<TaskManagement />} />
+            <Route path="obrigacoes" element={<Obligations />} />
+            <Route path="alertas" element={<Alerts />} />
+            <Route path="personalizar" element={<Branding />} />
+            <Route path="comunicados" element={<Announcements />} />
+            <Route path="comunicados-recorrentes" element={<RecurringAnnouncements />} />
+            <Route path="logs-envios" element={<EmailLogs />} />
+            <Route path="portal-admin" element={<ClientPortalAdmin />} />
+            <Route path="portal-config" element={<ClientPortalConfig />} />
+            <Route path="portal-entregas" element={<PortalEntregas />} />
+            <Route path="portal-cliente" element={<ClientPortalView />} />
+            <Route path="ativar-portal/:token" element={<ClientActivation />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </MainLayout>
+      } />
+    </Routes>
   );
 };
 

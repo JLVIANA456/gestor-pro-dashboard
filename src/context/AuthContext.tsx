@@ -17,37 +17,56 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session?.user) {
-        // Here we could fetch an additional "profiles" table for name/avatar
-        setUser({
-          id: session.user.id,
-          email: session.user.email,
-          name: session.user.user_metadata?.name || session.user.email?.split('@')[0],
-          role: 'Administrador', // Hardcoded as Admin for now as requested
-          avatar: session.user.user_metadata?.avatar_url
-        });
+    const updateUserInfo = async (currentSession: Session | null) => {
+      setLoading(true);
+      setSession(currentSession);
+      
+      if (!currentSession?.user) {
+        setUser(null);
+        setLoading(false);
+        return;
       }
-      setLoading(false);
-    });
+
+      try {
+        // Use a timeout or race to prevent hanging on table check
+        const { data: portalUser, error: portalError } = await supabase
+          .from('client_portal_users')
+          .select('client_id')
+          .eq('user_id', currentSession.user.id)
+          .maybeSingle();
+
+        if (portalError) {
+          console.warn('Erro ao buscar portal_user (pode ser migração faltando):', portalError);
+        }
+
+        setUser({
+          id: currentSession.user.id,
+          email: currentSession.user.email,
+          name: currentSession.user.user_metadata?.name || currentSession.user.email?.split('@')[0],
+          role: portalUser ? 'Cliente' : 'Administrador',
+          clientId: portalUser?.client_id,
+          avatar: currentSession.user.user_metadata?.avatar_url
+        });
+      } catch (error) {
+        console.error('Erro crítico no AuthContext:', error);
+        setUser({
+          id: currentSession.user.id,
+          email: currentSession.user.email,
+          name: currentSession.user.user_metadata?.name || currentSession.user.email?.split('@')[0],
+          role: 'Administrador',
+          avatar: currentSession.user.user_metadata?.avatar_url
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Check initial session
+    supabase.auth.getSession().then(({ data: { session } }) => updateUserInfo(session));
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (session?.user) {
-        setUser({
-          id: session.user.id,
-          email: session.user.email,
-          name: session.user.user_metadata?.name || session.user.email?.split('@')[0],
-          role: 'Administrador',
-          avatar: session.user.user_metadata?.avatar_url
-        });
-      } else {
-        setUser(null);
-      }
-      setLoading(false);
+      updateUserInfo(session);
     });
 
     return () => subscription.unsubscribe();

@@ -213,6 +213,126 @@ export type Database = {
           }
         ]
       }
+      client_portal_users: {
+        Row: {
+          id: string
+          user_id: string
+          client_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          client_id: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          client_id?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_portal_users_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      client_documents: {
+        Row: {
+          id: string
+          client_id: string
+          file_name: string
+          file_url: string
+          file_type: string | null
+          category: string | null
+          description: string | null
+          month: string | null
+          metadata: Json | null
+          is_read: boolean
+          uploaded_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          file_name: string
+          file_url: string
+          file_type?: string | null
+          category?: string | null
+          description?: string | null
+          month?: string | null
+          metadata?: Json | null
+          is_read?: boolean
+          uploaded_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          file_name?: string
+          file_url?: string
+          file_type?: string | null
+          category?: string | null
+          description?: string | null
+          month?: string | null
+          metadata?: Json | null
+          is_read?: boolean
+          uploaded_by?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_documents_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      client_upload_tokens: {
+        Row: {
+          id: string
+          client_id: string
+          token: string
+          expires_at: string
+          max_uses: number
+          used_count: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          token?: string
+          expires_at: string
+          max_uses?: number
+          used_count?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          token?: string
+          expires_at?: string
+          max_uses?: number
+          used_count?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_upload_tokens_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never

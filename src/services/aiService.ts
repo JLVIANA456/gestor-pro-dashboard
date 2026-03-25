@@ -12,6 +12,7 @@ export interface ExtractedGuideData {
   dueDate: string;
   referenceMonth: string;
   type: string;
+  category: 'folha' | 'guia' | 'extrato' | 'inss' | 'outro';
   hasInterests: boolean;
 }
 
@@ -58,16 +59,17 @@ export class AiService {
         messages: [
           {
             role: "system",
-            content: `Você é um Auditor Contábil IA especializado em guias de impostos brasileiras (DAS, FGTS, DARF, GARE, ISS, etc). 
-            Sua missão é extrair dados com 100% de precisão para evitar erros de pagamento.
+            content: `Você é um Auditor Contábil IA especializado em documentos contábeis brasileiros. 
+            Sua missão é extrair dados com 100% de precisão para evitar erros de pagamento e classificação.
             
             Extraia em JSON puro:
             - cnpj: APENAS números do CNPJ ou CPF do contribuinte.
             - companyName: Nome da empresa ou Razão Social.
-            - value: Valor total da guia (formato 0.00).
+            - value: Valor total da guia/documento (formato 0.00).
             - dueDate: Data de vencimento (formato ISO YYYY-MM-DD).
             - referenceMonth: Período de apuração / Competência (formato MM/YYYY).
-            - type: Tipo Curto (Ex: DAS, FGTS, INSS, IRPJ, CSLL, ISS, ICMS).
+            - type: Nome específico do documento (Ex: DAS, FGTS Digital, Folha de Pagamento Mensal, Extrato Bancário Itau).
+            - category: Classifique em um destes: 'folha' (para holerites, resumo de folha e pro-labore), 'guia' (para DAS, DARF, ISS, ICMS), 'inss' (para guias específicas de previdência), 'extrato' (movimentação bancária) ou 'outro'.
             - hasInterests: true se houver multa ou juros calculados no valor total.`
           },
           {

@@ -21,7 +21,9 @@ import {
   Settings,
   Bell,
   Clock,
-  MailOpen
+  MailOpen,
+  Globe,
+  Monitor
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useBranding } from '@/context/BrandingContext';
@@ -60,6 +62,7 @@ const sections = [
   {
     title: 'Módulo Gestão',
     items: [
+      { name: 'Lista de Demandas', href: '/lista-demandas', icon: ClipboardCheck },
       { name: 'Lista de Entrega', href: '/lista-entrega', icon: Inbox },
       { name: 'Obrigações', href: '/obrigacoes', icon: ClipboardCheck },
       { name: 'Gestão de Tarefas', href: '/gestao-tarefas', icon: ShieldCheck },
@@ -67,6 +70,14 @@ const sections = [
       { name: 'Comunicados', href: '/comunicados', icon: Send },
       { name: 'Recorrentes', href: '/comunicados-recorrentes', icon: Clock },
       { name: 'Logs e Envios', href: '/logs-envios', icon: MailOpen },
+    ]
+  },
+  {
+    title: 'Portal do Cliente',
+    items: [
+      { name: 'Área do cliente', href: '/portal-admin', icon: Monitor },
+      { name: 'Hub do Cliente', href: '/portal-entregas', icon: Globe },
+      { name: 'Configuração do Portal', href: '/portal-config', icon: Settings },
     ]
   },
   {
