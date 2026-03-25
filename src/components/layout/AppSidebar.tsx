@@ -20,7 +20,8 @@ import {
   LogOut,
   Settings,
   Bell,
-  Clock
+  Clock,
+  MailOpen
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useBranding } from '@/context/BrandingContext';
@@ -65,6 +66,7 @@ const sections = [
       { name: 'Calendário', href: '/calendario', icon: CalendarIcon },
       { name: 'Comunicados', href: '/comunicados', icon: Send },
       { name: 'Recorrentes', href: '/comunicados-recorrentes', icon: Clock },
+      { name: 'Logs e Envios', href: '/logs-envios', icon: MailOpen },
     ]
   },
   {

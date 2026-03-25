@@ -44,6 +44,7 @@ export interface Obligation {
   anticipate_on_weekend: boolean;
   tax_regimes: string[];
   competency_rule: ObligationCompetencyRule;
+  company_ids: string[];
   created_at: string;
   updated_at: string;
 }

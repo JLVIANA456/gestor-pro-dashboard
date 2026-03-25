@@ -38,6 +38,7 @@ import { ptBR } from 'date-fns/locale';
 import { useClients } from '@/hooks/useClients';
 import { useDeliveryList, AccountingGuide } from '@/hooks/useDeliveryList';
 import { useObligations } from '@/hooks/useObligations';
+import { useClientObligations } from '@/hooks/useClientObligations';
 import { ResendService } from '@/services/resendService';
 import { BrandingService } from '@/services/brandingService';
 import { DeliveryAiDropZone, ProcessedDeliveryFile } from '@/components/delivery/DeliveryAiDropZone';
@@ -80,6 +81,7 @@ export default function DeliveryList() {
     const [isGenerating, setIsGenerating] = useState(false);
     const [isAiConfigOpen, setIsAiConfigOpen] = useState(false);
     const { obligations } = useObligations();
+    const { clientObligations } = useClientObligations();
 
     const historyGuides = useMemo(() => {
         return guides.filter(g => g.status === 'sent' && (
@@ -222,13 +224,23 @@ export default function DeliveryList() {
                     const key = `${client.id}__${obligation.name.toLowerCase()}`;
                     if (existingSet.has(key) || batchSet.has(key)) continue;
 
-                    const obsRegimes = obligation.tax_regimes || [];
-                    const clientRegime = client.regimeTributario?.toLowerCase() || '';
-                    const matchesRegime = obsRegimes.length === 0 || 
-                                          obsRegimes.some((r: string) => r.toLowerCase() === 'all') || 
-                                          (clientRegime && obsRegimes.some((r: string) => r.toLowerCase() === clientRegime));
+                    const explicitCompanies = obligation.company_ids || [];
+                    let appliesByDefault = false;
                     
-                    if (!matchesRegime) continue;
+                    if (explicitCompanies.length > 0) {
+                        appliesByDefault = explicitCompanies.includes(client.id);
+                    } else {
+                        const obsRegimes = obligation.tax_regimes || [];
+                        const clientRegime = client.regimeTributario?.toLowerCase() || '';
+                        appliesByDefault = obsRegimes.length === 0 || 
+                                     obsRegimes.some((r: string) => r.toLowerCase() === 'all') || 
+                                     (clientRegime && obsRegimes.some((r: string) => r.toLowerCase() === clientRegime));
+                    }
+                    
+                    const override = clientObligations.find(co => co.client_id === client.id && co.obligation_id === obligation.id);
+                    const isEligible = override ? override.status === 'enabled' : appliesByDefault;
+
+                    if (!isEligible) continue;
 
                     let competencyStr = '';
                     if (obligation.competency_rule === 'previous_month') {

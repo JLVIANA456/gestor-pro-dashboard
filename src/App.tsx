@@ -23,6 +23,7 @@ import DeliveryList from "./pages/DeliveryList";
 import TaskManagement from "./pages/TaskManagement";
 import Obligations from "./pages/Obligations";
 import Alerts from "./pages/Alerts";
+import EmailLogs from "./pages/EmailLogs";
 import Login from "./pages/Login";
 import Landing from "./pages/Landing";
 
@@ -67,6 +68,7 @@ const AppContent = () => {
         <Route path="/personalizar" element={<Branding />} />
         <Route path="/comunicados" element={<Announcements />} />
         <Route path="/comunicados-recorrentes" element={<RecurringAnnouncements />} />
+        <Route path="/logs-envios" element={<EmailLogs />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </MainLayout>

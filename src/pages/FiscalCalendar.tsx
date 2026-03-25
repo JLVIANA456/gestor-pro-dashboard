@@ -1,476 +1,527 @@
 import { useState, useMemo } from 'react';
-import { 
-    ChevronLeft, 
-    ChevronRight, 
-    Calendar as CalendarIcon, 
-    Filter,
-    Users,
-    Building2,
-    AlertCircle,
+import {
+    ChevronLeft,
+    ChevronRight,
     CheckCircle2,
-    Clock,
-    Send,
     FileText,
-    BrainCircuit,
-    LayoutDashboard,
-    Eye,
-    Mail,
-    ExternalLink,
-    Wand2,
-    Sparkles,
-    Columns,
-    List,
-    GripVertical,
-    XCircle
+    Search,
+    PlayCircle,
+    Hammer,
+    Rocket,
+    MailCheck,
+    Loader2,
+    X,
+    Clock,
+    Activity,
+    Filter
 } from 'lucide-react';
-import { 
-    format, 
-    addMonths, 
-    subMonths, 
-    startOfMonth, 
-    endOfMonth, 
-    startOfWeek, 
-    endOfWeek, 
-    eachDayOfInterval, 
-    isSameMonth, 
-    isSameDay, 
+import {
+    format,
+    addMonths,
+    subMonths,
+    startOfMonth,
+    endOfMonth,
+    startOfWeek,
+    endOfWeek,
+    eachDayOfInterval,
+    isSameMonth,
+    isSameDay,
     isToday,
-    parseISO
+    parseISO,
+    addDays,
+    subDays,
+    isBefore
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useDeliveryList, AccountingGuide } from '@/hooks/useDeliveryList';
-import { useClients } from '@/hooks/useClients';
-import { 
-    Sheet,
-    SheetContent,
+import {
+    Dialog,
+    DialogContent,
+} from "@/components/ui/dialog";
+import {
     SheetHeader,
     SheetTitle,
     SheetDescription,
 } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { 
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { AiService } from '@/services/aiService';
-import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
-import { ClientGuidesModal } from '@/components/delivery/ClientGuidesModal';
+import { useBranding } from '@/context/BrandingContext';
+
+// ── Fases ────────────────────────────────────────────────────────
+const START_OFFSET  = 10; // D-10
+const FINISH_OFFSET = 5;  // D-5
+
+type Phase = 'start' | 'work' | 'finish' | 'due';
+
+const PHASE_CONFIG: Record<Phase, {
+    label: string;
+    dot: string;
+    bg: string;
+    text: string;
+    border: string;
+    icon: React.ElementType;
+}> = {
+    start:  { label: 'Início',     dot: 'bg-sky-500',    bg: 'bg-sky-50',     text: 'text-sky-700',    border: 'border-sky-200',    icon: PlayCircle },
+    work:   { label: 'Executando', dot: 'bg-amber-500',  bg: 'bg-amber-50',   text: 'text-amber-700',  border: 'border-amber-200',  icon: Hammer },
+    finish: { label: 'Revisão',    dot: 'bg-violet-500', bg: 'bg-violet-50',  text: 'text-violet-700', border: 'border-violet-200', icon: CheckCircle2 },
+    due:    { label: 'Vencimento', dot: 'bg-red-500',    bg: 'bg-red-50',     text: 'text-red-700',    border: 'border-red-200',    icon: Rocket },
+};
+
+interface EnrichedGuide extends AccountingGuide {
+    startDate: Date;
+    finishDate: Date;
+    dueDate: Date;
+}
 
 export default function FiscalCalendar() {
+    const { officeName } = useBranding();
     const [currentDate, setCurrentDate] = useState(new Date());
-    const [selectedClientForGuide, setSelectedClientForGuide] = useState<any>(null);
-    const [isGuidesModalOpen, setIsGuidesModalOpen] = useState(false);
-    const referenceMonth = format(currentDate, 'yyyy-MM');
-    const { guides, loading, updateGuide, fetchGuides } = useDeliveryList(referenceMonth);
-    
     const [selectedDay, setSelectedDay] = useState<Date | null>(null);
-    const [dragOverDay, setDragOverDay] = useState<string | null>(null);
-    const [isProcessingFile, setIsProcessingFile] = useState(false);
-    const [filterCollaborator, setFilterCollaborator] = useState('all');
-    const [filterRegime, setFilterRegime] = useState('all');
-    const [showOnlyCritical, setShowOnlyCritical] = useState(false);
-    const [viewMode, setViewMode] = useState<'calendar' | 'kanban'>('calendar');
+    const [taskSearch, setTaskSearch] = useState('');
 
-    const { clients } = useClients();
+    const referenceMonth = format(currentDate, 'yyyy-MM');
+    const { guides, loading } = useDeliveryList(referenceMonth);
 
-    const fiscalResponsibles = useMemo(() => {
-        const names = clients
-            .map(c => c.responsavelFiscal)
-            .filter((name): name is string => !!name && name.trim() !== '');
-        return Array.from(new Set(names)).sort();
-    }, [clients]);
+    const enrichedGuides = useMemo((): EnrichedGuide[] => {
+        return guides
+            .filter(g => {
+                if (!g.due_date) return false;
+                if (taskSearch) return (g.type || '').toLowerCase().includes(taskSearch.toLowerCase());
+                return true;
+            })
+            .map(g => {
+                const due = parseISO(g.due_date!);
+                return {
+                    ...g,
+                    dueDate: due,
+                    startDate: subDays(due, START_OFFSET),
+                    finishDate: subDays(due, FINISH_OFFSET),
+                };
+            });
+    }, [guides, taskSearch]);
 
-    const filteredGuides = useMemo(() => {
-        return guides.filter(guide => {
-            const client = clients.find(c => c.id === guide.client_id);
-            if (filterCollaborator !== 'all' && client?.responsavelFiscal !== filterCollaborator) return false;
-            if (filterRegime !== 'all' && client?.regimeTributario !== filterRegime) return false;
-            if (showOnlyCritical) {
-                const isCritical = !guide.file_url || (guide.file_url && guide.status === 'pending');
-                if (!isCritical || guide.status === 'sent') return false;
-            }
-            return true;
-        });
-    }, [guides, clients, filterCollaborator, filterRegime, showOnlyCritical]);
-
-    const kanbanColumns = useMemo(() => {
-        return {
-            todo: filteredGuides.filter(g => g.status === 'pending' && !g.file_url),
-            ready: filteredGuides.filter(g => g.status === 'pending' && !!g.file_url),
-            sent: filteredGuides.filter(g => g.status === 'sent')
+    const dayMap = useMemo(() => {
+        const map: Record<string, { guide: EnrichedGuide; phase: Phase }[]> = {};
+        const push = (date: Date, guide: EnrichedGuide, phase: Phase) => {
+            const k = format(date, 'yyyy-MM-dd');
+            if (!map[k]) map[k] = [];
+            map[k].push({ guide, phase });
         };
-    }, [filteredGuides]);
-
-    // Calendar Calculations
-    const monthStart = startOfMonth(currentDate);
-    const monthEnd = endOfMonth(monthStart);
-    const startDate = startOfWeek(monthStart, { weekStartsOn: 0 });
-    const endDate = endOfWeek(monthEnd, { weekStartsOn: 0 });
-    const calendarDays = eachDayOfInterval({ start: startDate, end: endDate });
-
-    const guidesByDay = useMemo(() => {
-        const map: Record<string, AccountingGuide[]> = {};
-        filteredGuides.forEach(g => {
-            if (!g.due_date) return;
-            const dayKey = g.due_date.split('T')[0];
-            if (!map[dayKey]) map[dayKey] = [];
-            map[dayKey].push(g);
+        enrichedGuides.forEach(g => {
+            push(g.startDate,  g, 'start');
+            push(g.finishDate, g, 'finish');
+            push(g.dueDate,    g, 'due');
+            let cursor = addDays(g.startDate, 1);
+            while (isBefore(cursor, g.finishDate)) {
+                push(cursor, g, 'work');
+                cursor = addDays(cursor, 1);
+            }
         });
         return map;
-    }, [filteredGuides]);
+    }, [enrichedGuides]);
 
-    const handleFileDrop = async (e: React.DragEvent, day: Date) => {
-        e.preventDefault();
-        const dayKey = format(day, 'yyyy-MM-dd');
-        setDragOverDay(null);
-        
-        const files = Array.from(e.dataTransfer.files);
-        if (files.length === 0) {
-            // Check for internal kanban drag
-            const guideId = e.dataTransfer.getData('guideId');
-            if (guideId) {
-                const guide = guides.find(g => g.id === guideId);
-                // If it was a guide being dragged, update its status based on drop context (here it's a day, so we move to 'todo' on that day)
-                await updateGuide(guideId, { due_date: dayKey + 'T00:00:00Z' });
-                toast.success(`Guia movida para o dia ${format(day, 'dd/MM')}`);
-                return;
-            }
-            return;
-        }
+    const monthStart = startOfMonth(currentDate);
+    const calendarDays = eachDayOfInterval({
+        start: startOfWeek(monthStart, { weekStartsOn: 0 }),
+        end:   endOfWeek(endOfMonth(monthStart), { weekStartsOn: 0 }),
+    });
 
-        const file = files[0];
-        if (file.type !== 'application/pdf') {
-            toast.error('Apenas arquivos PDF são suportados');
-            return;
-        }
+    const selectedDayEntries = useMemo(() => {
+        if (!selectedDay) return [];
+        return dayMap[format(selectedDay, 'yyyy-MM-dd')] || [];
+    }, [selectedDay, dayMap]);
 
-        setIsProcessingFile(true);
-        const loadingToast = toast.loading(`Processando ${file.name}...`);
-        try {
-            const extractedData = await AiService.extractGuideData(file);
-            const { publicUrl } = await AiService.uploadFile(file);
-            const cleanExtractedCnpj = extractedData.cnpj.replace(/\D/g, '');
-            
-            const targetGuide = guides.find(g => {
-                const sameDay = g.due_date?.split('T')[0] === dayKey;
-                const clientCnpj = g.client?.cnpj.replace(/\D/g, '');
-                return sameDay && clientCnpj === cleanExtractedCnpj;
-            });
-
-            if (targetGuide) {
-                await updateGuide(targetGuide.id, {
-                    file_url: publicUrl,
-                    status: 'pending',
-                    amount: parseFloat(extractedData.value),
-                    competency: extractedData.referenceMonth
-                });
-                toast.success(`Guia anexada com sucesso em ${dayKey}`, { id: loadingToast });
-            } else {
-                toast.error(`Não encontramos uma tarefa pendente para esta empresa no dia ${format(day, 'dd/MM')}`, { id: loadingToast });
-            }
-        } catch (error: any) {
-            toast.error(error.message || 'Erro ao processar guia', { id: loadingToast });
-        } finally {
-            setIsProcessingFile(false);
-        }
-    };
-
-    const handleKanbanDrop = async (e: React.DragEvent, targetColumn: 'todo' | 'ready' | 'sent') => {
-        const guideId = e.dataTransfer.getData('guideId');
-        const guide = guides.find(g => g.id === guideId);
-        if (!guide) return;
-
-        if (targetColumn === 'sent') {
-            if (!guide.file_url) return toast.error("Anexe o arquivo primeiro.");
-            await updateGuide(guideId, { status: 'sent', sent_at: new Date().toISOString() });
-            toast.success("Enviado com sucesso");
-        } else if (targetColumn === 'ready') {
-            await updateGuide(guideId, { status: 'pending' });
-            toast.info("Marcado como Pronto");
-        } else if (targetColumn === 'todo') {
-            await updateGuide(guideId, { status: 'pending' });
-            toast.info("Marcado como Pendente");
-        }
-    };
-
-    const handleSendAllDay = async (day: Date) => {
-        const dayKey = format(day, 'yyyy-MM-dd');
-        const dayGuides = (guidesByDay[dayKey] || []).filter(g => g.file_url && g.status === 'pending');
-        if (dayGuides.length === 0) return toast.error('Nenhuma guia pronta.');
-        
-        const loadingToast = toast.loading(`Enviando...`);
-        try {
-            for (const guide of dayGuides) {
-                await updateGuide(guide.id, { status: 'sent', sent_at: new Date().toISOString() });
-            }
-            toast.success('Enviadas!', { id: loadingToast });
-        } catch (error) {
-            toast.error('Erro no envio.', { id: loadingToast });
-        }
-    };
+    const stats = useMemo(() => {
+        const total = enrichedGuides.length;
+        const sent = enrichedGuides.filter(g => g.status === 'sent').length;
+        const pending = total - sent;
+        const today = new Date();
+        const urgent = enrichedGuides.filter(g => {
+            if (g.status === 'sent') return false;
+            const diff = (g.dueDate.getTime() - today.getTime()) / 86400000;
+            return diff >= 0 && diff <= 3;
+        }).length;
+        return { total, sent, pending, urgent };
+    }, [enrichedGuides]);
 
     return (
         <div className="space-y-8 animate-in fade-in duration-700 pb-10">
-            {/* Header / Command Center Info */}
+
+            {/* ── Header ─────────────────────────────────────── */}
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between pt-4">
                 <div>
-                    <h1 className="text-4xl font-extralight tracking-tight text-foreground">Centro de <span className="text-primary font-normal">Comando</span></h1>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.3em] mt-2 opacity-70">
-                        {viewMode === 'calendar' ? 'Calendário Fiscal Dinâmico' : 'Gestão Visual por Colunas'}
+                    <h1 className="text-4xl font-light tracking-tight text-foreground">
+                        Calendário de <span className="text-primary font-medium">Tarefas</span>
+                    </h1>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-[0.2em] mt-2">
+                        {officeName} • Fluxo de Obrigações por Data de Vencimento
                     </p>
                 </div>
 
-                <div className="flex items-center gap-4">
-                     {/* View Switcher */}
-                     <div className="bg-muted/10 p-1 rounded-2xl border border-border/10 flex gap-1">
-                        <Button 
-                            variant={viewMode === 'calendar' ? 'secondary' : 'ghost'} 
-                            size="sm" 
-                            onClick={() => setViewMode('calendar')}
-                            className="rounded-xl h-10 px-4 text-[10px] uppercase font-bold tracking-widest gap-2"
-                        >
-                            <CalendarIcon className="h-4 w-4" /> Calendário
-                        </Button>
-                        <Button 
-                            variant={viewMode === 'kanban' ? 'secondary' : 'ghost'} 
-                            size="sm" 
-                            onClick={() => setViewMode('kanban')}
-                            className="rounded-xl h-10 px-4 text-[10px] uppercase font-bold tracking-widest gap-2"
-                        >
-                            <Columns className="h-4 w-4" /> Kanban
-                        </Button>
+                {/* Month Navigator */}
+                <div className="flex items-center gap-2 bg-card border border-border/30 px-4 py-2 rounded-2xl shadow-sm">
+                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl" onClick={() => setCurrentDate(subMonths(currentDate, 1))}>
+                        <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <div className="flex flex-col items-center min-w-[150px]">
+                        <span className="text-sm font-semibold capitalize">{format(currentDate, 'MMMM', { locale: ptBR })}</span>
+                        <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground/50 mt-0.5">{format(currentDate, 'yyyy')}</span>
                     </div>
-
-                    <div className="flex items-center gap-4 bg-white/40 backdrop-blur-md p-2 rounded-2xl border border-border/10 shadow-sm">
-                        <Button variant="ghost" size="icon" onClick={() => setCurrentDate(subMonths(currentDate, 1))}>
-                            <ChevronLeft className="h-5 w-5" />
-                        </Button>
-                        <div className="flex flex-col items-center min-w-[150px]">
-                            <span className="text-lg font-bold capitalize">{format(currentDate, 'MMMM', { locale: ptBR })}</span>
-                            <span className="text-[9px] uppercase font-black tracking-[0.2em] text-primary/40 mt-0.5">{format(currentDate, 'yyyy')}</span>
-                        </div>
-                        <Button variant="ghost" size="icon" onClick={() => setCurrentDate(addMonths(currentDate, 1))}>
-                            <ChevronRight className="h-5 w-5" />
-                        </Button>
-                    </div>
-                </div>
-            </div>
-
-            {/* Filters Area */}
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                <div className="xl:col-span-2 bg-card/30 backdrop-blur-md rounded-[2.5rem] p-6 border border-border/40 flex flex-wrap items-center gap-8 shadow-sm">
-                    <div className="flex flex-col gap-1.5 min-w-[180px]">
-                        <label className="text-[8px] uppercase font-black tracking-widest text-muted-foreground/40 flex items-center gap-2">
-                           <Users className="h-3 w-3" /> Colaborador
-                        </label>
-                        <select className="bg-transparent text-xs font-light outline-none" value={filterCollaborator} onChange={(e) => setFilterCollaborator(e.target.value)}>
-                            <option value="all">Todos</option>
-                            {fiscalResponsibles.map(name => <option key={name} value={name}>{name}</option>)}
-                        </select>
-                    </div>
-                    <div className="flex flex-col gap-1.5 min-w-[180px]">
-                        <label className="text-[8px] uppercase font-black tracking-widest text-muted-foreground/40 flex items-center gap-2">
-                           <Building2 className="h-3 w-3" /> Regime
-                        </label>
-                        <select className="bg-transparent text-xs font-light outline-none" value={filterRegime} onChange={(e) => setFilterRegime(e.target.value)}>
-                            <option value="all">Todos</option>
-                            <option value="simples">Simples Nacional</option>
-                            <option value="presumido">Lucro Presumido</option>
-                            <option value="real">Lucro Real</option>
-                        </select>
-                    </div>
-                    <Button 
-                        variant={showOnlyCritical ? "destructive" : "outline"}
-                        className={cn("rounded-xl h-12 px-6 text-[10px] uppercase font-black tracking-widest gap-2", showOnlyCritical && "bg-red-500 text-white shadow-lg")}
-                        onClick={() => setShowOnlyCritical(!showOnlyCritical)}
-                    >
-                        <AlertCircle className="h-4 w-4" /> {showOnlyCritical ? "Críticos" : "Apenas Críticos"}
+                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl" onClick={() => setCurrentDate(addMonths(currentDate, 1))}>
+                        <ChevronRight className="h-4 w-4" />
                     </Button>
                 </div>
+            </div>
 
-                <div className="bg-primary/5 rounded-[2.5rem] p-6 border border-primary/20 flex items-center gap-4 relative overflow-hidden group">
-                    <BrainCircuit className="h-6 w-6 text-primary group-hover:scale-110 transition-transform" />
-                    <div className="relative z-10">
-                        <p className="text-[9px] uppercase font-black tracking-widest text-primary/40">Insight Predictor</p>
-                        <p className="text-[11px] font-medium leading-relaxed mt-1">O dia 20 concentra 45% do volume do mês. Sugerimos priorizar agora.</p>
+            {/* ── Stats ────────────────────────────────────────── */}
+            <div className="flex flex-wrap md:flex-nowrap items-center gap-3">
+                {[
+                    { label: 'Total no Mês',   value: stats.total,   bg: 'bg-primary/5',     text: 'text-primary',    icon: FileText },
+                    { label: 'Pendentes',      value: stats.pending, bg: 'bg-amber-500/5',   text: 'text-amber-600',  icon: Clock },
+                    { label: 'Urgentes (≤3d)', value: stats.urgent,  bg: 'bg-red-500/5',     text: 'text-red-600',    icon: Rocket },
+                    { label: 'Concluídas',     value: stats.sent,    bg: 'bg-emerald-500/5', text: 'text-emerald-600',icon: MailCheck },
+                ].map(s => (
+                    <div key={s.label} className={cn("flex items-center gap-3 px-5 py-3 rounded-2xl flex-1 min-w-[140px]", s.bg)}>
+                        <s.icon className={cn("h-4 w-4 shrink-0", s.text)} />
+                        <span className={cn("text-lg font-semibold leading-none", s.text)}>{s.value}</span>
+                        <span className={cn("text-[10px] uppercase font-bold tracking-widest opacity-60", s.text)}>{s.label}</span>
                     </div>
+                ))}
+            </div>
+
+            {/* ── Search + Legend ──────────────────────────────── */}
+            <div className="bg-card/30 backdrop-blur-md rounded-[2.5rem] p-5 border border-border/40 flex flex-wrap items-center gap-4 shadow-sm">
+                <div className="flex-1 min-w-[220px] relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40" />
+                    <Input
+                        placeholder="Buscar tarefa (DAS, FGTS, Simples...)..."
+                        value={taskSearch}
+                        onChange={e => setTaskSearch(e.target.value)}
+                        className="h-12 rounded-xl border-border/20 bg-muted/20 pl-11 font-light text-xs focus-visible:ring-primary/20"
+                    />
+                </div>
+                <div className="flex items-center gap-3 ml-auto flex-wrap">
+                    {(Object.entries(PHASE_CONFIG) as [Phase, typeof PHASE_CONFIG[Phase]][]).map(([phase, cfg]) => (
+                        <div key={phase} className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                            <div className={cn("h-2 w-2 rounded-full", cfg.dot)} />
+                            {cfg.label}
+                        </div>
+                    ))}
                 </div>
             </div>
 
-            {viewMode === 'calendar' ? (
-                /* Calendar Grid */
-                <div className="bg-card/30 backdrop-blur-md rounded-[3rem] border border-border/40 overflow-hidden shadow-2xl">
-                    <div className="grid grid-cols-7 border-b border-border/10 bg-muted/20">
-                        {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
-                            <div key={day} className="py-4 text-center">
-                                <span className="text-[10px] uppercase font-black tracking-[0.2em] text-muted-foreground/30">{day}</span>
+            {/* ── Calendar ─────────────────────────────────────── */}
+            {loading ? (
+                <div className="flex items-center justify-center py-32">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary/30" />
+                </div>
+            ) : (
+                <div className="bg-card/40 backdrop-blur-md rounded-[2.5rem] border border-border/30 overflow-hidden shadow-lg">
+                    {/* Week header */}
+                    <div className="grid grid-cols-7 border-b border-border/10 bg-muted/10">
+                        {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(d => (
+                            <div key={d} className="py-4 text-center">
+                                <span className="text-[10px] uppercase font-black tracking-[0.2em] text-muted-foreground/40">{d}</span>
                             </div>
                         ))}
                     </div>
-                    <div className="grid grid-cols-7 min-h-[700px]">
-                        {calendarDays.map((day) => {
+
+                    {/* Days */}
+                    <div className="grid grid-cols-7">
+                        {calendarDays.map(day => {
                             const isCurrentMonth = isSameMonth(day, monthStart);
                             const dayKey = format(day, 'yyyy-MM-dd');
+                            const entries = dayMap[dayKey] || [];
+                            const today = isToday(day);
+                            const isSelected = selectedDay ? isSameDay(day, selectedDay) : false;
+
+                            // Group by task name, pick priority phase per name
+                            const taskGroups: Record<string, Phase> = {};
+                            const phaseOrder: Phase[] = ['due', 'finish', 'start', 'work'];
+                            entries.forEach(e => {
+                                const name = e.guide.type || '?';
+                                if (!taskGroups[name]) taskGroups[name] = e.phase;
+                                else {
+                                    if (phaseOrder.indexOf(e.phase) < phaseOrder.indexOf(taskGroups[name])) {
+                                        taskGroups[name] = e.phase;
+                                    }
+                                }
+                            });
+
+                            const hasDue = entries.some(e => e.phase === 'due');
+
                             return (
-                                <div 
-                                    key={day.toString()} 
-                                    onClick={() => setSelectedDay(day)}
-                                    onDragOver={(e) => { e.preventDefault(); setDragOverDay(dayKey); }}
-                                    onDragLeave={() => setDragOverDay(null)}
-                                    onDrop={(e) => handleFileDrop(e, day)}
+                                <div
+                                    key={dayKey}
+                                    onClick={() => isCurrentMonth && entries.length > 0 && setSelectedDay(day)}
                                     className={cn(
-                                        "border-r border-b border-border/5 p-4 transition-all hover:bg-primary/[0.02] cursor-pointer relative flex flex-col gap-2 min-h-[140px]",
+                                        "border-r border-b border-border/10 p-3 flex flex-col gap-2 min-h-[150px] transition-all duration-150",
                                         !isCurrentMonth && "opacity-10 pointer-events-none",
-                                        isToday(day) && "bg-primary/[0.03] ring-1 ring-inset ring-primary/10",
-                                        dragOverDay === dayKey && "bg-primary/10 ring-2 ring-primary border-transparent z-10"
+                                        entries.length > 0 && "cursor-pointer hover:bg-muted/10",
+                                        today && "bg-primary/[0.03]",
+                                        isSelected && "bg-primary/[0.07] ring-2 ring-inset ring-primary/20",
                                     )}
                                 >
-                                    <span className={cn("text-xs font-bold", isToday(day) ? "text-primary" : "text-muted-foreground/50")}>{format(day, 'd')}</span>
-                                    <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">{getPillsForDay(day, guidesByDay)}</div>
+                                    {/* Day number */}
+                                    <div className="flex items-center justify-between">
+                                        <span className={cn(
+                                            "h-7 w-7 flex items-center justify-center rounded-lg text-xs font-bold",
+                                            today ? "bg-primary text-white shadow-sm" : "text-muted-foreground/60"
+                                        )}>
+                                            {format(day, 'd')}
+                                        </span>
+                                        {hasDue && (
+                                            <span className="flex h-2 w-2 relative">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-60" />
+                                                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* Task pills — max 3, then overflow badge */}
+                                    <div className="space-y-1 overflow-hidden">
+                                        {Object.entries(taskGroups).slice(0, 3).map(([name, phase]) => {
+                                            const cfg = PHASE_CONFIG[phase];
+                                            return (
+                                                <div key={name} className={cn(
+                                                    "flex items-center gap-1.5 px-2 py-1 rounded-md border text-[9px] font-bold uppercase",
+                                                    cfg.bg, cfg.text, cfg.border
+                                                )}>
+                                                    <div className={cn("h-1.5 w-1.5 rounded-full shrink-0", cfg.dot)} />
+                                                    <span className="truncate">{name}</span>
+                                                </div>
+                                            );
+                                        })}
+                                        {Object.keys(taskGroups).length > 3 && (
+                                            <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted/30 border border-border/10">
+                                                <span className="text-[9px] font-black text-muted-foreground/50 uppercase tracking-widest">
+                                                    +{Object.keys(taskGroups).length - 3} obrigações
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             );
                         })}
                     </div>
                 </div>
-            ) : (
-                /* Kanban View */
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 min-h-[600px]">
-                    <KanbanColumn title="A Fazer" color="bg-red-400" count={kanbanColumns.todo.length} guides={kanbanColumns.todo} onDrop={(e) => handleKanbanDrop(e, 'todo')} onDragStart={(e, id) => e.dataTransfer.setData('guideId', id)} onTaskClick={(g) => {setSelectedDay(parseISO(g.due_date!))}} />
-                    <KanbanColumn title="Pronto para Enviar" color="bg-amber-400" count={kanbanColumns.ready.length} guides={kanbanColumns.ready} onDrop={(e) => handleKanbanDrop(e, 'ready')} onDragStart={(e, id) => e.dataTransfer.setData('guideId', id)} onTaskClick={(g) => {setSelectedDay(parseISO(g.due_date!))}} />
-                    <KanbanColumn title="Enviado" color="bg-emerald-400" count={kanbanColumns.sent.length} guides={kanbanColumns.sent} onDrop={(e) => handleKanbanDrop(e, 'sent')} onDragStart={(e, id) => e.dataTransfer.setData('guideId', id)} onTaskClick={(g) => {setSelectedDay(parseISO(g.due_date!))}} />
-                </div>
             )}
 
-            {/* Day Detail Sheet */}
-            <Sheet open={!!selectedDay} onOpenChange={() => setSelectedDay(null)}>
-                <SheetContent className="sm:max-w-xl p-0 bg-card border-l border-border/40 overflow-hidden flex flex-col rounded-l-[3rem] no-print">
+            {/* ── Dialog: Tarefas do dia ─────────────────────────── */}
+            <Dialog open={!!selectedDay} onOpenChange={o => !o && setSelectedDay(null)}>
+                <DialogContent className="max-w-4xl w-full p-0 overflow-hidden rounded-[2.5rem] border border-border/30 bg-card shadow-2xl flex flex-col max-h-[85vh]">
                     {selectedDay && (
-                        <DayDetailContent 
-                            day={selectedDay} 
-                            guides={guidesByDay[format(selectedDay, 'yyyy-MM-dd')] || []} 
-                            onSendAll={() => handleSendAllDay(selectedDay)}
-                            onOpenModal={(g) => {
-                                const client = clients.find(c => c.id === g.client_id);
-                                if (client) { setSelectedClientForGuide(client); setIsGuidesModalOpen(true); }
-                            }}
+                        <DaySheet
+                            day={selectedDay}
+                            entries={selectedDayEntries}
                         />
                     )}
-                </SheetContent>
-            </Sheet>
-
-            {selectedClientForGuide && (
-                <ClientGuidesModal
-                    open={isGuidesModalOpen}
-                    onOpenChange={setIsGuidesModalOpen}
-                    client={selectedClientForGuide}
-                    referenceMonth={referenceMonth}
-                    guides={guides.filter(g => g.client_id === selectedClientForGuide.id)}
-                    onUpdate={() => fetchGuides(referenceMonth)}
-                />
-            )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
 
-function getPillsForDay(day: Date, guidesByDay: any) {
-    const dayKey = format(day, 'yyyy-MM-dd');
-    const dayGuides = guidesByDay[dayKey] || [];
-    if (dayGuides.length === 0) return null;
+// ── Day Sheet ────────────────────────────────────────────────────
 
-    const groupedByType = dayGuides.reduce((acc: any, g: any) => {
-        if (!acc[g.type]) acc[g.type] = [];
-        acc[g.type].push(g);
-        return acc;
-    }, {});
+function DaySheet({ day, entries }: { day: Date; entries: { guide: EnrichedGuide; phase: Phase }[] }) {
+    const [search, setSearch] = useState('');
+    const [filterPhase, setFilterPhase] = useState<Phase | 'all'>('all');
+    const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'ready' | 'sent'>('all');
 
-    return (
-        <div className="space-y-1">
-            {Object.entries(groupedByType).map(([type, items]: [string, any]) => {
-                const hasMissingFile = items.some((i: any) => !i.file_url && i.status !== 'sent');
-                const isAllSent = items.every((i: any) => i.status === 'sent');
-                let bgColor = isAllSent ? "bg-emerald-500/10 text-emerald-600" : (hasMissingFile ? "bg-red-500/10 text-red-600" : "bg-amber-500/10 text-amber-600");
-                return (
-                    <div key={type} className={cn("px-2 py-0.5 rounded border border-transparent text-[8px] font-bold uppercase truncate", bgColor)}>
-                        {items.length} {type}
-                    </div>
-                );
-            })}
-        </div>
-    );
-}
+    const filtered = useMemo(() => {
+        return entries.filter(e => {
+            const matchesSearch = !search || (e.guide.type || '').toLowerCase().includes(search.toLowerCase());
+            const matchesPhase = filterPhase === 'all' || e.phase === filterPhase;
+            const matchesStatus =
+                filterStatus === 'all' ? true
+                : filterStatus === 'sent' ? e.guide.status === 'sent'
+                : filterStatus === 'ready' ? !!e.guide.file_url && e.guide.status !== 'sent'
+                : /* pending */ !e.guide.file_url && e.guide.status !== 'sent';
+            return matchesSearch && matchesPhase && matchesStatus;
+        });
+    }, [entries, search, filterPhase, filterStatus]);
 
-function KanbanColumn({ title, color, count, guides, onDrop, onDragStart, onTaskClick }: any) {
-    return (
-        <div onDragOver={(e) => e.preventDefault()} onDrop={onDrop} className="flex flex-col gap-4">
-            <div className="flex items-center justify-between px-6 py-1">
-                <div className="flex items-center gap-3">
-                    <div className={cn("h-3 w-3 rounded-full", color)} />
-                    <h3 className="text-[10px] uppercase font-black tracking-widest text-muted-foreground/50">{title}</h3>
-                </div>
-                <Badge variant="outline" className="rounded-full h-6 px-3 border-border/10 bg-transparent opacity-60">{count}</Badge>
-            </div>
-            <ScrollArea className="flex-1 h-[700px] pr-2">
-                <div className="space-y-4 pb-10">
-                    {guides.map((g: any) => (
-                        <Card key={g.id} draggable onDragStart={(e) => onDragStart(e, g.id)} onClick={() => onTaskClick(g)} className="border-border/10 bg-white/40 backdrop-blur-md rounded-[1.8rem] p-5 shadow-sm cursor-grab active:cursor-grabbing hover:scale-[1.02] transition-all">
-                            <div className="flex justify-between items-start gap-2">
-                                <span className="text-xs font-bold leading-tight">{g.client?.nome_fantasia || g.client?.razao_social}</span>
-                                <GripVertical className="h-4 w-4 text-muted-foreground/20" />
-                            </div>
-                            <div className="flex gap-2 mt-3">
-                                <Badge variant="outline" className="bg-primary/5 text-primary border-none text-[8px] font-bold uppercase">{g.type}</Badge>
-                                <Badge variant="outline" className="text-[8px] opacity-40 border-none">{format(parseISO(g.due_date!), 'dd/MM')}</Badge>
-                            </div>
-                        </Card>
-                    ))}
-                </div>
-            </ScrollArea>
-        </div>
-    );
-}
+    // Totals per phase
+    const phaseCounts = useMemo(() => {
+        const counts: Partial<Record<Phase, number>> = {};
+        entries.forEach(e => { counts[e.phase] = (counts[e.phase] || 0) + 1; });
+        return counts;
+    }, [entries]);
 
-function DayDetailContent({ day, guides, onSendAll, onOpenModal }: any) {
+    const statusCounts = useMemo(() => ({
+        sent:    entries.filter(e => e.guide.status === 'sent').length,
+        ready:   entries.filter(e => !!e.guide.file_url && e.guide.status !== 'sent').length,
+        pending: entries.filter(e => !e.guide.file_url && e.guide.status !== 'sent').length,
+    }), [entries]);
+
     return (
         <>
-            <div className="p-10 bg-muted/20 border-b border-border/10">
-                <div className="flex items-center gap-4">
-                    <div className="h-14 w-14 rounded-3xl bg-primary flex flex-col items-center justify-center text-white shadow-xl">
-                        <span className="text-xl font-black">{format(day, 'dd')}</span>
-                        <span className="text-[8px] uppercase font-bold opacity-60">{format(day, 'MMM', { locale: ptBR })}</span>
-                    </div>
-                    <div>
-                        <SheetTitle className="text-2xl font-light">Tarefa do Dia</SheetTitle>
-                        <SheetDescription className="text-xs uppercase font-bold text-muted-foreground/40 tracking-widest">{format(day, 'eeee', { locale: ptBR })}</SheetDescription>
-                    </div>
-                </div>
-            </div>
-            <ScrollArea className="flex-1 p-8">
-                <div className="space-y-4">
-                    {guides.map((g: any) => (
-                        <div key={g.id} className="p-5 rounded-[2rem] border border-border/40 bg-card/40 flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                                <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center", g.status === 'sent' ? "bg-emerald-500/10 text-emerald-600" : "bg-primary/10 text-primary")}>
-                                    {g.status === 'sent' ? <CheckCircle2 className="h-5 w-5" /> : <FileText className="h-5 w-5" />}
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className="text-sm font-bold text-foreground/80">{g.client?.nome_fantasia || g.client?.razao_social}</span>
-                                    <span className="text-[10px] uppercase font-bold text-muted-foreground/30 tracking-tight">{g.type}</span>
-                                </div>
-                            </div>
-                            <Button variant="ghost" size="icon" onClick={() => onOpenModal(g)} className="h-10 w-10 rounded-xl hover:bg-primary/10 text-primary"><Mail className="h-4 w-4" /></Button>
+            {/* Header */}
+            <div className="p-6 border-b border-border/10 bg-muted/10 shrink-0">
+                <SheetHeader>
+                    <div className="flex items-center gap-4">
+                        <div className="h-14 w-14 rounded-2xl bg-primary flex flex-col items-center justify-center text-white shadow-lg shrink-0">
+                            <span className="text-xl font-black leading-none">{format(day, 'dd')}</span>
+                            <span className="text-[9px] uppercase font-bold opacity-60 mt-0.5">{format(day, 'MMM', { locale: ptBR })}</span>
                         </div>
+                        <div className="flex-1">
+                            <SheetTitle className="text-xl font-light capitalize">
+                                {format(day, "EEEE", { locale: ptBR })}
+                            </SheetTitle>
+                            <SheetDescription className="text-[10px] uppercase font-bold tracking-widest mt-0.5 text-muted-foreground/50">
+                                {format(day, "dd 'de' MMMM", { locale: ptBR })} • {entries.length} {entries.length === 1 ? 'tarefa' : 'tarefas'}
+                            </SheetDescription>
+                        </div>
+                        {/* Quick stats inline */}
+                        <div className="flex items-center gap-2 shrink-0">
+                            <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-700 text-[10px] font-bold uppercase">{statusCounts.sent} enviados</span>
+                            <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-700 text-[10px] font-bold uppercase">{statusCounts.ready} prontos</span>
+                            <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-500 text-[10px] font-bold uppercase">{statusCounts.pending} pend.</span>
+                        </div>
+                    </div>
+                </SheetHeader>
+
+                {/* Search */}
+                <div className="relative mt-5">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/40" />
+                    <Input
+                        placeholder="Buscar tarefa..."
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                        className="h-10 pl-9 rounded-xl border-border/20 bg-background text-xs focus-visible:ring-primary/20"
+                    />
+                </div>
+
+                {/* Filter Row: Phase + Status */}
+                <div className="flex flex-wrap items-center gap-2 mt-3">
+                    {/* Phase filters */}
+                    <button
+                        onClick={() => setFilterPhase('all')}
+                        className={cn(
+                            "px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all",
+                            filterPhase === 'all'
+                                ? "bg-primary text-white border-primary"
+                                : "bg-muted/20 text-muted-foreground border-border/20 hover:bg-muted/40"
+                        )}
+                    >
+                        Todas fases
+                    </button>
+                    {(['due', 'finish', 'start', 'work'] as Phase[]).map(p => {
+                        const cfg = PHASE_CONFIG[p];
+                        const count = phaseCounts[p] || 0;
+                        if (!count) return null;
+                        return (
+                            <button
+                                key={p}
+                                onClick={() => setFilterPhase(filterPhase === p ? 'all' : p)}
+                                className={cn(
+                                    "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all",
+                                    filterPhase === p
+                                        ? cn(cfg.bg, cfg.text, cfg.border, "shadow-sm")
+                                        : "bg-muted/20 text-muted-foreground border-border/20 hover:bg-muted/40"
+                                )}
+                            >
+                                <div className={cn("h-1.5 w-1.5 rounded-full", cfg.dot)} />
+                                {cfg.label} ({count})
+                            </button>
+                        );
+                    })}
+
+                    <div className="h-4 w-px bg-border/30 mx-1" />
+
+                    {/* Status filters */}
+                    {([
+                        { key: 'all',     label: 'Todos status' },
+                        { key: 'pending', label: `Pendentes (${statusCounts.pending})`,  cls: 'bg-slate-100 text-slate-600 border-slate-200' },
+                        { key: 'ready',   label: `Prontos (${statusCounts.ready})`,    cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+                        { key: 'sent',    label: `Enviados (${statusCounts.sent})`,    cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+                    ] as const).map(s => (
+                        <button
+                            key={s.key}
+                            onClick={() => setFilterStatus(s.key === filterStatus ? 'all' : s.key as any)}
+                            className={cn(
+                                "px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all",
+                                filterStatus === s.key
+                                    ? s.key === 'all' ? 'bg-foreground text-background border-foreground' : s.cls
+                                    : "bg-muted/20 text-muted-foreground border-border/20 hover:bg-muted/40"
+                            )}
+                        >
+                            {s.label}
+                        </button>
                     ))}
                 </div>
+            </div>
+
+            {/* Scrollable task list */}
+            <ScrollArea className="flex-1">
+                <div className="p-5 space-y-3">
+                    {filtered.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-20 text-muted-foreground/30 gap-3">
+                            <Clock className="h-10 w-10" />
+                            <p className="text-xs font-bold uppercase tracking-widest">Nenhuma tarefa encontrada</p>
+                        </div>
+                    ) : (
+                        filtered.map((e, idx) => {
+                            const cfg = PHASE_CONFIG[e.phase];
+                            const statusLabel = e.guide.status === 'sent' ? 'Enviado' : e.guide.file_url ? 'Pronto' : 'Pendente';
+                            const statusCls = e.guide.status === 'sent'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                : e.guide.file_url
+                                ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                : 'bg-slate-50 text-slate-500 border-slate-200';
+
+                            return (
+                                <div
+                                    key={`${e.guide.id}-${idx}`}
+                                    className="bg-background border border-border/20 rounded-2xl p-4 flex items-center gap-4 hover:shadow-md transition-all"
+                                >
+                                    {/* Phase icon */}
+                                    <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center shrink-0", cfg.bg, cfg.text)}>
+                                        <cfg.icon className="h-5 w-5" />
+                                    </div>
+
+                                    {/* Details */}
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-semibold text-foreground truncate">{e.guide.type}</p>
+                                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                            <Badge className={cn("text-[9px] font-bold px-2 h-4 border rounded-full", cfg.bg, cfg.text, cfg.border, "border-none")}>
+                                                {cfg.label}
+                                            </Badge>
+                                            <span className="text-[10px] text-muted-foreground/50 font-medium">
+                                                Vence {format(e.guide.dueDate, "dd/MM", { locale: ptBR })}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Status */}
+                                    <Badge className={cn("text-[9px] font-bold px-3 py-1 rounded-full border shrink-0", statusCls)}>
+                                        {statusLabel}
+                                    </Badge>
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
             </ScrollArea>
-            <div className="p-10 border-t border-border/10 bg-muted/20">
-                <Button onClick={onSendAll} className="w-full h-14 rounded-2xl gap-3 text-[11px] font-black uppercase tracking-widest shadow-xl shadow-primary/20"><Send className="h-4 w-4" /> Enviar Tudo deste Dia</Button>
+
+            {/* Footer */}
+            <div className="border-t border-border/10 px-6 py-4 bg-muted/10 flex items-center justify-between shrink-0">
+                <p className="text-xs text-muted-foreground font-light">
+                    Mostrando <strong className="text-foreground font-semibold">{filtered.length}</strong> de {entries.length} tarefas
+                </p>
+                {filterPhase !== 'all' && (
+                    <button
+                        onClick={() => setFilterPhase('all')}
+                        className="text-[10px] text-muted-foreground/50 hover:text-primary font-bold uppercase tracking-widest transition-colors flex items-center gap-1"
+                    >
+                        <X className="h-3 w-3" /> Limpar filtro
+                    </button>
+                )}
             </div>
         </>
     );

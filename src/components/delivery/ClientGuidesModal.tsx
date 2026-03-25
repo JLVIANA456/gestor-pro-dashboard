@@ -23,10 +23,10 @@ import {
     Calendar, 
     Mail, 
     Copy,
-    ArrowRight,
     Check,
     List,
-    BrainCircuit
+    BrainCircuit,
+    Search
 } from 'lucide-react';
 import { useClients } from '@/hooks/useClients';
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,7 @@ import { BrandingService } from '@/services/brandingService';
 import { AiService } from '@/services/aiService';
 import { NewGuideDialog } from '@/components/delivery/NewGuideDialog';
 import { useObligations } from '@/hooks/useObligations';
+import { useClientObligations } from '@/hooks/useClientObligations';
 
 interface FileInfo {
     name: string;
@@ -68,9 +69,14 @@ export function ClientGuidesModal({
     onUpdate
 }: ClientGuidesModalProps) {
     const { guides: allGuides, createGuide, createGuidesBulk, updateGuideStatus, deleteGuide, updateGuide, deleteGuidesBulk } = useDeliveryList(referenceMonth);
-    const guides = useMemo(() => allGuides.filter(g => g.client_id === client?.id), [allGuides, client?.id]);
+    const [guideSearch, setGuideSearch] = useState('');
+    const guides = useMemo(() => allGuides.filter(g => 
+        g.client_id === client?.id &&
+        (guideSearch === '' || (g.type || '').toLowerCase().includes(guideSearch.toLowerCase()))
+    ), [allGuides, client?.id, guideSearch]);
     const { clients } = useClients();
     const { obligations } = useObligations();
+    const { clientObligations } = useClientObligations();
     const [selectedGuides, setSelectedGuides] = useState<string[]>([]);
     const [isSending, setIsSending] = useState(false);
     const [uploadingId, setUploadingId] = useState<string | null>(null);
@@ -335,13 +341,23 @@ export function ClientGuidesModal({
 
         try {
             const generateableObligations = obligations.filter(o => {
-                const obsRegimes = o.tax_regimes || [];
-                const clientRegime = client.regimeTributario?.toLowerCase() || '';
-                const matchesRegime = obsRegimes.length === 0 || 
-                                    obsRegimes.some((r: string) => r.toLowerCase() === 'all') || 
-                                    (clientRegime && obsRegimes.some((r: string) => r.toLowerCase() === clientRegime));
+                if (!o.is_active || o.periodicity === 'eventual') return false;
+
+                const explicitCompanies = o.company_ids || [];
+                let appliesByDefault = false;
+
+                if (explicitCompanies.length > 0) {
+                    appliesByDefault = explicitCompanies.includes(client.id);
+                } else {
+                    const obsRegimes = o.tax_regimes || [];
+                    const clientRegime = client.regimeTributario?.toLowerCase() || '';
+                    appliesByDefault = obsRegimes.length === 0 || 
+                                       obsRegimes.some((r: string) => r.toLowerCase() === 'all') || 
+                                       (clientRegime && obsRegimes.some((r: string) => r.toLowerCase() === clientRegime));
+                }
                 
-                return o.is_active && o.periodicity !== 'eventual' && matchesRegime;
+                const override = clientObligations.find(co => co.client_id === client.id && co.obligation_id === o.id);
+                return override ? override.status === 'enabled' : appliesByDefault;
             });
 
             const existingTypes = new Set(guides.map(g => g.type.toLowerCase()));
@@ -730,28 +746,38 @@ export function ClientGuidesModal({
                     <div className="flex-1 overflow-y-auto flex flex-col">
                         <Tabs value={activeModalTab} onValueChange={setActiveModalTab} className="flex-1">
                             <TabsContent value="list" className="p-10 space-y-10 m-0 border-none">
+                                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-2">
+                                    <div className="relative w-full max-w-md">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40" />
+                                        <Input
+                                            placeholder="Buscar obrigação por nome..."
+                                            value={guideSearch}
+                                            onChange={(e) => setGuideSearch(e.target.value)}
+                                            className="h-10 pl-9 rounded-xl border-border/30 bg-card text-xs font-light w-full focus-visible:ring-primary/20"
+                                        />
+                                    </div>
+                                    <Button 
+                                        variant="ghost"
+                                        onClick={async () => {
+                                            if (!confirm('TENHA CERTEZA DISSO: DESEJA EXCLUIR AS TAREFAS SELECIONADAS/VISÍVEIS DA EMPRESA NO MÊS ATUAL?')) return;
+                                            const ids = guides.map(g => g.id);
+                                            await deleteGuidesBulk(ids);
+                                            onUpdate();
+                                        }}
+                                        className="rounded-xl text-[10px] uppercase font-bold tracking-widest text-destructive hover:bg-destructive/5 hover:text-destructive gap-2 h-10 px-4"
+                                    >
+                                        <Trash2 className="h-3 w-3" /> Limpar Visíveis
+                                    </Button>
+                                </div>
+
                                 {guides.length === 0 ? (
                                     <div className="py-24 flex flex-col items-center justify-center text-center opacity-40 border-2 border-dashed border-border/40 rounded-[3rem]">
                                         <FileText className="h-16 w-16 mb-6" />
-                                        <p className="text-base font-light">Nenhuma tarefa encontrada.</p>
-                                        <p className="text-[10px] uppercase tracking-[0.2em] mt-3">Utilize as Configurações Globais ou clique em "Nova Tarefa"</p>
+                                        <p className="text-base font-light">{guideSearch ? 'Nenhuma tarefa encontrada para esta busca.' : 'Nenhuma tarefa encontrada.'}</p>
+                                        {!guideSearch && <p className="text-[10px] uppercase tracking-[0.2em] mt-3">Utilize as Configurações Globais ou clique em "Nova Tarefa"</p>}
                                     </div>
                                 ) : (
                                     <>
-                                        <div className="flex justify-end mb-6">
-                                            <Button 
-                                                variant="ghost"
-                                                onClick={async () => {
-                                                    if (!confirm('TENHA CERTEZA DISSO: DESEJA EXCLUIR TODAS AS TAREFAS DA EMPRESA NO MÊS ATUAL?')) return;
-                                                    const ids = guides.map(g => g.id);
-                                                    await deleteGuidesBulk(ids);
-                                                    onUpdate();
-                                                }}
-                                                className="rounded-xl text-[10px] uppercase font-bold tracking-widest text-destructive hover:bg-destructive/5 hover:text-destructive gap-2 h-10 px-4"
-                                            >
-                                                <Trash2 className="h-3 w-3" /> Limpar Todas as Tarefas Desta Empresa
-                                            </Button>
-                                        </div>
                                         {groupedGuides.pending.length > 0 && (
                                             <div className="space-y-4">
                                                 <h3 className="text-[10px] uppercase font-bold tracking-[0.2em] text-amber-600 flex items-center gap-2 ml-4">

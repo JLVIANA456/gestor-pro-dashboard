@@ -69,6 +69,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import { useObligations, Obligation, ObligationType, ObligationPeriodicity, ObligationDueRule } from '@/hooks/useObligations';
+import { useClients } from '@/hooks/useClients';
 import { useBranding } from '@/context/BrandingContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -77,6 +78,7 @@ import { useForm, FormProvider } from 'react-hook-form';
 export default function Obligations() {
     const { officeName } = useBranding();
     const { obligations, loading, createObligation, updateObligation, deleteObligation } = useObligations();
+    const { clients } = useClients();
 
     // --- Filter State ---
     const [searchTerm, setSearchTerm]     = useState('');
@@ -88,6 +90,7 @@ export default function Obligations() {
 
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingObligation, setEditingObligation] = useState<Obligation | null>(null);
+    const [companySearch, setCompanySearch] = useState('');
 
     const clearAllFilters = () => {
         setSearchTerm('');
@@ -123,7 +126,8 @@ export default function Obligations() {
             due_rule: 'dia fixo' as ObligationDueRule,
             anticipate_on_weekend: false,
             tax_regimes: ['simples', 'presumido', 'real', 'domestico'],
-            competency_rule: 'previous_month'
+            competency_rule: 'previous_month',
+            company_ids: [] as string[]
         }
     });
 
@@ -151,6 +155,7 @@ export default function Obligations() {
 
 
     const handleOpenDialog = (obligation?: Obligation) => {
+        setCompanySearch('');
         if (obligation) {
             setEditingObligation(obligation);
             form.reset({
@@ -159,7 +164,8 @@ export default function Obligations() {
                 competency: obligation.competency || '',
                 alert_recipient_email: obligation.alert_recipient_email || '',
                 tax_regimes: obligation.tax_regimes || ['simples', 'presumido', 'real', 'domestico'],
-                competency_rule: obligation.competency_rule || 'previous_month'
+                competency_rule: obligation.competency_rule || 'previous_month',
+                company_ids: obligation.company_ids || []
             });
         } else {
             setEditingObligation(null);
@@ -178,7 +184,8 @@ export default function Obligations() {
                 due_rule: 'dia fixo',
                 anticipate_on_weekend: false,
                 tax_regimes: ['simples', 'presumido', 'real', 'domestico'],
-                competency_rule: 'previous_month'
+                competency_rule: 'previous_month',
+                company_ids: [] as string[]
             });
         }
         setIsDialogOpen(true);
@@ -870,6 +877,55 @@ export default function Obligations() {
                                                 )}
                                             />
                                         ))}
+                                    </div>
+                                </div>
+                                
+                                <div className="col-span-2 space-y-3 p-4 border rounded-2xl bg-primary/[0.02] border-primary/10">
+                                    <div className="flex flex-col gap-1">
+                                        <FormLabel className="text-[12px] font-bold uppercase tracking-widest text-primary/80">Vincular Empresas Especificamente</FormLabel>
+                                        <FormDescription className="text-[10px] text-muted-foreground uppercase tracking-widest font-normal">
+                                            Se houver empresas selecionadas abaixo, a obrigação será gerada EXCLUSIVAMENTE para elas.
+                                        </FormDescription>
+                                    </div>
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40" />
+                                        <Input
+                                            placeholder="Buscar empresa..."
+                                            value={companySearch}
+                                            onChange={(e) => setCompanySearch(e.target.value)}
+                                            className="h-10 rounded-xl border-border/20 bg-background pl-9 font-normal text-xs"
+                                        />
+                                    </div>
+                                    <div className="flex flex-col gap-1 max-h-56 overflow-y-auto pr-2 bg-card border rounded-xl p-3 scrollbar-thin scrollbar-thumb-primary/10">
+                                        {clients.filter(c => c.isActive && ((c.nomeFantasia || '').toLowerCase().includes(companySearch.toLowerCase()) || (c.razaoSocial || '').toLowerCase().includes(companySearch.toLowerCase()))).sort((a,b) => (a.nomeFantasia || a.razaoSocial || '').localeCompare(b.nomeFantasia || b.razaoSocial || '')).map((client) => (
+                                            <FormField
+                                                key={client.id}
+                                                control={form.control}
+                                                name="company_ids"
+                                                render={({ field }) => (
+                                                    <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-lg p-2 hover:bg-muted/50 transition-colors">
+                                                        <FormControl>
+                                                            <Checkbox
+                                                                checked={field.value?.includes(client.id)}
+                                                                onCheckedChange={(checked) => {
+                                                                    const current = field.value || [];
+                                                                    const updated = checked
+                                                                        ? [...current, client.id]
+                                                                        : current.filter((id: string) => id !== client.id);
+                                                                    field.onChange(updated);
+                                                                }}
+                                                            />
+                                                        </FormControl>
+                                                        <FormLabel className="text-xs font-medium cursor-pointer flex-1 truncate">
+                                                            {client.nomeFantasia || client.razaoSocial}
+                                                        </FormLabel>
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        ))}
+                                        {clients.filter(c => c.isActive).length === 0 && (
+                                            <p className="text-xs text-muted-foreground text-center py-4">Nenhuma empresa ativa cadastrada.</p>
+                                        )}
                                     </div>
                                 </div>
                             </div>
