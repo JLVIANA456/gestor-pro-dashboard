@@ -313,7 +313,7 @@ export default function FiscalCalendar() {
 
             {/* ── Dialog: Tarefas do dia ─────────────────────────── */}
             <Dialog open={!!selectedDay} onOpenChange={o => !o && setSelectedDay(null)}>
-                <DialogContent className="max-w-4xl w-full p-0 overflow-hidden rounded-[2.5rem] border border-border/30 bg-card shadow-2xl flex flex-col max-h-[85vh]">
+                <DialogContent className="max-w-4xl w-full p-0 overflow-hidden rounded-[2.5rem] border border-border/30 bg-card shadow-2xl">
                     {selectedDay && (
                         <DaySheet
                             day={selectedDay}
@@ -360,7 +360,7 @@ function DaySheet({ day, entries }: { day: Date; entries: { guide: EnrichedGuide
     }), [entries]);
 
     return (
-        <>
+        <div>
             {/* Header */}
             <div className="p-6 border-b border-border/10 bg-muted/10 shrink-0">
                 <SheetHeader>
@@ -458,7 +458,7 @@ function DaySheet({ day, entries }: { day: Date; entries: { guide: EnrichedGuide
             </div>
 
             {/* Scrollable task list */}
-            <ScrollArea className="flex-1">
+            <ScrollArea className="h-[calc(85vh-280px)]">
                 <div className="p-5 space-y-3">
                     {filtered.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-20 text-muted-foreground/30 gap-3">
@@ -523,6 +523,6 @@ function DaySheet({ day, entries }: { day: Date; entries: { guide: EnrichedGuide
                     </button>
                 )}
             </div>
-        </>
+        </div>
     );
 }
