@@ -1,54 +1,42 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { useClientPortal } from '@/hooks/useClientPortal';
 import { useBranding } from '@/context/BrandingContext';
 import { supabase } from '@/integrations/supabase/client';
 import { 
     FileText, 
-    UploadCloud, 
     Download, 
-    Clock, 
-    Search,
-    Filter,
-    ArrowUpRight,
-    ArrowDownLeft,
-    Inbox,
-    Send,
-    LogOut,
-    CheckCircle2,
+    Inbox, 
+    LogOut, 
+    Building, 
+    Folder, 
+    ChevronRight, 
+    Globe, 
+    ArrowLeft,
     Calendar,
-    ChevronRight,
-    Building,
-    Folder,
-    ExternalLink,
-    Bell,
-    Globe,
-    ArrowLeft
+    LayoutGrid,
+    Clock,
+    UserCircle,
+    FileSpreadsheet,
+    ShieldCheck,
+    Briefcase
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { format } from 'date-fns';
+import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
-interface PortalFolder {
+interface GuideDocument {
     id: string;
     clientId: string;
-    name: string;
-}
-
-interface DeliveryFile {
-    id: string;
-    clientId: string;
-    folderId: string;
-    fileName: string;
+    type: string;
+    referenceMonth: string;
+    dueDate: string;
+    amount: number;
     fileUrl: string;
-    competency: string;
-    createdAt: string;
+    status: string;
 }
 
 export default function ClientPortalView() {
@@ -56,16 +44,18 @@ export default function ClientPortalView() {
     const { officeName, logoUrl } = useBranding();
     
     const [clientId, setClientId] = useState<string | null>(null);
-    const [folders, setFolders] = useState<PortalFolder[]>([]);
-    const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
-    const [deliveries, setDeliveries] = useState<DeliveryFile[]>([]);
+    const [guides, setGuides] = useState<GuideDocument[]>([]);
     const [loading, setLoading] = useState(true);
+    
+    const [viewMode, setViewMode] = useState<'years' | 'months' | 'files'>('years');
+    const [selectedYear, setSelectedYear] = useState<string | null>(null);
+    const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
 
     // Fetch linked clientId for the user
     useEffect(() => {
         const fetchLinkedClient = async () => {
             if (!user?.id) return;
-            const { data, error } = await supabase
+            const { data, error } = await (supabase as any)
                 .from('client_portal_users')
                 .select('client_id')
                 .eq('user_id', user.id)
@@ -73,70 +63,89 @@ export default function ClientPortalView() {
             
             if (data) {
                 setClientId(data.client_id);
+                fetchGuides(data.client_id);
+            } else {
+                setLoading(false);
             }
-            setLoading(false);
         };
         fetchLinkedClient();
     }, [user]);
 
-    // Fetch folders when client is detected
-    useEffect(() => {
-        if (clientId) {
-            fetchFolders(clientId);
-            fetchDeliveries(clientId);
-        }
-    }, [clientId]);
-
-    const fetchFolders = async (cid: string) => {
-        const { data } = await (supabase.from('client_portal_folders') as any)
+    const fetchGuides = async (cid: string) => {
+        const { data, error } = await (supabase as any)
+            .from('accounting_guides')
             .select('*')
             .eq('client_id', cid)
-            .order('sort_order', { ascending: true });
+            .not('file_url', 'is', null)
+            .order('reference_month', { ascending: false });
         
         if (data) {
-            setFolders(data.map(f => ({
-                id: f.id,
-                clientId: f.client_id,
-                name: f.name
-            })));
-        }
-    };
-
-    const fetchDeliveries = async (cid: string) => {
-        const { data } = await (supabase.from('client_deliveries') as any)
-            .select('*')
-            .eq('client_id', cid)
-            .order('created_at', { ascending: false });
-        
-        if (data) {
-            setDeliveries(data.map(d => ({
+            setGuides(data.map((d: any) => ({
                 id: d.id,
                 clientId: d.client_id,
-                folderId: d.folder_id,
-                fileName: d.file_name,
+                type: d.type,
+                referenceMonth: d.reference_month,
+                dueDate: d.due_date,
+                amount: d.amount,
                 fileUrl: d.file_url,
-                competency: d.competency,
-                createdAt: d.created_at
+                status: d.status
             })));
+        }
+        setLoading(false);
+    };
+
+    // Logical Grouping
+    const years = useMemo(() => {
+        const yearsSet = new Set<string>();
+        guides.forEach(g => {
+            const parts = g.referenceMonth.split('/');
+            if (parts.length === 2) yearsSet.add(parts[1]);
+        });
+        return Array.from(yearsSet).sort((a, b) => b.localeCompare(a));
+    }, [guides]);
+
+    const monthsForYear = useMemo(() => {
+        if (!selectedYear) return [];
+        const monthsSet = new Set<string>();
+        guides.forEach(g => {
+            const [m, y] = g.referenceMonth.split('/');
+            if (y === selectedYear) monthsSet.add(m);
+        });
+        return Array.from(monthsSet).sort((a, b) => b.localeCompare(a));
+    }, [guides, selectedYear]);
+
+    const filesForMonth = useMemo(() => {
+        if (!selectedYear || !selectedMonth) return [];
+        return guides.filter(g => g.referenceMonth === `${selectedMonth}/${selectedYear}`);
+    }, [guides, selectedYear, selectedMonth]);
+
+    const getMonthName = (month: string) => {
+        const date = parse(month, 'MM', new Date());
+        return format(date, 'MMMM', { locale: ptBR });
+    };
+
+    const handleBack = () => {
+        if (viewMode === 'files') {
+            setViewMode('months');
+            setSelectedMonth(null);
+        } else if (viewMode === 'months') {
+            setViewMode('years');
+            setSelectedYear(null);
         }
     };
 
-    const activeFolder = useMemo(() => folders.find(f => f.id === selectedFolderId), [folders, selectedFolderId]);
-    const filteredDeliveries = useMemo(() => 
-        deliveries.filter(d => d.folderId === selectedFolderId),
-    [deliveries, selectedFolderId]);
-
-    const handleMarkAsRead = async (deliveryId: string) => {
-        await (supabase.from('client_deliveries') as any)
-            .update({ is_viewed: true, viewed_at: new Date().toISOString() })
-            .eq('id', deliveryId);
-    };
-
-    if (loading) return null;
+    if (loading) return (
+        <div className="min-h-screen flex items-center justify-center bg-slate-50/50">
+            <div className="flex flex-col items-center gap-4">
+                <div className="h-12 w-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Sincronizando Hub...</p>
+            </div>
+        </div>
+    );
 
     return (
         <div className="min-h-screen bg-slate-50/50 flex flex-col font-sans">
-            {/* Premium Navigation Header */}
+            {/* Navigation Header */}
             <header className="bg-white/80 backdrop-blur-xl border-b border-slate-200 h-24 sticky top-0 z-50">
                 <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
                     <div className="flex items-center gap-5">
@@ -150,11 +159,10 @@ export default function ClientPortalView() {
                     </div>
 
                     <div className="flex items-center gap-6">
-                        <div className="hidden lg:flex flex-col text-right">
-                            <span className="text-sm font-black text-slate-800 uppercase tracking-wide">{user?.name}</span>
-                            <span className="text-[10px] text-slate-400 uppercase font-black tracking-widest mt-1">Acesso Autorizado</span>
+                        <div className="hidden lg:flex items-center gap-4 px-6 py-2 bg-slate-50 rounded-2xl border border-slate-100">
+                            <Clock className="h-4 w-4 text-slate-400" />
+                            <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Acesso Seguro</span>
                         </div>
-                        <div className="h-10 w-px bg-slate-200 hidden lg:block mx-2" />
                         <Button 
                             variant="ghost" 
                             size="icon" 
@@ -167,125 +175,154 @@ export default function ClientPortalView() {
                 </div>
             </header>
 
-            <main className="max-w-7xl mx-auto px-6 py-12 w-full flex-1 animate-in fade-in slide-in-from-bottom duration-1000">
-                
-                {selectedFolderId ? (
-                    <div className="space-y-8">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-5">
-                                <Button 
-                                    variant="ghost" 
-                                    size="icon" 
-                                    onClick={() => setSelectedFolderId(null)}
-                                    className="h-14 w-14 rounded-3xl bg-white shadow-sm border border-slate-100 text-slate-400 hover:text-primary transition-all"
-                                >
-                                    <ArrowLeft className="h-6 w-6" />
-                                </Button>
-                                <div>
-                                    <h1 className="text-3xl font-light text-slate-800 tracking-tight">Pasta: <span className="font-bold text-primary">{activeFolder?.name}</span></h1>
-                                    <p className="text-[10px] uppercase font-black text-slate-400 tracking-[0.4em] mt-2">Documentos Úteis</p>
+            <main className="max-w-7xl mx-auto px-6 py-12 w-full flex-1">
+                <div className="space-y-12">
+                    {/* Breadcrumbs & Title */}
+                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-3">
+                                {viewMode !== 'years' && (
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        onClick={handleBack}
+                                        className="h-12 w-12 rounded-2xl bg-white shadow-sm border border-slate-100 text-slate-400 hover:text-primary transition-all"
+                                    >
+                                        <ArrowLeft className="h-5 w-5" />
+                                    </Button>
+                                )}
+                                <div className="flex flex-col">
+                                    <Badge className="bg-primary/10 text-primary border-none rounded-full px-4 py-1 text-[9px] font-black uppercase tracking-widest w-fit mb-2">
+                                        Hub do Cliente
+                                    </Badge>
+                                    <h1 className="text-4xl font-light text-slate-800 tracking-tighter">
+                                        {viewMode === 'years' && "Central de "}
+                                        {viewMode === 'months' && "Ano "}
+                                        {viewMode === 'files' && `${getMonthName(selectedMonth!)} `}
+                                        <span className="font-black text-primary">
+                                            {viewMode === 'years' && "Documentos"}
+                                            {viewMode === 'months' && selectedYear}
+                                            {viewMode === 'files' && selectedYear}
+                                        </span>
+                                    </h1>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            {filteredDeliveries.map(file => (
-                                <Card 
-                                    key={file.id} 
-                                    className="group rounded-[3.5rem] border-none bg-white p-8 shadow-sm hover:shadow-2xl hover:shadow-primary/5 transition-all duration-500 hover:-translate-y-2 relative overflow-hidden"
-                                >
-                                    <div className="absolute top-0 right-0 p-8 opacity-5 -translate-y-1/2 translate-x-1/2">
-                                        <FileText className="h-32 w-32" />
+                        {viewMode === 'files' && (
+                            <div className="flex items-center gap-3 p-2 bg-emerald-50 text-emerald-600 rounded-2xl border border-emerald-100 self-start md:self-end">
+                                <ShieldCheck className="h-4 w-4" />
+                                <span className="text-[10px] font-black uppercase tracking-widest">{filesForMonth.length} Documentos Autênticos</span>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Content Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                        {/* YEARS VIEW */}
+                        {viewMode === 'years' && years.map(year => (
+                            <Card 
+                                key={year}
+                                onClick={() => { setSelectedYear(year); setViewMode('months'); }}
+                                className="group cursor-pointer rounded-[3.5rem] border-none bg-white p-10 shadow-sm transition-all duration-700 hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-4 relative overflow-hidden"
+                            >
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 transition-transform duration-700 group-hover:scale-150" />
+                                <div className="relative z-10 flex flex-col items-center text-center space-y-6">
+                                    <div className="h-20 w-20 rounded-[2.5rem] bg-primary/5 flex items-center justify-center text-primary shadow-inner transition-all duration-700 group-hover:bg-primary group-hover:text-white group-hover:rotate-6">
+                                        <Folder className="h-10 w-10 text-primary group-hover:text-white" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <h3 className="text-3xl font-black text-slate-800 tracking-tighter group-hover:text-primary transition-colors">{year}</h3>
+                                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Pasta Anual</p>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-[10px] font-black uppercase text-primary tracking-widest opacity-0 group-hover:opacity-100 transition-all">
+                                        Explorar <ChevronRight className="h-3 w-3" />
+                                    </div>
+                                </div>
+                            </Card>
+                        ))}
+
+                        {/* MONTHS VIEW */}
+                        {viewMode === 'months' && monthsForYear.map(month => (
+                            <Card 
+                                key={month}
+                                onClick={() => { setSelectedMonth(month); setViewMode('files'); }}
+                                className="group cursor-pointer rounded-[3.5rem] border-none bg-white p-10 shadow-sm transition-all duration-700 hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-4 relative overflow-hidden"
+                            >
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 transition-transform duration-700 group-hover:scale-150" />
+                                <div className="relative z-10 flex flex-col items-center text-center space-y-6">
+                                    <div className="h-20 w-20 rounded-[2.5rem] bg-primary/5 flex items-center justify-center text-primary shadow-inner transition-all duration-700 group-hover:bg-primary group-hover:text-white group-hover:-rotate-6">
+                                        <Calendar className="h-10 w-10 text-primary group-hover:text-white" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <h3 className="text-2xl font-black text-slate-800 tracking-tighter group-hover:text-primary transition-colors capitalize">{getMonthName(month)}</h3>
+                                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Pasta Mensal</p>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-[10px] font-black uppercase text-primary tracking-widest opacity-0 group-hover:opacity-100 transition-all">
+                                        Ver Documentos <ChevronRight className="h-3 w-3" />
+                                    </div>
+                                </div>
+                            </Card>
+                        ))}
+
+                        {/* FILES VIEW */}
+                        {viewMode === 'files' && filesForMonth.map(file => (
+                            <Card 
+                                key={file.id}
+                                className="group rounded-[3.5rem] border-none bg-white p-10 shadow-sm transition-all duration-700 hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-2 relative overflow-hidden flex flex-col justify-between"
+                            >
+                                <div className="space-y-6">
+                                    <div className={cn(
+                                        "h-16 w-16 rounded-[2rem] flex items-center justify-center shadow-inner transition-all duration-500",
+                                        file.type.toLowerCase().includes('folha') ? "bg-amber-50 text-amber-500" :
+                                        file.type.toLowerCase().includes('extrato') ? "bg-blue-50 text-blue-500" :
+                                        "bg-primary/5 text-primary"
+                                    )}>
+                                        <FileText className="h-8 w-8" />
                                     </div>
                                     
-                                    <div className="space-y-6">
-                                        <div className="h-16 w-16 rounded-[2rem] bg-primary/5 flex items-center justify-center text-primary shadow-inner group-hover:bg-primary group-hover:text-white transition-all duration-500">
-                                            <FileText className="h-8 w-8" />
-                                        </div>
-                                        
-                                        <div>
-                                            <h3 className="text-lg font-bold text-slate-800 tracking-tight line-clamp-2 leading-tight h-10">{file.fileName}</h3>
-                                            <div className="flex items-center gap-4 mt-4">
-                                                <div className="flex flex-col">
-                                                    <span className="text-[9px] font-black uppercase text-slate-300 tracking-widest">Comp.</span>
-                                                    <span className="text-sm font-black text-slate-500">{file.competency}</span>
-                                                </div>
-                                                <div className="h-6 w-px bg-slate-100" />
-                                                <div className="flex flex-col">
-                                                    <span className="text-[9px] font-black uppercase text-slate-300 tracking-widest">Disponível em</span>
-                                                    <span className="text-sm font-black text-slate-500">{format(new Date(file.createdAt), 'dd/MM/yyyy')}</span>
-                                                </div>
+                                    <div className="space-y-4">
+                                        <h3 className="text-xl font-black text-slate-800 tracking-tighter line-clamp-2 leading-tight h-14">
+                                            {file.type}
+                                        </h3>
+                                        <div className="flex flex-col gap-2">
+                                            <div className="flex items-center justify-between py-2 border-b border-slate-50">
+                                                <span className="text-[9px] font-black uppercase text-slate-300 tracking-widest">Vencimento</span>
+                                                <span className="text-xs font-black text-slate-600">{file.dueDate ? format(new Date(file.dueDate), 'dd/MM/yyyy') : '-'}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between py-2">
+                                                <span className="text-[9px] font-black uppercase text-slate-300 tracking-widest">Valor</span>
+                                                <span className="text-xs font-black text-emerald-600">{file.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                                             </div>
                                         </div>
-
-                                        <Button 
-                                            asChild
-                                            className="w-full h-16 rounded-[2rem] bg-slate-50 hover:bg-primary text-slate-600 hover:text-white font-black uppercase text-[10px] tracking-widest transition-all duration-500 gap-3 border border-slate-100 hover:border-transparent group-hover:shadow-xl group-hover:shadow-primary/20"
-                                            onClick={() => handleMarkAsRead(file.id)}
-                                        >
-                                            <a href={file.fileUrl} target="_blank">
-                                                <Download className="h-5 w-5" />
-                                                Baixar Documento
-                                            </a>
-                                        </Button>
                                     </div>
-                                </Card>
-                            ))}
-
-                            {filteredDeliveries.length === 0 && (
-                                <div className="col-span-3 py-32 flex flex-col items-center justify-center opacity-20">
-                                    <Inbox className="h-16 w-16 mb-4" />
-                                    <p className="text-sm font-bold uppercase tracking-widest">Nenhum arquivo disponível aqui</p>
                                 </div>
-                            )}
-                        </div>
-                    </div>
-                ) : (
-                    <div className="space-y-12">
-                        <section className="text-center space-y-4 max-w-2xl mx-auto">
-                            <Badge className="bg-primary/10 text-primary border-none rounded-full px-6 py-2 text-[10px] font-black uppercase tracking-widest mb-4">
-                                Bem-vindo ao seu Portal
-                            </Badge>
-                            <h1 className="text-5xl font-light text-slate-800 tracking-tighter">O que você <span className="font-bold text-primary">precisa</span> agora?</h1>
-                            <p className="text-slate-400 text-lg">Acesse seus impostos, holerites e documentos contábeis de forma organizada e segura.</p>
-                        </section>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-                            {folders.map(folder => {
-                                const folderFiles = deliveries.filter(d => d.folderId === folder.id);
-                                return (
-                                    <div 
-                                        key={folder.id}
-                                        onClick={() => setSelectedFolderId(folder.id)}
-                                        className="group cursor-pointer relative"
-                                    >
-                                        <Card className="rounded-[4rem] border-none bg-white p-12 shadow-sm transition-all duration-700 group-hover:shadow-2xl group-hover:shadow-primary/10 group-hover:-translate-y-4 overflow-hidden">
-                                            {/* Style Accents */}
-                                            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 transition-transform duration-700 group-hover:scale-150" />
-                                            
-                                            <div className="relative z-10 space-y-8">
-                                                <div className="h-24 w-24 rounded-[3rem] bg-primary/5 flex items-center justify-center text-primary shadow-inner transition-all duration-700 group-hover:bg-primary group-hover:text-white group-hover:rotate-6 group-hover:scale-110">
-                                                    <Folder className="h-12 w-12" />
-                                                </div>
-                                                
-                                                <div className="space-y-3">
-                                                    <p className="text-[10px] font-black uppercase text-primary/40 tracking-[0.4em] mb-4">Categoria</p>
-                                                    <h3 className="text-3xl font-black text-slate-800 tracking-tighter group-hover:text-primary transition-colors">{folder.name}</h3>
-                                                    <div className="flex items-center gap-3 pt-4">
-                                                        <Badge className="rounded-full h-8 px-4 bg-slate-50 text-slate-400 font-bold border-none group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                                                            {folderFiles.length} Arquivos
-                                                        </Badge>
-                                                        <ChevronRight className="h-5 w-5 text-slate-300 group-hover:translate-x-2 transition-transform duration-500" />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </Card>
-                                    </div>
-                                );
-                            })}
-                        </div>
+                                <Button 
+                                    asChild
+                                    className="w-full h-14 rounded-[2rem] bg-slate-50 hover:bg-primary text-slate-600 hover:text-white font-black uppercase text-[10px] tracking-widest transition-all duration-500 mt-8 group-hover:shadow-xl group-hover:shadow-primary/20 border border-slate-100 hover:border-transparent"
+                                >
+                                    <a href={file.fileUrl} target="_blank">
+                                        <Download className="h-4 w-4 mr-2" /> Baixar
+                                    </a>
+                                </Button>
+                            </Card>
+                        ))}
                     </div>
-                )}
+
+                    {/* Empty States */}
+                    {guides.length === 0 && !loading && (
+                        <div className="py-32 flex flex-col items-center justify-center text-center space-y-6 opacity-40">
+                            <div className="h-24 w-24 rounded-full bg-slate-100 flex items-center justify-center">
+                                <Inbox className="h-10 w-10 text-slate-400" />
+                            </div>
+                            <div className="space-y-2">
+                                <h4 className="text-xl font-black uppercase tracking-tighter text-slate-800">Seu Hub está Vazio</h4>
+                                <p className="text-sm text-slate-400 max-w-xs mx-auto">Assim que enviarmos suas guias e documentos, eles aparecerão aqui organizados automaticamente.</p>
+                            </div>
+                        </div>
+                    )}
+                </div>
             </main>
 
             <footer className="py-20 border-t border-slate-200 mt-20 bg-white">
