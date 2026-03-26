@@ -57,14 +57,28 @@ export function DeliveryAiDropZone({ onSendAll }: DeliveryAiDropZoneProps) {
     const generatePreview = (data: ExtractedGuideData, client: any, publicUrl?: string) => {
         const branding = BrandingService.getBranding();
         
-        // Tenta encontrar a obrigação com o nome mais próximo do extraído
-        const obligation = obligations.find(o => 
+        const lowerDataName = data.type.toLowerCase();
+        
+        // Se já for um nome específico forçado por nós, não tentamos buscar obrigações genéricas
+        const isKnownSpecific = lowerDataName.includes('demonstrativo fgts') || 
+                               lowerDataName.includes('folha de pagamento mensal') || 
+                               lowerDataName.includes('recibo de folha mensal') ||
+                               lowerDataName.includes('relação geral de líquidos');
+
+        // Tenta encontrar a obrigação (apenas se não for um tipo já normalizado)
+        const obligation = isKnownSpecific ? null : obligations.find(o => 
             o.name.toLowerCase().includes(data.type.toLowerCase()) ||
             data.type.toLowerCase().includes(o.name.toLowerCase())
         );
 
         const formalName = obligation?.name || data.type;
-        const formattedValue = parseFloat(data.value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        
+        // Formatação robusta de valor: se for 0 ou NaN, mostra traço
+        const numValue = parseFloat(data.value);
+        const formattedValue = (isNaN(numValue) || numValue === 0) 
+            ? '-' 
+            : numValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
         const formattedDate = data.dueDate ? new Date(data.dueDate).toLocaleDateString('pt-BR') : '-';
 
         let subject = "";
@@ -147,29 +161,50 @@ export function DeliveryAiDropZone({ onSendAll }: DeliveryAiDropZoneProps) {
         try {
             const data = await AiService.extractGuideData(fileObj.file);
             
-            // Normaliza categorias relacionadas a Folha, Férias e Rescisório
+            // Normaliza categorias baseadas em filename E conteúdo extraído
             const lowerType = (data.type || '').toLowerCase();
+            const lowerFileName = (fileObj.file.name || '').toLowerCase();
+            
+            const isDemonstrativo = lowerFileName.includes('demonstrativo') || lowerType.includes('demonstrativo');
+            const isFGTS = lowerFileName.includes('fgts') || lowerType.includes('fgts');
+            const isExtratoMensal = lowerFileName.includes('extrato mensal') || lowerType.includes('extrato mensal');
+            const isFolhaName = lowerFileName.includes('folha') || lowerType.includes('folha');
+            const isRelatorioLiquidos = lowerFileName.includes('relatório de líquidos') || lowerFileName.includes('relatorio de liquidos') || lowerType.includes('líquidos') || lowerType.includes('liquidos');
+
             const isFolhaOrFerias = data.category === 'folha' || 
                                    lowerType.includes('férias') || 
                                    lowerType.includes('ferias') ||
                                    lowerType.includes('rescisório') ||
-                                   lowerType.includes('rescisorio');
+                                   lowerType.includes('rescisorio') ||
+                                   isDemonstrativo ||
+                                   isFolhaName ||
+                                   isExtratoMensal ||
+                                   isRelatorioLiquidos ||
+                                   (isDemonstrativo && isFGTS);
 
-            if (isFolhaOrFerias) {
+            if (isFolhaOrFerias || (isDemonstrativo && isFGTS)) {
                 data.category = 'folha';
-                data.value = "0";
-                // Evita datas inválidas no Postgres setando para null se for folha
+                data.value = "0"; // Força valor zero para aparecer o traço '-'
                 data.dueDate = null as any; 
                 
-                // Refinamento de nomenclatura para o cliente
+                // Prioridade absoluta na nomenclatura
                 const isRecibo = lowerType.includes('recibo') || 
                                  lowerType.includes('voucher') || 
-                                 fileObj.file.name.toLowerCase().includes('recibo');
+                                 lowerFileName.includes('recibo') ||
+                                 (lowerFileName.includes('pagamento') && lowerFileName.includes('recibo'));
 
-                if (isRecibo) {
-                    data.type = 'Recibo de Folha Mensal';
-                } else if (lowerType === 'folha mensal' || lowerType === 'folha de pagamento') {
+                if (isRelatorioLiquidos) {
+                    data.type = 'RELAÇÃO GERAL DE LÍQUIDOS';
+                } else if (isRecibo) {
+                    data.type = 'RECIBO DE FOLHA MENSAL';
+                } else if (isExtratoMensal || lowerType.includes('folha mensal') || lowerType === 'folha de pagamento') {
                     data.type = 'Folha de Pagamento Mensal';
+                } else if (isDemonstrativo && isFGTS) {
+                   if (lowerFileName.includes('mensal') || lowerType.includes('mensal')) {
+                       data.type = 'DEMONSTRATIVO FGTS RESCISÓRIO MENSAL';
+                   } else {
+                       data.type = 'DEMONSTRATIVO FGTS RESCISÓRIO';
+                   }
                 }
             }
             
@@ -405,7 +440,11 @@ export function DeliveryAiDropZone({ onSendAll }: DeliveryAiDropZoneProps) {
                                             {file.status === 'completed' && (
                                                 <>
                                                     <div className="text-right border-r border-border/40 pr-6 hidden sm:block">
-                                                        <p className="text-base font-light text-foreground">{parseFloat(file.data?.value || "0").toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                                                        <p className="text-base font-light text-foreground">
+                                                            {(isNaN(parseFloat(file.data?.value || "0")) || parseFloat(file.data?.value || "0") === 0) 
+                                                                ? '-' 
+                                                                : parseFloat(file.data?.value || "0").toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                                        </p>
                                                         <p className="text-xs text-muted-foreground uppercase opacity-60 tracking-wider">REF: {file.data?.referenceMonth}</p>
                                                     </div>
                                                     <Button 

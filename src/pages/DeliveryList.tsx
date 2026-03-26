@@ -382,10 +382,13 @@ export default function DeliveryList() {
                 if (provider === 'whatsapp') {
                     let fullMessage = `Olá, seguem as guias para pagamento:\n\n`;
                     consolidatedData.forEach(d => {
-                        if (d.category === 'folha') {
+                        const numVal = parseFloat(d.value);
+                        const isNoValue = isNaN(numVal) || numVal === 0 || d.category === 'folha';
+                        
+                        if (isNoValue) {
                             fullMessage += `• ${d.type} (${d.referenceMonth})\n`;
                         } else {
-                            const val = parseFloat(d.value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                            const val = numVal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
                             fullMessage += `• ${d.type} (${d.referenceMonth}): ${val} - Vencimento: ${new Date(d.dueDate).toLocaleDateString('pt-BR')}\n`;
                         }
                         if (d.publicUrl) fullMessage += `🔗 ${d.publicUrl}\n`;
@@ -409,7 +412,7 @@ export default function DeliveryList() {
                     const allFolha = clientFiles.every(f => f.data?.category === 'folha');
                     const allGuia = clientFiles.every(f => f.data?.category === 'guia' || f.data?.category === 'inss');
 
-                    const columnTitle = hasFolha ? "Folha de Pagamento e Impostos" : "Guia / Imposto";
+                    const columnTitle = hasFolha ? "DOCUMENTOS E IMPOSTOS" : "Guia / Imposto";
 
                     let guidesHtml = `
                         <table style="width: 100%; border-collapse: collapse; margin-bottom: 25px;">
@@ -426,13 +429,16 @@ export default function DeliveryList() {
                     `;
 
                     consolidatedData.forEach(d => {
-                        const isFolha = d.category === 'folha';
-                        const val = isFolha ? '-' : parseFloat(d.value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                        const due = isFolha ? '-' : new Date(d.dueDate).toLocaleDateString('pt-BR');
+                        const numVal = parseFloat(d.value);
+                        const isNoValue = d.category === 'folha' || isNaN(numVal) || numVal === 0;
+                        const val = isNoValue ? '-' : numVal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                        const due = isNoValue ? '-' : new Date(d.dueDate).toLocaleDateString('pt-BR');
+                        const displayRefMonth = (d.referenceMonth === 'null' || !d.referenceMonth) ? selectedMonth : d.referenceMonth;
+                        
                         guidesHtml += `
                             <tr>
                                 <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #1e293b; font-weight: 500;">${d.type}</td>
-                                <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">${d.referenceMonth}</td>
+                                <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">${displayRefMonth}</td>
                                 <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; text-align: right; color: #1e293b;">${due}</td>
                                 <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; text-align: right; font-weight: 700; color: #1e293b;">${val}</td>
                                 <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; text-align: right;">
