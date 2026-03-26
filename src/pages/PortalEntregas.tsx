@@ -436,13 +436,6 @@ export default function PortalEntregas() {
                                             <h2 className="text-xl font-bold text-slate-800 tracking-tight">{activeFolder?.name}</h2>
                                         </div>
                                     </div>
-                                    <Button 
-                                        onClick={() => setIsUploadModalOpen(true)}
-                                        className="h-16 rounded-[2rem] px-10 bg-primary text-white font-black uppercase text-[10px] tracking-widest gap-4 shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
-                                    >
-                                        <Upload className="h-5 w-5" />
-                                        Enviar Novo Arquivo
-                                    </Button>
                                 </Card>
 
                                 <Card className="rounded-[3rem] bg-white border-none shadow-sm overflow-hidden min-h-[400px]">

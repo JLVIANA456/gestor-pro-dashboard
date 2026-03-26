@@ -375,6 +375,69 @@ export default function DeliveryList() {
                             publicUrl: item.publicUrl,
                             guideId: guideRecord.id
                         });
+
+                        // Sincronização automática com HUB do Cliente (Organizada por Pastas)
+                        if (item.publicUrl) {
+                            try {
+                                const [m, y] = (item.data?.referenceMonth || '').split('/');
+                                const formattedMonth = (m && y) ? `${y}-${m}-01` : `${selectedMonth}-01`;
+                                const competencyShort = (m && y) ? `${y}-${m}` : selectedMonth;
+
+                                // 1. Buscar ou Criar pastas para o cliente
+                                const { data: clientFolders } = await (supabase
+                                    .from('client_portal_folders' as any) as any)
+                                    .select('*')
+                                    .eq('client_id', item.client.id);
+
+                                let targetFolderName = 'Outros Documentos';
+                                if (item.data?.category === 'folha') {
+                                    targetFolderName = 'Folha de Pagamento';
+                                } else if (item.data?.category === 'guia' || item.data?.category === 'inss') {
+                                    targetFolderName = 'Impostos e Guias';
+                                } else {
+                                    targetFolderName = guideTypeToMatch || 'Outros Documentos';
+                                }
+
+                                let folder = (clientFolders as any[])?.find((f: any) => 
+                                    f.name.toLowerCase() === targetFolderName.toLowerCase()
+                                );
+
+                                if (!folder) {
+                                    const { data: newFolder, error: folderErr } = await (supabase
+                                        .from('client_portal_folders' as any) as any)
+                                        .insert({ 
+                                            client_id: item.client.id, 
+                                            name: targetFolderName,
+                                            icon: 'Folder',
+                                            sort_order: ((clientFolders as any[])?.length || 0) + 1
+                                        })
+                                        .select()
+                                        .single();
+                                    
+                                    if (!folderErr && newFolder) {
+                                        folder = newFolder;
+                                    }
+                                }
+
+                                // 2. Inserir em client_deliveries (Aba Hub do Cliente)
+                                await (supabase
+                                    .from('client_deliveries' as any) as any)
+                                    .insert({
+                                        client_id: item.client.id,
+                                        folder_id: folder?.id || null,
+                                        file_name: item.file.name,
+                                        file_url: item.publicUrl,
+                                        category: item.data?.category || 'outro',
+                                        competency: competencyShort,
+                                        due_date: item.data?.dueDate || null,
+                                        description: `Documento enviado via Lista de Entregas: ${guideTypeToMatch}`,
+                                        uploaded_by: user?.id || null
+                                    });
+
+                            } catch (syncErr) {
+                                console.error('Erro ao sincronizar com HUB:', syncErr);
+                            }
+                        }
                     }
                 }
 
