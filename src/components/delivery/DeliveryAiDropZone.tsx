@@ -147,16 +147,30 @@ export function DeliveryAiDropZone({ onSendAll }: DeliveryAiDropZoneProps) {
         try {
             const data = await AiService.extractGuideData(fileObj.file);
             
-            // Normaliza categorias relacionadas a Folha e Férias
+            // Normaliza categorias relacionadas a Folha, Férias e Rescisório
+            const lowerType = (data.type || '').toLowerCase();
             const isFolhaOrFerias = data.category === 'folha' || 
-                                   data.type.toLowerCase().includes('férias') || 
-                                   data.type.toLowerCase().includes('ferias');
+                                   lowerType.includes('férias') || 
+                                   lowerType.includes('ferias') ||
+                                   lowerType.includes('rescisório') ||
+                                   lowerType.includes('rescisorio');
 
             if (isFolhaOrFerias) {
                 data.category = 'folha';
                 data.value = "0";
                 // Evita datas inválidas no Postgres setando para null se for folha
                 data.dueDate = null as any; 
+                
+                // Refinamento de nomenclatura para o cliente
+                const isRecibo = lowerType.includes('recibo') || 
+                                 lowerType.includes('voucher') || 
+                                 fileObj.file.name.toLowerCase().includes('recibo');
+
+                if (isRecibo) {
+                    data.type = 'Recibo de Folha Mensal';
+                } else if (lowerType === 'folha mensal' || lowerType === 'folha de pagamento') {
+                    data.type = 'Folha de Pagamento Mensal';
+                }
             }
             
             let publicUrl = '';

@@ -403,11 +403,19 @@ export default function DeliveryList() {
                         continue;
                     }
 
+                    // Lógica Prévias para Condicionais
+                    const hasFolha = clientFiles.some(f => f.data?.category === 'folha');
+                    const hasGuia = clientFiles.some(f => f.data?.category === 'guia' || f.data?.category === 'inss');
+                    const allFolha = clientFiles.every(f => f.data?.category === 'folha');
+                    const allGuia = clientFiles.every(f => f.data?.category === 'guia' || f.data?.category === 'inss');
+
+                    const columnTitle = hasFolha ? "Folha de Pagamento e Impostos" : "Guia / Imposto";
+
                     let guidesHtml = `
                         <table style="width: 100%; border-collapse: collapse; margin-bottom: 25px;">
                             <thead>
                                 <tr style="background-color: #f8fafc;">
-                                    <th style="padding: 12px; text-align: left; font-size: 11px; border-bottom: 1px solid #e2e8f0; color: #64748b; text-transform: uppercase; font-weight: 800;">Guia / Imposto</th>
+                                    <th style="padding: 12px; text-align: left; font-size: 11px; border-bottom: 1px solid #e2e8f0; color: #64748b; text-transform: uppercase; font-weight: 800;">${columnTitle}</th>
                                     <th style="padding: 12px; text-align: left; font-size: 11px; border-bottom: 1px solid #e2e8f0; color: #64748b; text-transform: uppercase; font-weight: 800;">Competência</th>
                                     <th style="padding: 12px; text-align: right; font-size: 11px; border-bottom: 1px solid #e2e8f0; color: #64748b; text-transform: uppercase; font-weight: 800;">Vencimento</th>
                                     <th style="padding: 12px; text-align: right; font-size: 11px; border-bottom: 1px solid #e2e8f0; color: #64748b; text-transform: uppercase; font-weight: 800;">Valor</th>
@@ -437,10 +445,6 @@ export default function DeliveryList() {
                     guidesHtml += `</tbody></table>`;
 
                     // Lógica Dinâmica de Assunto e Título para Envio Consolidado
-                    const hasFolha = clientFiles.some(f => f.data?.category === 'folha');
-                    const hasGuia = clientFiles.some(f => f.data?.category === 'guia' || f.data?.category === 'inss');
-                    const allFolha = clientFiles.every(f => f.data?.category === 'folha');
-                    const allGuia = clientFiles.every(f => f.data?.category === 'guia' || f.data?.category === 'inss');
 
                     let subject = "";
                     let templateTitlePrefix = "Suas Guia(s) de";

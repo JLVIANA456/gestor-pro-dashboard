@@ -68,8 +68,8 @@ export class AiService {
             - value: Valor total da guia/documento (formato 0.00). Use o 'Total da Empresa' ou 'Líquido a Pagar' se for relatório de folha.
             - dueDate: Data de vencimento (formato ISO YYYY-MM-DD).
             - referenceMonth: Período de apuração / Competência (formato MM/YYYY). Busque por 'Competência:' ou 'Mês/Ano'.
-            - type: Nome específico do documento (Ex: DAS, FGTS Digital, Folha de Pagamento Mensal, Relação Geral dos Líquidos).
-            - category: Classifique em um destes: 'folha' (para holerites, resumo de folha, programação de férias, pro-labore e relação de líquidos), 'guia' (para DAS, DARF, ISS, ICMS), 'inss' (para guias específicas de previdência), 'extrato' (movimentação bancária) ou 'outro'.
+            - type: Nome específico do documento (Ex: DAS, FGTS Digital, Folha de Pagamento Mensal, Relação Geral dos Líquidos, Recibo de Folha Mensal). IMPORTANTE: Diferencie 'Recibo de Pagamento' (vouchers individuais) de 'Folha de Pagamento' (resumo total).
+            - category: Classifique em um destes: 'folha' (para holerites, resumo de folha, programação de férias, pro-labore, relação de líquidos e recibos de pagamento), 'guia' (para DAS, DARF, ISS, ICMS), 'inss' (para guias específicas de previdência), 'extrato' (movimentação bancária) ou 'outro'.
             - hasInterests: true se houver multa ou juros calculados no valor total.
             
             Nota importante: Em relatórios de folha (como Relação de Líquidos), o nome da empresa e o CNPJ estão quase sempre no cabeçalho superior esquerdo.`
