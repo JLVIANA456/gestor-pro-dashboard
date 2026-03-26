@@ -388,8 +388,7 @@ export default function DeliveryList() {
                                 const competencyShort = (m && y) ? `${y}-${m}` : selectedMonth;
 
                                 // 1. Buscar folders existentes para o cliente
-                                const { data: clientFolders } = await (supabase
-                                    .from('client_portal_folders' as any) as any)
+                                const { data: clientFolders } = await (supabase as any).from('client_portal_folders')
                                     .select('*')
                                     .eq('client_id', item.client.id);
 
@@ -413,8 +412,7 @@ export default function DeliveryList() {
                                     );
 
                                     if (!folder) {
-                                        const { data: newFolder, error } = await (supabase
-                                            .from('client_portal_folders' as any) as any)
+                                        const { data: newFolder, error } = await (supabase as any).from('client_portal_folders')
                                             .insert({
                                                 client_id: item.client.id,
                                                 name: name,
@@ -445,8 +443,8 @@ export default function DeliveryList() {
                                 const monthFolder = await getOrCreateFolder(folderMonthName, yearFolder?.id || null, 'Clock');
 
                                 // 2. Inserir em client_deliveries (Aba Hub do Cliente)
-                                await (supabase
-                                    .from('client_deliveries' as any) as any)
+                                await (supabase as any)
+                                    .from('client_deliveries')
                                     .insert({
                                         client_id: item.client.id,
                                         folder_id: monthFolder?.id || null,

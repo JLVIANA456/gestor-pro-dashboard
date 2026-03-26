@@ -101,13 +101,13 @@ export default function PortalEntregas() {
         ];
 
         const createPromise = (async () => {
-            const { error: insertError } = await (supabase.from('client_portal_folders') as any)
+            const { error: insertError } = await (supabase as any).from('client_portal_folders')
                 .insert(defaults.map(d => ({ ...d, client_id: clientId })));
             
             if (insertError) throw insertError;
             
             // Re-fetch folders after creation
-            const { data, error: fetchError } = await (supabase.from('client_portal_folders') as any)
+            const { data, error: fetchError } = await (supabase as any).from('client_portal_folders')
                 .select('*')
                 .eq('client_id', clientId)
                 .order('sort_order', { ascending: true });
@@ -135,7 +135,7 @@ export default function PortalEntregas() {
     };
 
     const fetchFolders = async (clientId: string) => {
-        const { data, error } = await (supabase.from('client_portal_folders') as any)
+        const { data, error } = await (supabase as any).from('client_portal_folders')
             .select('*')
             .eq('client_id', clientId)
             .order('sort_order', { ascending: true });
@@ -161,7 +161,7 @@ export default function PortalEntregas() {
     };
 
     const fetchDeliveries = async (clientId: string) => {
-        const { data, error } = await (supabase.from('client_deliveries') as any)
+        const { data, error } = await (supabase as any).from('client_deliveries')
             .select('*')
             .eq('client_id', clientId)
             .order('created_at', { ascending: false });
@@ -185,7 +185,7 @@ export default function PortalEntregas() {
 
         try {
             setLoading(true);
-            const { error } = await (supabase.from('client_portal_folders') as any)
+            const { error } = await (supabase as any).from('client_portal_folders')
                 .insert({
                     client_id: selectedClientId,
                     name: newFolderName,
@@ -211,7 +211,7 @@ export default function PortalEntregas() {
 
         try {
             setLoading(true);
-            const { error } = await (supabase.from('client_portal_folders') as any)
+            const { error } = await (supabase as any).from('client_portal_folders')
                 .update({ name: newFolderName })
                 .eq('id', folderToRename.id);
 
@@ -250,7 +250,7 @@ export default function PortalEntregas() {
                 .from('client-documents')
                 .getPublicUrl(filePath);
 
-            const { error: dbError } = await (supabase.from('client_deliveries') as any)
+            const { error: dbError } = await (supabase as any).from('client_deliveries')
                 .insert({
                     client_id: selectedClientId,
                     folder_id: selectedFolderId,
@@ -275,7 +275,7 @@ export default function PortalEntregas() {
     const handleDeleteFile = async (fileId: string) => {
         try {
             setLoading(true);
-            const { error } = await (supabase.from('client_deliveries') as any)
+            const { error } = await (supabase as any).from('client_deliveries')
                 .delete()
                 .eq('id', fileId);
 
