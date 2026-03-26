@@ -98,8 +98,13 @@ export default function ClientPortalView() {
     const years = useMemo(() => {
         const yearsSet = new Set<string>();
         guides.forEach(g => {
-            const parts = g.referenceMonth.split('/');
-            if (parts.length === 2) yearsSet.add(parts[1]);
+            if (g.referenceMonth.includes('/')) {
+                const parts = g.referenceMonth.split('/');
+                if (parts.length === 2) yearsSet.add(parts[1]);
+            } else if (g.referenceMonth.includes('-')) {
+                const parts = g.referenceMonth.split('-');
+                if (parts.length >= 1) yearsSet.add(parts[0]);
+            }
         });
         return Array.from(yearsSet).sort((a, b) => b.localeCompare(a));
     }, [guides]);
@@ -108,15 +113,27 @@ export default function ClientPortalView() {
         if (!selectedYear) return [];
         const monthsSet = new Set<string>();
         guides.forEach(g => {
-            const [m, y] = g.referenceMonth.split('/');
-            if (y === selectedYear) monthsSet.add(m);
+            if (g.referenceMonth.includes('/')) {
+                const [m, y] = g.referenceMonth.split('/');
+                if (y === selectedYear) monthsSet.add(m);
+            } else if (g.referenceMonth.includes('-')) {
+                const [y, m] = g.referenceMonth.split('-');
+                if (y === selectedYear) monthsSet.add(m);
+            }
         });
         return Array.from(monthsSet).sort((a, b) => b.localeCompare(a));
     }, [guides, selectedYear]);
 
     const filesForMonth = useMemo(() => {
         if (!selectedYear || !selectedMonth) return [];
-        return guides.filter(g => g.referenceMonth === `${selectedMonth}/${selectedYear}`);
+        return guides.filter(g => {
+            if (g.referenceMonth.includes('/')) {
+                return g.referenceMonth === `${selectedMonth}/${selectedYear}`;
+            } else if (g.referenceMonth.includes('-')) {
+                return g.referenceMonth === `${selectedYear}-${selectedMonth}`;
+            }
+            return false;
+        });
     }, [guides, selectedYear, selectedMonth]);
 
     const getMonthName = (month: string) => {

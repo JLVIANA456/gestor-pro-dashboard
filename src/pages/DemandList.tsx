@@ -15,7 +15,9 @@ import {
   Target,
   Quote,
   Activity,
-  Filter
+  Filter,
+  LayoutGrid,
+  List as ListIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -58,6 +60,7 @@ export default function DemandList() {
   
   const [taskSearch, setTaskSearch] = useState('');
   const [taskStatusFilter, setTaskStatusFilter] = useState<'all' | 'pending' | 'completed'>('all');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const filteredClients = useMemo(() => {
     return clients.filter(client => {
@@ -188,6 +191,27 @@ export default function DemandList() {
               className="bg-transparent border-none text-sm font-bold text-foreground/80 outline-none cursor-pointer hover:text-primary transition-colors pr-2"
             />
           </div>
+
+          <div className="h-8 w-px bg-border/40 mx-1" />
+
+          <div className="bg-muted/20 p-1 rounded-xl flex items-center gap-1">
+            <Button
+              variant={viewMode === 'grid' ? "secondary" : "ghost"}
+              size="icon"
+              onClick={() => setViewMode('grid')}
+              className={cn("h-9 w-9 rounded-lg transition-all", viewMode === 'grid' && "shadow-sm")}
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? "secondary" : "ghost"}
+              size="icon"
+              onClick={() => setViewMode('list')}
+              className={cn("h-9 w-9 rounded-lg transition-all", viewMode === 'list' && "shadow-sm")}
+            >
+              <ListIcon className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -205,13 +229,13 @@ export default function DemandList() {
         </div>
       </div>
 
-      {/* Grid de Empresas */}
+      {/* Grid ou Lista de Empresas */}
       {filteredClients.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-40 bg-card/10 rounded-[4rem] border border-dashed border-border/40 animate-slide-in-up">
           <Building2 className="h-20 w-20 text-muted-foreground/10 mb-6" />
           <p className="text-sm font-light text-muted-foreground tracking-wide italic">Nenhuma empresa encontrada para os filtros atuais.</p>
         </div>
-      ) : (
+      ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3 animate-slide-in-up stagger-2">
           {filteredClients.map((client, index) => {
             const stats = clientProgress[client.id] || { total: 0, completed: 0, tasks: [] };
@@ -316,6 +340,73 @@ export default function DemandList() {
             );
           })}
         </div>
+      ) : (
+        <div className="space-y-4 animate-slide-in-up stagger-2">
+          {filteredClients.map((client, index) => {
+            const stats = clientProgress[client.id] || { total: 0, completed: 0, tasks: [] };
+            const percentage = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
+            
+            return (
+              <div
+                key={client.id}
+                onClick={() => handleOpenDetail(client)}
+                className="group flex flex-col md:flex-row md:items-center justify-between gap-6 p-6 rounded-[2rem] border border-border/40 bg-white/40 dark:bg-card/20 backdrop-blur-xl hover:shadow-xl hover:border-primary/20 transition-all cursor-pointer"
+                style={{ animationDelay: `${index * 30}ms` }}
+              >
+                <div className="flex items-center gap-6 min-w-0 flex-1">
+                  <div className={cn(
+                    "h-14 w-14 rounded-2xl flex items-center justify-center shrink-0 border transition-all duration-500 group-hover:scale-110 group-hover:rotate-3",
+                    percentage === 100 && stats.total > 0 ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" : "bg-primary/5 text-primary border-primary/20"
+                  )}>
+                    {percentage === 100 && stats.total > 0 ? <CheckCircle2 className="h-7 w-7" /> : <Building2 className="h-7 w-7" />}
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-lg font-bold text-foreground truncate">{client.nomeFantasia || client.razaoSocial}</h3>
+                    <div className="flex items-center gap-3 mt-1">
+                      <span className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-widest">{client.cnpj}</span>
+                      <span className={cn(
+                         "px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border",
+                         regimeStyles[client.regimeTributario] || 'bg-muted/10 text-muted-foreground'
+                       )}>
+                         {regimeLabels[client.regimeTributario] || 'Simples'}
+                       </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center gap-8 md:gap-12">
+                   <div className="w-full sm:w-48 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">Progresso</span>
+                        <span className="text-[10px] font-black text-primary">{percentage}%</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-border/20 rounded-full overflow-hidden shadow-inner">
+                        <div 
+                          className={cn("h-full rounded-full transition-all duration-1000", percentage === 100 && stats.total > 0 ? "bg-emerald-500" : "bg-primary")}
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                   </div>
+
+                   <div className="flex items-center gap-8">
+                      <div className="flex flex-col items-center">
+                        <span className="text-xl font-light text-foreground/80">{stats.completed}</span>
+                        <span className="text-[8px] uppercase font-black tracking-widest text-muted-foreground/30">Feitas</span>
+                      </div>
+                      <div className="flex flex-col items-center">
+                        <span className="text-xl font-light text-foreground/80">{stats.total - stats.completed}</span>
+                        <span className="text-[8px] uppercase font-black tracking-widest text-muted-foreground/30">Abertas</span>
+                      </div>
+                   </div>
+
+                   <div className="h-10 w-10 rounded-xl bg-primary/5 flex items-center justify-center opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-500">
+                      <ArrowRight className="h-4 w-4 text-primary" />
+                   </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       )}
 
       {/* NOVO Modal de Detalhamento Estilo Calendário */}
@@ -347,14 +438,6 @@ export default function DemandList() {
                           <span className="px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-700 text-[10px] font-bold uppercase tracking-widest border border-emerald-500/10">{currentStats.completed} Feitas</span>
                           <span className="px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-700 text-[10px] font-bold uppercase tracking-widest border border-amber-500/10">{currentStats.pending} Abertas</span>
                       </div>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => setIsDetailOpen(false)}
-                        className="rounded-full h-10 w-10 hover:bg-muted transition-colors border-none"
-                      >
-                        <X className="h-5 w-5 text-muted-foreground" />
-                      </Button>
                   </div>
 
                   {/* Search Interno */}
@@ -488,28 +571,11 @@ export default function DemandList() {
                   </div>
               </ScrollArea>
 
-              {/* Footer Estilo Calendário */}
               <div className="p-8 border-t border-border/10 bg-muted/10 flex flex-col sm:flex-row items-center justify-between gap-6 shrink-0">
                   <div className="flex items-center gap-4 flex-1">
-                      <div className="flex flex-col">
-                        <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-1.5">Escore de Entrega</span>
-                        <div className="flex items-center gap-4">
-                           <div className="h-2 w-40 bg-muted-foreground/10 rounded-full overflow-hidden shadow-inner">
-                              <div 
-                                className="h-full bg-primary transition-all duration-1000 shadow-lg" 
-                                style={{ width: `${Math.round((currentStats.completed / currentStats.total) * 100) || 0}%` }} 
-                              />
-                           </div>
-                           <span className="text-sm font-black text-primary tracking-tighter">
-                             {Math.round((currentStats.completed / currentStats.total) * 100) || 0}%
-                           </span>
-                        </div>
-                      </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                     <p className="text-[10px] text-muted-foreground/30 font-bold uppercase tracking-[0.2em] text-right max-w-[220px]">
-                        Todo registro operacional requer auditoria conforme normas jlconecta.
-                     </p>
+                      <p className="text-[10px] text-muted-foreground/30 font-bold uppercase tracking-[0.2em] leading-relaxed">
+                         Todo registro operacional requer auditoria conforme normas jlconecta. Todas as baixas são registradas com timestamp e identificação do operador.
+                      </p>
                   </div>
               </div>
             </div>

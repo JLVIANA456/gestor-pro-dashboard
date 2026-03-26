@@ -39,6 +39,7 @@ import { useClients } from '@/hooks/useClients';
 import { useDeliveryList, AccountingGuide } from '@/hooks/useDeliveryList';
 import { useObligations } from '@/hooks/useObligations';
 import { useClientObligations } from '@/hooks/useClientObligations';
+import { useAuth } from '@/context/AuthContext';
 import { ResendService } from '@/services/resendService';
 import { BrandingService } from '@/services/brandingService';
 import { DeliveryAiDropZone, ProcessedDeliveryFile } from '@/components/delivery/DeliveryAiDropZone';
@@ -65,6 +66,7 @@ export default function DeliveryList() {
         fetchGuides,
         fetchExistingKeys
     } = useDeliveryList(selectedMonth);
+    const { user } = useAuth();
     const { clients, loading: clientsLoading } = useClients();
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedRegime, setSelectedRegime] = useState<TaxRegime | 'all'>('all');
@@ -77,14 +79,13 @@ export default function DeliveryList() {
     const [historySearchQuery, setHistorySearchQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState<'all' | 'pending_guide' | 'pending_send' | 'scheduled' | 'completed'>('all');
     const [competencyFilter, setCompetencyFilter] = useState('all');
-    const [quarantineFiles, setQuarantineFiles] = useState<ProcessedDeliveryFile[]>([]);
     const [isGenerating, setIsGenerating] = useState(false);
     const [isAiConfigOpen, setIsAiConfigOpen] = useState(false);
     const { obligations } = useObligations();
     const { clientObligations } = useClientObligations();
 
     const historyGuides = useMemo(() => {
-        return guides.filter(g => g.status === 'sent' && (
+        return guides.filter(g => (g.status === 'sent' || g.status === 'completed') && (
             g.client?.nome_fantasia?.toLowerCase().includes(historySearchQuery.toLowerCase()) ||
             g.client?.razao_social?.toLowerCase().includes(historySearchQuery.toLowerCase()) ||
             g.type.toLowerCase().includes(historySearchQuery.toLowerCase())
@@ -160,7 +161,7 @@ export default function DeliveryList() {
             const hasGuidesMissingFile = clientGuides.some(g => !g.file_url && g.status === 'pending');
             const hasGuidesReadyToSend = clientGuides.some(g => g.file_url && g.status === 'pending');
             const hasScheduled = clientGuides.some(g => g.status === 'scheduled');
-            const isCompleted = clientGuides.length > 0 && clientGuides.every(g => g.status === 'sent');
+            const isCompleted = clientGuides.length > 0 && clientGuides.every(g => g.status === 'sent' || g.status === 'completed');
 
             const matchesStatus =
                 filterStatus === 'all' ||
@@ -307,27 +308,11 @@ export default function DeliveryList() {
         let successCount = 0;
         let updateCount = 0;
         let auditFailures = 0;
-        const unmatched: ProcessedDeliveryFile[] = [];
-
         // 1. Group by client
         const filesByClient: Record<string, ProcessedDeliveryFile[]> = {};
         for (const item of processedFiles) {
             if (!item.client || !item.data) {
-                unmatched.push(item);
-                continue;
-            }
-
-            // --- IA AUDITORA: Validação de Segurança ---
-            const extractedCnpj = (item.data.cnpj || '').replace(/\D/g, '');
-            const clientCnpj = (item.client.cnpj || '').replace(/\D/g, '');
-
-            if (extractedCnpj && clientCnpj && extractedCnpj !== clientCnpj) {
-                console.warn(`[AI AUDIT] CNPJ Mismatch for ${item.file.name}. PDF: ${extractedCnpj}, Client: ${clientCnpj}`);
-                toast.error(`Audit: O arquivo ${item.file.name} parece ser da empresa CNPJ ${item.data.cnpj}, mas você tentou associar à empresa ${item.client.nomeFantasia}. Movido para quarentena por segurança.`, {
-                    duration: 8000
-                });
-                auditFailures++;
-                unmatched.push({ ...item, client: null });
+                toast.error(`O arquivo ${item.file.name} não foi vinculado a nenhum cliente.`);
                 continue;
             }
 
@@ -397,8 +382,12 @@ export default function DeliveryList() {
                 if (provider === 'whatsapp') {
                     let fullMessage = `Olá, seguem as guias para pagamento:\n\n`;
                     consolidatedData.forEach(d => {
-                        const val = parseFloat(d.value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                        fullMessage += `• ${d.type} (${d.referenceMonth}): ${val} - Vencimento: ${new Date(d.dueDate).toLocaleDateString('pt-BR')}\n`;
+                        if (d.category === 'folha') {
+                            fullMessage += `• ${d.type} (${d.referenceMonth})\n`;
+                        } else {
+                            const val = parseFloat(d.value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                            fullMessage += `• ${d.type} (${d.referenceMonth}): ${val} - Vencimento: ${new Date(d.dueDate).toLocaleDateString('pt-BR')}\n`;
+                        }
                         if (d.publicUrl) fullMessage += `🔗 ${d.publicUrl}\n`;
                         fullMessage += `\n`;
                     });
@@ -408,7 +397,7 @@ export default function DeliveryList() {
                         window.open(`https://web.whatsapp.com/send?phone=55${phone}&text=${encodeURIComponent(fullMessage)}`, '_blank');
                     }
                 } else if (provider === 'resend') {
-                    const branding = await BrandingService.getBranding();
+                    const branding = BrandingService.getBranding();
                     if (!client.email) {
                         toast.error(`E-mail não cadastrado para ${client.nomeFantasia || client.razaoSocial}`);
                         continue;
@@ -429,8 +418,9 @@ export default function DeliveryList() {
                     `;
 
                     consolidatedData.forEach(d => {
-                        const val = parseFloat(d.value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                        const due = new Date(d.dueDate).toLocaleDateString('pt-BR');
+                        const isFolha = d.category === 'folha';
+                        const val = isFolha ? '-' : parseFloat(d.value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                        const due = isFolha ? '-' : new Date(d.dueDate).toLocaleDateString('pt-BR');
                         guidesHtml += `
                             <tr>
                                 <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #1e293b; font-weight: 500;">${d.type}</td>
@@ -461,8 +451,8 @@ export default function DeliveryList() {
                         subject = clientFiles[0].generatedSubject || "";
                         const category = clientFiles[0].data?.category;
                         if (category === 'folha') {
-                            templateTitlePrefix = "Sua Folha de";
-                            templateTitleSuffix = "Pagamento";
+                            templateTitlePrefix = "Folha de Pagamento e";
+                            templateTitleSuffix = "Impostos";
                         } else if (category === 'extrato') {
                             templateTitlePrefix = "Seu Extrato";
                             templateTitleSuffix = "Bancário";
@@ -470,18 +460,26 @@ export default function DeliveryList() {
                     } else {
                         // Envio Agrupado / Consolidado
                         if (allFolha) {
-                            subject = `Folha Mensal e Documentos - ${client.nomeFantasia || client.razao_social}`;
-                            templateTitlePrefix = "Suas Folhas de";
-                            templateTitleSuffix = "Pagamento";
+                            subject = `Folha Mensal e Documentos - ${client.nomeFantasia || client.razaoSocial}`;
+                            templateTitlePrefix = "Folhas de Pagamento e";
+                            templateTitleSuffix = "Impostos";
                         } else if (allGuia) {
-                            subject = `Guias de Pagamento - ${client.nomeFantasia || client.razao_social}`;
+                            subject = `Guias de Pagamento - ${client.nomeFantasia || client.razaoSocial}`;
                             templateTitlePrefix = "Suas Guia(s) de";
                             templateTitleSuffix = "Pagamento";
+                        } else if (hasFolha) {
+                            subject = `Folha Mensal e Guias - ${client.nomeFantasia || client.razaoSocial}`;
+                            templateTitlePrefix = "Folha de Pagamento e";
+                            templateTitleSuffix = "Impostos";
                         } else {
-                            subject = `Documentos e Guias - ${client.nomeFantasia || client.razao_social}`;
+                            subject = `Documentos e Guias - ${client.nomeFantasia || client.razaoSocial}`;
                             templateTitlePrefix = "Seus Documentos e";
                             templateTitleSuffix = "Guias";
                         }
+                    }
+
+                    if (!subject || subject.trim() === "") {
+                        subject = `Comunicado: Novos Documentos - ${client.nomeFantasia || client.razaoSocial}`;
                     }
 
                     const htmlContent = `
@@ -492,7 +490,7 @@ export default function DeliveryList() {
                             </div>
                             
                             <div style="line-height: 1.6; color: #475569; font-size: 15px; margin-bottom: 35px;">
-                                Olá <strong>${client.nomeFantasia || client.razaoSocial || client.nome_fantasia}</strong>,<br><br>
+                                Olá <strong>${client.nomeFantasia || client.razaoSocial}</strong>,<br><br>
                                 Identificamos novos documentos prontos. Abaixo você encontrará o resumo detalhado e os links para download seguro:
                             </div>
 
@@ -525,20 +523,21 @@ export default function DeliveryList() {
                         reply_to: branding.replyToEmail || undefined
                     });
 
-                    // Update all guide statuses to sent
+                    // Update all guide statuses to completed (da baixa automática)
                     for (const id of guideIds) {
-                        await updateGuideStatus(id, 'sent', new Date().toISOString());
+                        await updateGuide(id, {
+                            status: 'completed',
+                            sent_at: new Date().toISOString(),
+                            completed_at: new Date().toISOString(),
+                            completed_by: 'IA - Envio em Lote',
+                            justification: 'Guia processada e enviada via IA'
+                        });
                     }
                 }
             } catch (error: any) {
                 console.error("Erro ao processar guias agrupadas:", error);
                 toast.error(`Erro ao processar guias para o cliente ${client.nomeFantasia}: ${error.message}`);
             }
-        }
-
-        if (unmatched.length > 0) {
-            setQuarantineFiles(prev => [...prev, ...unmatched]);
-            toast.info(`${unmatched.length} arquivos foram para a quarentena.`);
         }
 
         toast.success(`Disparo em lote finalizado!`);
@@ -631,8 +630,15 @@ export default function DeliveryList() {
                 });
                 // Update local status
                 const now = new Date().toISOString();
+                // Update all guide statuses to completed (da baixa automática)
                 for (const item of clientItems) {
-                    await updateGuideStatus(item.id, 'sent', now);
+                    await updateGuide(item.id, {
+                        status: 'completed',
+                        sent_at: now,
+                        completed_at: now,
+                        completed_by: user?.name || user?.email || 'Sistema',
+                        justification: 'Envio manual pendente finalizado em lote'
+                    });
                 }
                 success++;
             } catch (err) {
@@ -783,47 +789,7 @@ export default function DeliveryList() {
                 </div>
             </section>
 
-            {quarantineFiles.length > 0 && (
-                <section className="bg-amber-500/[0.03] rounded-[2.5rem] border border-amber-500/20 p-8 animate-in zoom-in-95 duration-300">
-                    <div className="flex items-center justify-between mb-6">
-                        <div>
-                            <h3 className="text-amber-700 text-[11px] uppercase font-bold tracking-[0.2em] flex items-center gap-2">
-                                <AlertCircle className="h-4 w-4" /> Arquivos não identificados (Quarentena)
-                            </h3>
-                            <p className="text-[10px] text-amber-600/60 mt-1 uppercase tracking-wider">Arraste o arquivo para cima do card da empresa correspondente abaixo</p>
-                        </div>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setQuarantineFiles([])}
-                            className="h-9 px-4 rounded-xl border-amber-500/20 text-[10px] uppercase font-bold text-amber-700 hover:bg-amber-500/10 transition-all"
-                            title="Limpa a lista de arquivos que não puderam ser processados"
-                        >
-                            Limpar Quarentena
-                        </Button>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {quarantineFiles.map(file => (
-                            <div
-                                key={file.id}
-                                draggable
-                                onDragStart={(e) => {
-                                    e.dataTransfer.setData('fileId', file.id);
-                                }}
-                                className="bg-card p-4 rounded-xl border border-amber-500/10 flex items-center justify-between cursor-move hover:shadow-lg transition-all active:scale-95"
-                            >
-                                <div className="min-w-0 flex-1">
-                                    <p className="text-[11px] font-light text-foreground truncate">{file.file.name}</p>
-                                    <p className="text-[9px] text-amber-600 uppercase font-bold mt-1">Arraste para o cliente</p>
-                                </div>
-                                <div className="h-8 w-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                                    <FileText className="h-4 w-4 text-amber-600" />
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </section>
-            )}
+
 
             <Tabs defaultValue="clients" value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="space-y-8">
                 <TabsList className="bg-muted/20 p-1.5 rounded-2xl h-auto border border-border/10 inline-flex">
@@ -994,32 +960,6 @@ export default function DeliveryList() {
                                     <div
                                         key={client.id}
                                         onClick={() => openClientDetail(client)}
-                                        onDragOver={(e) => {
-                                            e.preventDefault();
-                                            e.currentTarget.classList.add('bg-primary/[0.02]', 'border-primary/40', 'scale-[1.01]');
-                                        }}
-                                        onDragLeave={(e) => {
-                                            e.currentTarget.classList.remove('bg-primary/[0.02]', 'border-primary/40', 'scale-[1.01]');
-                                        }}
-                                        onDrop={async (e) => {
-                                            e.preventDefault();
-                                            e.currentTarget.classList.remove('bg-primary/[0.02]', 'border-primary/40', 'scale-[1.01]');
-                                            const fileId = e.dataTransfer.getData('fileId');
-                                            const fileToProcess = quarantineFiles.find(f => f.id === fileId);
-
-                                            if (fileToProcess) {
-                                                const loadingToast = toast.loading(`Processando ${fileToProcess.file.name}...`);
-
-                                                try {
-                                                    const processedItem = { ...fileToProcess, client: client };
-                                                    await handleAiSendAll([processedItem], 'resend');
-                                                    setQuarantineFiles(prev => prev.filter(f => f.id !== fileId));
-                                                    toast.success('Arquivo associado!', { id: loadingToast });
-                                                } catch (err) {
-                                                    toast.error('Erro ao associar arquivo.', { id: loadingToast });
-                                                }
-                                            }
-                                        }}
                                         className={cn(
                                             'group relative flex flex-col h-full rounded-[3.5rem] border border-border/40 bg-white/40 backdrop-blur-md p-10 shadow-sm transition-all duration-500 hover:shadow-2xl hover:shadow-primary/5 hover:-translate-y-2 cursor-pointer overflow-hidden',
                                             stats.pending > 0 ? 'hover:border-amber-500/20' : 'hover:border-emerald-500/20'

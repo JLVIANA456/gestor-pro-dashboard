@@ -64,13 +64,15 @@ export class AiService {
             
             Extraia em JSON puro:
             - cnpj: APENAS números do CNPJ ou CPF do contribuinte.
-            - companyName: Nome da empresa ou Razão Social.
-            - value: Valor total da guia/documento (formato 0.00).
+            - companyName: Nome da empresa ou Razão Social. Procure por rótulos como 'Empresa:', 'Empregador:', 'Nome:' no topo do documento.
+            - value: Valor total da guia/documento (formato 0.00). Use o 'Total da Empresa' ou 'Líquido a Pagar' se for relatório de folha.
             - dueDate: Data de vencimento (formato ISO YYYY-MM-DD).
-            - referenceMonth: Período de apuração / Competência (formato MM/YYYY).
-            - type: Nome específico do documento (Ex: DAS, FGTS Digital, Folha de Pagamento Mensal, Extrato Bancário Itau).
-            - category: Classifique em um destes: 'folha' (para holerites, resumo de folha e pro-labore), 'guia' (para DAS, DARF, ISS, ICMS), 'inss' (para guias específicas de previdência), 'extrato' (movimentação bancária) ou 'outro'.
-            - hasInterests: true se houver multa ou juros calculados no valor total.`
+            - referenceMonth: Período de apuração / Competência (formato MM/YYYY). Busque por 'Competência:' ou 'Mês/Ano'.
+            - type: Nome específico do documento (Ex: DAS, FGTS Digital, Folha de Pagamento Mensal, Relação Geral dos Líquidos).
+            - category: Classifique em um destes: 'folha' (para holerites, resumo de folha, programação de férias, pro-labore e relação de líquidos), 'guia' (para DAS, DARF, ISS, ICMS), 'inss' (para guias específicas de previdência), 'extrato' (movimentação bancária) ou 'outro'.
+            - hasInterests: true se houver multa ou juros calculados no valor total.
+            
+            Nota importante: Em relatórios de folha (como Relação de Líquidos), o nome da empresa e o CNPJ estão quase sempre no cabeçalho superior esquerdo.`
           },
           {
             role: "user",

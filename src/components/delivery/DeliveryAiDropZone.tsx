@@ -15,7 +15,8 @@ import {
     ChevronDown,
     ChevronUp,
     Mail,
-    BrainCircuit
+    BrainCircuit,
+    CloudOff
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AiService, ExtractedGuideData } from "@/services/aiService";
@@ -40,6 +41,7 @@ export interface ProcessedDeliveryFile {
     generatedTemplateTitle?: string;
     matchedObligationName?: string;
     publicUrl?: string;
+    manuallyAssigned?: boolean;
 }
 
 interface DeliveryAiDropZoneProps {
@@ -50,6 +52,7 @@ export function DeliveryAiDropZone({ onSendAll }: DeliveryAiDropZoneProps) {
     const [processedFiles, setProcessedFiles] = useState<ProcessedDeliveryFile[]>([]);
     const { clients } = useClients();
     const { obligations } = useObligations();
+    const [clientSearch, setClientSearch] = useState('');
 
     const generatePreview = (data: ExtractedGuideData, client: any, publicUrl?: string) => {
         const branding = BrandingService.getBranding();
@@ -70,7 +73,7 @@ export function DeliveryAiDropZone({ onSendAll }: DeliveryAiDropZoneProps) {
         // Lógica de Assunto e Título baseada na Categoria da IA
         if (data.category === 'folha') {
             subject = `Folha Mensal - ${client?.nomeFantasia || client?.nome_fantasia || data.companyName} - ${data.referenceMonth}`;
-            templateTitle = "Folha de Pagamento";
+            templateTitle = "Folha de Pagamento e Impostos";
         } else if (data.category === 'extrato') {
             subject = `Extrato Bancário - ${client?.nomeFantasia || client?.nome_fantasia || data.companyName} - ${data.referenceMonth}`;
             templateTitle = "Extrato e Movimentação";
@@ -84,7 +87,11 @@ export function DeliveryAiDropZone({ onSendAll }: DeliveryAiDropZoneProps) {
 
         let message = branding.deliveryEmailBody || "";
         if (!message || message.trim() === "") {
-            message = `Olá {{nome_fantasia}},\n\nIdentificamos que sua {{nome_imposto}} referente a {{competencia}} está pronta.\n\nVencimento: {{vencimento}}\nValor: {{valor}}\n\n{{link_documento}}`;
+            if (data.category === 'folha') {
+                message = `Olá {{nome_fantasia}},\n\nIdentificamos que sua {{nome_imposto}} referente a {{competencia}} está pronta.\n\n{{link_documento}}`;
+            } else {
+                message = `Olá {{nome_fantasia}},\n\nIdentificamos que sua {{nome_imposto}} referente a {{competencia}} está pronta.\n\nVencimento: {{vencimento}}\nValor: {{valor}}\n\n{{link_documento}}`;
+            }
         }
 
         const linkTexto = publicUrl 
@@ -140,6 +147,18 @@ export function DeliveryAiDropZone({ onSendAll }: DeliveryAiDropZoneProps) {
         try {
             const data = await AiService.extractGuideData(fileObj.file);
             
+            // Normaliza categorias relacionadas a Folha e Férias
+            const isFolhaOrFerias = data.category === 'folha' || 
+                                   data.type.toLowerCase().includes('férias') || 
+                                   data.type.toLowerCase().includes('ferias');
+
+            if (isFolhaOrFerias) {
+                data.category = 'folha';
+                data.value = "0";
+                // Evita datas inválidas no Postgres setando para null se for folha
+                data.dueDate = null as any; 
+            }
+            
             let publicUrl = '';
             try {
                 const resource = await AiService.uploadFile(fileObj.file);
@@ -149,7 +168,30 @@ export function DeliveryAiDropZone({ onSendAll }: DeliveryAiDropZoneProps) {
             }
 
             const cleanCnpj = data.cnpj.replace(/\D/g, '');
-            const client = clients.find(c => c.cnpj?.replace(/\D/g, '') === cleanCnpj);
+            const searchCompanyName = (data.companyName || '').toLowerCase().trim();
+
+            let client = clients.find(c => {
+                const cCnpj = (c.cnpj || '').replace(/\D/g, '');
+                
+                // 1. Match exato de CNPJ
+                if (cleanCnpj && cCnpj === cleanCnpj) return true;
+                
+                // 2. Match parcial de CNPJ (ex: FGTS Digital com 8 dígitos base)
+                if (cleanCnpj && cleanCnpj.length >= 8 && cCnpj.startsWith(cleanCnpj)) return true;
+
+                return false;
+            });
+
+            // 3. Fallback por Nome / Razão Social se não achou pelo CNPJ
+            if (!client && searchCompanyName) {
+                client = clients.find(c => {
+                    const cRazao = (c.razaoSocial || '').toLowerCase();
+                    const cFantasia = (c.nomeFantasia || '').toLowerCase();
+                    
+                    return (cRazao && (cRazao.includes(searchCompanyName) || searchCompanyName.includes(cRazao))) ||
+                           (cFantasia && (cFantasia.includes(searchCompanyName) || searchCompanyName.includes(cFantasia)));
+                });
+            }
 
             const { subject, message, templateTitle, formalName } = generatePreview(data, client, publicUrl);
 
@@ -190,6 +232,42 @@ export function DeliveryAiDropZone({ onSendAll }: DeliveryAiDropZoneProps) {
         ));
     };
 
+    const updateFileData = (id: string, field: keyof ExtractedGuideData, value: any) => {
+        setProcessedFiles(prev => prev.map(f => {
+            if (f.id === id && f.data) {
+                const newData = { ...f.data, [field]: value };
+                // Regera o rascunho base com os novos dados
+                const { subject, message, templateTitle } = generatePreview(newData, f.client, f.publicUrl);
+                return { 
+                    ...f, 
+                    data: newData,
+                    generatedSubject: subject,
+                    generatedMessage: message,
+                    generatedTemplateTitle: templateTitle
+                };
+            }
+            return f;
+        }));
+    };
+
+    const updateFileClient = (id: string, clientId: string) => {
+        const client = clients.find(c => c.id === clientId);
+        setProcessedFiles(prev => prev.map(f => {
+            if (f.id === id && f.data) {
+                const { subject, message, templateTitle } = generatePreview(f.data, client, f.publicUrl);
+                return { 
+                    ...f, 
+                    client,
+                    generatedSubject: subject,
+                    generatedMessage: message,
+                    generatedTemplateTitle: templateTitle,
+                    manuallyAssigned: true
+                };
+            }
+            return f;
+        }));
+    };
+
     const removeFile = (id: string) => {
         setProcessedFiles(prev => prev.filter(f => f.id !== id));
     };
@@ -203,6 +281,16 @@ export function DeliveryAiDropZone({ onSendAll }: DeliveryAiDropZoneProps) {
     });
 
     const completedCount = processedFiles.filter(f => f.status === 'completed').length;
+
+    const filteredClientsForSelect = useMemo(() => {
+        return clients
+            .filter(c => 
+                (c.nomeFantasia || '').toLowerCase().includes(clientSearch.toLowerCase()) ||
+                (c.razaoSocial || '').toLowerCase().includes(clientSearch.toLowerCase()) ||
+                (c.cnpj || '').includes(clientSearch)
+            )
+            .sort((a,b) => (a.nomeFantasia || '').localeCompare(b.nomeFantasia || ''));
+    }, [clients, clientSearch]);
 
     return (
         <div className="space-y-4">
@@ -289,7 +377,7 @@ export function DeliveryAiDropZone({ onSendAll }: DeliveryAiDropZoneProps) {
                                                     <div className="flex items-center gap-3 mt-1.5">
                                                         <span className="px-3 py-1 rounded-lg bg-primary/10 text-[10px] font-bold text-primary uppercase tracking-tighter">{file.data.type}</span>
                                                         <span className="text-sm text-muted-foreground font-light truncate">
-                                                            {file.client ? (file.client.nome_fantasia || file.client.nomeFantasia) : 'Cliente não encontrado'}
+                                                            {file.client ? (file.client.nomeFantasia || file.client.razaoSocial) : 'Cliente não encontrado'}
                                                         </span>
                                                     </div>
                                                 )}
@@ -339,25 +427,124 @@ export function DeliveryAiDropZone({ onSendAll }: DeliveryAiDropZoneProps) {
                                                 exit={{ height: 0, opacity: 0 }}
                                                 className="overflow-hidden bg-muted/10 border-t border-border/20"
                                             >
-                                                <div className="p-8 space-y-6 text-left">
-                                                    <div className="space-y-2">
-                                                        <label className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground/60 px-1">Assunto do E-mail</label>
-                                                        <input 
-                                                            type="text"
-                                                            value={file.generatedSubject}
-                                                            onChange={(e) => updateFileContent(file.id, 'generatedSubject', e.target.value)}
-                                                            className="w-full text-sm font-light text-foreground px-4 py-3 bg-card rounded-xl border border-border/40 focus:border-primary/40 focus:ring-4 focus:ring-primary/5 focus:outline-none transition-all"
-                                                            placeholder="Assunto do comunicado..."
-                                                        />
+                                                <div className="p-8 grid grid-cols-1 lg:grid-cols-2 gap-10 text-left">
+                                                    {/* Coluna 1: Dados & Mensagem */}
+                                                    <div className="space-y-8">
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <div className="space-y-2">
+                                                                <label className="text-[10px] uppercase tracking-widest font-black text-primary/60 px-1">Vencimento Manual</label>
+                                                                <input 
+                                                                    type="date"
+                                                                    value={file.data?.dueDate}
+                                                                    onChange={(e) => updateFileData(file.id, 'dueDate', e.target.value)}
+                                                                    className="w-full text-xs font-bold text-foreground px-4 py-3 bg-card rounded-xl border border-border/40 focus:border-primary/40 focus:ring-4 focus:ring-primary/5 focus:outline-none transition-all"
+                                                                />
+                                                            </div>
+                                                            <div className="space-y-2">
+                                                                <label className="text-[10px] uppercase tracking-widest font-black text-primary/60 px-1">Valor Manual (R$)</label>
+                                                                <input 
+                                                                    type="number"
+                                                                    step="0.01"
+                                                                    value={file.data?.value}
+                                                                    onChange={(e) => updateFileData(file.id, 'value', e.target.value)}
+                                                                    className="w-full text-xs font-bold text-foreground px-4 py-3 bg-card rounded-xl border border-border/40 focus:border-primary/40 focus:ring-4 focus:ring-primary/5 focus:outline-none transition-all"
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="space-y-2">
+                                                            <div className="flex items-center justify-between px-1">
+                                                                <label className="text-[10px] uppercase tracking-widest font-black text-primary/60">Vincular Cliente Manualmente</label>
+                                                                {!file.client && <span className="text-[8px] text-destructive animate-pulse font-black uppercase">Ação Necessária: Selecione um Cliente</span>}
+                                                            </div>
+                                                            <div className="space-y-3">
+                                                                <input 
+                                                                    type="text"
+                                                                    placeholder="Filtrar cliente por nome ou CNPJ..."
+                                                                    value={clientSearch}
+                                                                    onChange={(e) => setClientSearch(e.target.value)}
+                                                                    className="w-full text-[10px] font-bold uppercase tracking-widest px-4 py-2 bg-muted/30 rounded-lg border border-border/20 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground/30"
+                                                                />
+                                                                <select 
+                                                                    value={file.client?.id || ""}
+                                                                    onChange={(e) => updateFileClient(file.id, e.target.value)}
+                                                                    className={cn(
+                                                                        "w-full text-sm font-bold px-4 py-4 bg-card rounded-xl border focus:outline-none transition-all",
+                                                                        !file.client ? "border-destructive/40 ring-4 ring-destructive/5 text-destructive" : "border-border/40 focus:border-primary/40 focus:ring-4 focus:ring-primary/5 text-foreground"
+                                                                    )}
+                                                                >
+                                                                    <option value="" disabled>Selecione o Cliente Correto...</option>
+                                                                    {filteredClientsForSelect.map(c => (
+                                                                        <option key={c.id} value={c.id}>
+                                                                            {c.nomeFantasia || c.razaoSocial} ({c.cnpj})
+                                                                        </option>
+                                                                    ))}
+                                                                    {filteredClientsForSelect.length === 0 && (
+                                                                        <option disabled>Nenhum cliente encontrado...</option>
+                                                                    )}
+                                                                </select>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="space-y-2">
+                                                            <label className="text-[10px] uppercase tracking-widest font-black text-muted-foreground/60 px-1">Assunto do Comunicado</label>
+                                                            <input 
+                                                                type="text"
+                                                                value={file.generatedSubject}
+                                                                onChange={(e) => updateFileContent(file.id, 'generatedSubject', e.target.value)}
+                                                                className="w-full text-sm font-medium text-foreground px-4 py-4 bg-card rounded-xl border border-border/40 focus:border-primary/40 focus:ring-4 focus:ring-primary/5 focus:outline-none transition-all"
+                                                                placeholder="Assunto do comunicado..."
+                                                            />
+                                                        </div>
+
+                                                        <div className="space-y-2">
+                                                            <div className="flex items-center justify-between px-1">
+                                                                <label className="text-[10px] uppercase tracking-widest font-black text-muted-foreground/60">Corpo do E-mail</label>
+                                                                <span className="text-[9px] text-primary/40 font-bold uppercase tracking-widest">Suporta HTML/Markdown Cortesia</span>
+                                                            </div>
+                                                            <textarea 
+                                                                value={file.generatedMessage}
+                                                                onChange={(e) => updateFileContent(file.id, 'generatedMessage', e.target.value)}
+                                                                className="w-full text-sm font-light text-foreground leading-relaxed px-5 py-5 bg-card rounded-[1.5rem] border border-border/40 focus:border-primary/40 focus:ring-4 focus:ring-primary/5 focus:outline-none transition-all min-h-[300px] resize-none custom-scrollbar shadow-inner"
+                                                                placeholder="Conteúdo da mensagem..."
+                                                            />
+                                                        </div>
                                                     </div>
-                                                    <div className="space-y-2">
-                                                        <label className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground/60 px-1">Corpo da Mensagem (Editável)</label>
-                                                        <textarea 
-                                                            value={file.generatedMessage}
-                                                            onChange={(e) => updateFileContent(file.id, 'generatedMessage', e.target.value)}
-                                                            className="w-full text-sm font-light text-foreground leading-relaxed px-5 py-5 bg-card rounded-[1.5rem] border border-border/40 focus:border-primary/40 focus:ring-4 focus:ring-primary/5 focus:outline-none transition-all min-h-[250px] resize-none custom-scrollbar"
-                                                            placeholder="Conteúdo da mensagem..."
-                                                        />
+
+                                                    {/* Coluna 2: Preview do Arquivo Original */}
+                                                    <div className="space-y-4">
+                                                        <div className="flex items-center justify-between px-1">
+                                                            <label className="text-[10px] uppercase tracking-widest font-black text-primary/60">Preview do Arquivo</label>
+                                                            <a href={file.publicUrl} target="_blank" className="text-[9px] font-black uppercase text-primary hover:underline">Abrir em nova aba</a>
+                                                        </div>
+                                                        <div className="relative w-full aspect-[1/1.4] bg-white rounded-[2rem] border border-border/40 overflow-hidden shadow-2xl">
+                                                            {!file.publicUrl ? (
+                                                                <div className="h-full flex flex-col items-center justify-center text-muted-foreground/20 italic p-10 text-center">
+                                                                    <CloudOff className="h-10 w-10 mb-4" />
+                                                                    <p className="text-xs">Upload não concluído para gerar preview interno.</p>
+                                                                </div>
+                                                            ) : (
+                                                                file.file.type === 'application/pdf' ? (
+                                                                    <iframe 
+                                                                        src={`${file.publicUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+                                                                        className="w-full h-full border-none"
+                                                                        title="Preview PDF"
+                                                                    />
+                                                                ) : (
+                                                                    <img 
+                                                                        src={file.publicUrl} 
+                                                                        alt="Preview" 
+                                                                        className="w-full h-full object-contain"
+                                                                    />
+                                                                )
+                                                            )}
+                                                        </div>
+                                                        <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10 flex items-center gap-3">
+                                                            <AlertCircle className="h-4 w-4 text-primary opacity-40" />
+                                                            <p className="text-[9px] text-primary/60 font-bold uppercase tracking-widest leading-relaxed">
+                                                                Verifique se os dados extraídos pela IA coincidem com os dados visíveis no documento original ao lado.
+                                                            </p>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </motion.div>
