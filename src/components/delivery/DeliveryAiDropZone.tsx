@@ -198,7 +198,7 @@ export function DeliveryAiDropZone({ onSendAll }: DeliveryAiDropZoneProps) {
                 } else if (isRecibo) {
                     data.type = 'RECIBO DE FOLHA MENSAL';
                 } else if (isExtratoMensal || lowerType.includes('folha mensal') || lowerType === 'folha de pagamento') {
-                    data.type = 'Folha de Pagamento Mensal';
+                    data.type = 'FOLHA DE PAGAMENTO MENSAL';
                 } else if (isDemonstrativo && isFGTS) {
                    if (lowerFileName.includes('mensal') || lowerType.includes('mensal')) {
                        data.type = 'DEMONSTRATIVO FGTS RESCISÓRIO MENSAL';

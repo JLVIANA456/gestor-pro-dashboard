@@ -73,7 +73,7 @@ export class AiService {
                 - Se encontrar 'Mensal', o nome DEVE ser 'DEMONSTRATIVO FGTS RESCISÓRIO MENSAL'. 
                 - Se encontrar 'Rescisório', o nome DEVE ser 'DEMONSTRATIVO FGTS RESCISÓRIO'.
                 - NUNCA use 'FGTS Digital' para estes demonstrativos.
-              * Outros exemplos: DAS, FGTS Digital (Guia de Pagamento comum), Folha de Pagamento Mensal (pode ser chamado de 'Extrato Mensal'), RECIBO DE FOLHA MENSAL, RELAÇÃO GERAL DE LÍQUIDOS.
+              * Outros exemplos: DAS, FGTS Digital (Guia de Pagamento comum), FOLHA DE PAGAMENTO MENSAL (pode ser chamado de 'Extrato Mensal'), RECIBO DE FOLHA MENSAL, RELAÇÃO GERAL DE LÍQUIDOS.
               * Diferencie 'Recibo de Pagamento' (vouchers) de 'Folha de Pagamento' (resumo).
             - category: Classifique em um destes: 'folha' (para holerites, resumo de folha, rescisão, demonstrativo fgts rescisório, programação de férias, pro-labore e relação de líquidos, extrato mensal), 'guia' (para DAS, DARF, ISS, ICMS, e FGTS DIgital comum), 'inss' (para previdência), 'extrato' ou 'outro'.
             - hasInterests: true se houver multa ou juros calculados no valor total.
