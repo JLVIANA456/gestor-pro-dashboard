@@ -153,14 +153,23 @@ export function useClientPortal() {
 
     const generatePublicLink = async (clientId: string, days: number = 7) => {
         try {
-            const expires_at = new Date();
-            expires_at.setDate(expires_at.getDate() + days);
+            let expires_at = null;
+            if (days > 0) {
+                const date = new Date();
+                date.setDate(date.getDate() + days);
+                expires_at = date.toISOString();
+            } else if (days === 0) {
+                // Link Permanente: 100 anos de validade
+                const date = new Date();
+                date.setFullYear(date.getFullYear() + 100);
+                expires_at = date.toISOString();
+            }
 
             const { data, error } = await supabase
                 .from('client_upload_tokens')
                 .insert({
                     client_id: clientId,
-                    expires_at: expires_at.toISOString()
+                    expires_at
                 })
                 .select()
                 .single();
@@ -176,11 +185,27 @@ export function useClientPortal() {
         }
     };
 
+    const markAsRead = async (docId: string) => {
+        try {
+            const { error } = await supabase
+                .from('client_documents')
+                .update({ is_read: true })
+                .eq('id', docId);
+
+            if (error) throw error;
+            return true;
+        } catch (error) {
+            console.error('Error marking as read:', error);
+            return false;
+        }
+    };
+
     return {
         loading,
         uploadDocument,
         fetchDocuments,
         createClientAccess,
-        generatePublicLink
+        generatePublicLink,
+        markAsRead
     };
 }

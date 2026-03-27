@@ -1,68 +1,91 @@
-# 🚀 Gestor Pro Dashboard
+# 🚀 Gestor Pro Dashboard - JLConecta
 
-Um dashboard moderno e poderoso para gestão de clientes, relatórios financeiros e personalização de marca. Desenvolvido com as tecnologias mais recentes para oferecer uma experiência de usuário excepcional. 💼✨
-
----
-
-## 📸 Demonstração
-*(Adicione aqui um link para o deploy ou uma screenshot do projeto)*
+O **Gestor Pro Dashboard** é um ecossistema completo de gestão contábil, desenvolvido para transformar a relação entre o escritório de contabilidade e seus clientes. Unindo automação, segurança de dados e uma interface premium, o sistema centraliza todas as operações críticas em um único hub intuitivo. 💼✨
 
 ---
 
-## ✨ Funcionalidades
+## 📸 Visão Geral
+O sistema é dividido em módulos estratégicos que cobrem desde a operação técnica contábil até o atendimento final ao cliente via "Link Mágico" e Portal Exclusivo.
 
-- **📊 Dashboard Inteligente**: Visão geral em tempo real dos principais indicadores de desempenho (KPIs).
-- **👥 Gestão de Clientes**: Sistema completo para cadastrar, editar e organizar sua base de clientes.
-- **📈 Relatórios Detalhados**: Gere insights valiosos com gráficos interativos e exportação de dados.
-- **🎨 Customização de Marca (Branding)**: Personalize a interface com a identidade visual da sua empresa.
-- **🌑 Modo Escuro/Claro**: Interface adaptável para melhor conforto visual.
-- **📱 Design Responsivo**: Acesse de qualquer dispositivo, seja desktop, tablet ou smartphone.
+---
+
+## ✨ Módulos e Funcionalidades
+
+### 1. 📂 Portal do Cliente (Relacionamento & Entrega)
+O coração da interação com o cliente. Focado em eliminar a troca de documentos via WhatsApp e E-mail desorganizados.
+- **Hub do Cliente:** Repositório central onde o cliente recebe guias, impostos e folhas de pagamento organizados por pastas.
+- **Docs Recebidos:** Dashboard exclusivo do escritório para gerenciar arquivos enviados pelos clientes, com indicadores de "Lido/Não Lido".
+- **🔗 Link Mágico (Envio Público):** Gere links seguros que permitem ao cliente enviar documentos sem precisar de senha. Agora com suporte a **Links Permanentes (Infinitos)**.
+- **Configuração do Portal:** Personalize a experiência de acesso de cada empresa.
+
+### 2. 📊 Módulo Contábil & Financeiro
+Controle total sobre o processamento de dados dos clientes.
+- **Progresso Contábil:** Acompanhe o status de fechamento de cada empresa em tempo real.
+- **Retirada de Lucro:** Gestão automatizada de cálculos de distribuição de lucros.
+- **Modulo Honorários:** Controle de faturamento e recebíveis do próprio escritório.
+
+### 3. ⚖️ Módulo Gestão & Obrigações
+Garanta que nenhum prazo seja perdido (Compliance).
+- **Lista de Demandas:** Checklist diário de tarefas internas.
+- **Lista de Entrega:** Controle rigoroso de documentos enviados ao cliente com log de visualização.
+- **Calendário de Obrigações:** Visão mensal de vencimentos de impostos e declarações.
+- **Comunicados em Massa:** Envio de avisos gerais para toda a base de clientes via portal.
 
 ---
 
 ## 🛠️ Tecnologias Utilizadas
 
-O projeto foi construído com o que há de melhor no ecossistema web atual:
-
-- [React](https://reactjs.org/) - Biblioteca principal para a interface. 🛸
-- [Vite](https://vitejs.dev/) - Bundle rápido e moderno. ⚡
-- [TypeScript](https://www.typescriptlang.org/) - Tipagem estática para maior segurança. 📘
-- [Tailwind CSS](https://tailwindcss.com/) - Estilização moderna e utilitária. 🎨
-- [Shadcn/UI](https://ui.shadcn.com/) - Componentes de interface premium e acessíveis. 🧱
-- [Supabase](https://supabase.com/) - Backend as a Service (BaaS) e Banco de Dados. ⚡🔥
-- [Lucide React](https://lucide.dev/) - Ícones elegantes e consistentes. 🎨
-- [TanStack Query](https://tanstack.com/query/latest) - Gerenciamento de estado e requisições assíncronas. 🔄
+O projeto utiliza o que há de mais moderno no desenvolvimento web moderno:
+- **React 18 + Vite:** Performance máxima e carregamento instantâneo. ⚡
+- **TypeScript:** Segurança de código e tipagem rigorosa. 📘
+- **Tailwind CSS + Shadcn/UI:** Interface premium, responsiva e com design limpo. 🎨
+- **Supabase (PostgreSQL + RLS):** Banco de Dados em tempo real com segurança a nível de linha (Row Level Security). ⚡🔥
+- **Lucide Icons:** Conjunto de ícones consistentes e elegantes. 🎨
 
 ---
 
 ## 🚀 Como Executar o Projeto
 
-Siga os passos abaixo para configurar o ambiente local:
+### 1. Requisitos
+- Node.js (v18+)
+- Conta no Supabase
 
-### 1. Clonar o Repositório
+### 2. Instalação
 ```bash
+# Clone o repositório
 git clone https://github.com/JLVIANA456/gestor-pro-dashboard.git
-cd gestor-pro-dashboard
-```
 
-### 2. Instalar Dependências
-```bash
+# Entre na pasta
+cd gestor-pro-dashboard
+
+# Instale as dependências
 npm install
 ```
 
-### 3. Configurar Variáveis de Ambiente
-Crie um arquivo `.env` na raiz do projeto e adicione suas chaves do Supabase:
-```env
-VITE_SUPABASE_PROJECT_ID="seu_projeto_id"
-VITE_SUPABASE_PUBLISHABLE_KEY="sua_chave_anonima"
-VITE_SUPABASE_URL="sua_url_do_supabase"
+### 3. Configuração do Backend (Supabase)
+Para que o portal funcione corretamente, execute os scripts SQL abaixo no Editor do Supabase:
+
+**Tabela de Tokens de Upload (Link Mágico):**
+```sql
+create table if not exists public.client_upload_tokens (
+    id uuid default gen_random_uuid() primary key,
+    client_id uuid references public.clients(id) on delete cascade not null,
+    token uuid default gen_random_uuid() not null,
+    expires_at timestamp with time zone, -- Pode ser NULL para links permanentes
+    created_at timestamp with time zone default now()
+);
 ```
 
-### 4. Iniciar o Servidor de Desenvolvimento
+**Tabela de Documentos:**
+```sql
+alter table public.client_documents 
+add column if not exists is_read boolean default false;
+```
+
+### 4. Rodar o Projeto
 ```bash
 npm run dev
 ```
-O projeto estará disponível em `http://localhost:8080` 🚀
 
 ---
 
@@ -70,32 +93,19 @@ O projeto estará disponível em `http://localhost:8080` 🚀
 
 ```text
 src/
-├── components/   # Componentes reutilizáveis (UI, Layout, Específicos)
-├── hooks/        # Hooks personalizados
-├── lib/          # Configurações de bibliotecas (ex: Supabase, Utils)
-├── pages/        # Telas principais da aplicação
-├── integrations/ # Integrações com serviços externos
-└── App.tsx       # Configuração de rotas e provedores
+├── components/      # Componentes UI (Cards, Modais, Inputs)
+├── components/layout# Sidebar, Navbar e estrutura global
+├── hooks/           # useClientPortal, useClients (Lógica de API)
+├── pages/           # Telas (ClientPortal, DocumentosRecebidos, etc.)
+├── integrations/    # Instância do Supabase
+└── context/         # BrandingContext e AuthContext (Estado Global)
 ```
 
 ---
 
-## 🤝 Contribuição
-
-Contribuições são sempre bem-vindas! Se você tem alguma ideia para melhorar o projeto:
-
-1. Faça um **Fork** do projeto.
-2. Crie uma **Branch** para sua funcionalidade (`git checkout -b feature/NovaFeature`).
-3. Faça o **Commit** de suas alterações (`git commit -m 'Adicionando nova funcionalidade'`).
-4. Envie para a **Branch** original (`git push origin feature/NovaFeature`).
-5. Abra um **Pull Request**.
+## 🤝 Contribuição e Licença
+Este projeto é de uso exclusivo e está sob licença proprietária de **JLVIANA**.
 
 ---
 
-## 📄 Licença
-
-Este projeto está sob a licença MIT. 
-
----
-
-Feito com ❤️ por [JLVIANA - DEV Gabriel](https://github.com/JLVIANA456) 🚀
+Feito com ❤️ pela equipe de desenvolvimento **JLVIANA - JLConecta** 🚀

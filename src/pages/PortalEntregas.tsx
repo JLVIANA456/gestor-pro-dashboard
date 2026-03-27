@@ -342,6 +342,15 @@ export default function PortalEntregas() {
                             <FolderPlus className="h-4 w-4 text-primary" />
                             Nova Pasta
                          </Button>
+                         {selectedFolderId && (
+                             <Button 
+                                className="h-14 rounded-2xl px-10 gap-3 bg-primary text-white shadow-xl shadow-primary/20 font-black uppercase text-[10px] tracking-widest transition-all"
+                                onClick={() => setIsUploadModalOpen(true)}
+                             >
+                                <Upload className="h-4 w-4" />
+                                Enviar Arquivo
+                             </Button>
+                         )}
                     </div>
                 </header>
 

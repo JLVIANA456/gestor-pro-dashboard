@@ -27,13 +27,14 @@ import Alerts from "./pages/Alerts";
 import EmailLogs from "./pages/EmailLogs";
 import Login from "./pages/Login";
 import Landing from "./pages/Landing";
-import ClientPortalAdmin from "./pages/ClientPortalAdmin";
+import ClientPortal from "./pages/ClientPortal";
 import ClientPortalView from "./pages/ClientPortalView";
 import PortalEntregas from "./pages/PortalEntregas";
 import PublicUpload from "./pages/PublicUpload";
 import ClientActivation from "./pages/ClientActivation";
 import ClientPortalConfig from "./pages/ClientPortalConfig";
 import DemandList from "./pages/DemandList";
+import DocumentosRecebidos from "./pages/DocumentosRecebidos";
 
 const queryClient = new QueryClient();
 
@@ -120,7 +121,8 @@ const AppContent = () => {
             <Route path="comunicados" element={<Announcements />} />
             <Route path="comunicados-recorrentes" element={<RecurringAnnouncements />} />
             <Route path="logs-envios" element={<EmailLogs />} />
-            <Route path="portal-admin" element={<ClientPortalAdmin />} />
+            <Route path="portal-clientes" element={<ClientPortal />} />
+            <Route path="documentos" element={<DocumentosRecebidos />} />
             <Route path="portal-config" element={<ClientPortalConfig />} />
             <Route path="portal-entregas" element={<PortalEntregas />} />
             <Route path="ativar-portal/:token" element={<ClientActivation />} />

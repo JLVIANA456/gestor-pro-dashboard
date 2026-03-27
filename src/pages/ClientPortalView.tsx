@@ -18,11 +18,32 @@ import {
     UserCircle,
     FileSpreadsheet,
     ShieldCheck,
-    Briefcase
+    Briefcase,
+    FileUp,
+    CheckCircle
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { 
+    Dialog, 
+    DialogContent, 
+    DialogHeader, 
+    DialogTitle, 
+    DialogTrigger,
+    DialogDescription,
+    DialogFooter
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { 
+    Select, 
+    SelectContent, 
+    SelectItem, 
+    SelectTrigger, 
+    SelectValue 
+} from "@/components/ui/select";
+import { useClientPortal } from '@/hooks/useClientPortal';
 import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -57,6 +78,19 @@ export default function ClientPortalView() {
     
     const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    
+    // Upload State
+    const { uploadDocument, fetchDocuments } = useClientPortal();
+    const [uploading, setUploading] = useState(false);
+    const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+    const [myUploads, setMyUploads] = useState<any[]>([]);
+    const [activeView, setActiveView] = useState<'received' | 'sent'>('received');
+    
+    const [uploadData, setUploadData] = useState({
+        file: null as File | null,
+        category: 'outro' as any,
+        description: ''
+    });
 
     // Fetch linked clientId from localStorage
     useEffect(() => {
@@ -109,10 +143,37 @@ export default function ClientPortalView() {
                     createdAt: d.created_at
                 })));
             }
+
+            // 3. Fetch My Uploads (client_documents)
+            const uploads = await fetchDocuments(cid, 'entrada');
+            setMyUploads(uploads);
         } catch (err) {
             console.error("FetchPortalData Error:", err);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleUpload = async () => {
+        if (!uploadData.file || !clientId) return;
+        
+        try {
+            setUploading(true);
+            await uploadDocument({
+                file: uploadData.file,
+                clientId: clientId,
+                category: uploadData.category,
+                type: 'entrada',
+                description: uploadData.description
+            });
+            
+            setUploadDialogOpen(false);
+            setUploadData({ file: null, category: 'outro', description: '' });
+            fetchPortalData(clientId); // Refresh
+        } catch (err: any) {
+            toast.error("Erro ao enviar arquivo");
+        } finally {
+            setUploading(false);
         }
     };
 
@@ -200,17 +261,94 @@ export default function ClientPortalView() {
                     </div>
 
                     <div className="flex items-center gap-6">
-                        <div className="hidden lg:flex items-center gap-4 px-6 py-2 bg-slate-50 rounded-2xl border border-slate-100">
-                            <Clock className="h-4 w-4 text-slate-400" />
-                            <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Acesso Seguro</span>
+                        <div className="hidden lg:flex items-center gap-3">
+                            <Button 
+                                variant={activeView === 'received' ? 'default' : 'ghost'}
+                                onClick={() => setActiveView('received')}
+                                className="rounded-2xl h-11 px-6 font-black uppercase text-[10px] tracking-widest"
+                            >
+                                <Inbox className="h-4 w-4 mr-2" /> Recebidos
+                            </Button>
+                            <Button 
+                                variant={activeView === 'sent' ? 'default' : 'ghost'}
+                                onClick={() => setActiveView('sent')}
+                                className="rounded-2xl h-11 px-6 font-black uppercase text-[10px] tracking-widest"
+                            >
+                                <FileUp className="h-4 w-4 mr-2" /> Meus Envios
+                            </Button>
                         </div>
+                        
+                        <div className="hidden lg:flex items-center gap-4 px-6 py-2 bg-slate-50 rounded-2xl border border-slate-100 h-11">
+                            <Clock className="h-3.5 w-3.5 text-slate-400" />
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Sessão Ativa</span>
+                        </div>
+
+                        <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+                            <DialogTrigger asChild>
+                                <Button className="h-11 px-6 rounded-2xl bg-primary text-white font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20 gap-2">
+                                    <FileUp className="h-4 w-4" /> Enviar Arquivo
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-md bg-white rounded-[2rem] p-8">
+                                <DialogHeader>
+                                    <DialogTitle className="text-2xl font-black text-slate-800">Enviar Documento</DialogTitle>
+                                    <DialogDescription className="text-xs text-slate-400 font-medium">
+                                        Escolha o arquivo e categorize para facilitar o processamento pelo escritório.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-6 py-4">
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase text-slate-400">Arquivo</Label>
+                                        <Input 
+                                            type="file" 
+                                            onChange={(e) => setUploadData({...uploadData, file: e.target.files?.[0] || null})}
+                                            className="h-12 rounded-xl bg-slate-50 border-slate-100 cursor-pointer" 
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase text-slate-400">Categoria</Label>
+                                        <Select value={uploadData.category} onValueChange={(val) => setUploadData({...uploadData, category: val})}>
+                                            <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-slate-100">
+                                                <SelectValue placeholder="Selecione uma categoria" />
+                                            </SelectTrigger>
+                                            <SelectContent className="bg-white border-slate-100 rounded-xl">
+                                                <SelectItem value="nota_fiscal">Nota Fiscal</SelectItem>
+                                                <SelectItem value="extrato">Extrato Bancário</SelectItem>
+                                                <SelectItem value="balancete">Balancete / Documento Contábil</SelectItem>
+                                                <SelectItem value="guia">Guia de Pagamento</SelectItem>
+                                                <SelectItem value="outro">Outro Documento</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase text-slate-400">Descrição (Opcional)</Label>
+                                        <Input 
+                                            value={uploadData.description}
+                                            onChange={(e) => setUploadData({...uploadData, description: e.target.value})}
+                                            placeholder="Ex: Nota fiscal de serviço Março"
+                                            className="h-12 rounded-xl bg-slate-50 border-slate-100" 
+                                        />
+                                    </div>
+                                </div>
+                                <DialogFooter>
+                                    <Button 
+                                        onClick={handleUpload}
+                                        disabled={!uploadData.file || uploading}
+                                        className="h-12 w-full rounded-xl bg-primary text-white font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/10"
+                                    >
+                                        {uploading ? "Enviando..." : "Confirmar Envio"}
+                                    </Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+
                         <Button 
                             variant="ghost" 
                             size="icon" 
-                            className="rounded-2xl h-12 w-12 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all shadow-sm border border-slate-50 bg-white"
+                            className="rounded-2xl h-11 w-11 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all shadow-sm border border-slate-50 bg-white"
                             onClick={() => {
                                 localStorage.removeItem('client_session_id');
-                                window.dispatchEvent(new Event('client-login')); // triggers App sync to redirect
+                                window.dispatchEvent(new Event('client-login')); 
                                 signOut?.(); 
                             }}
                         >
@@ -222,7 +360,27 @@ export default function ClientPortalView() {
 
             <main className="max-w-7xl mx-auto px-6 py-12 w-full flex-1">
                 <div className="space-y-12">
-                    {/* Breadcrumbs & Title & Search Container */}
+                    {/* View Switch for Mobile */}
+                    <div className="lg:hidden flex gap-2">
+                        <Button 
+                            variant={activeView === 'received' ? 'default' : 'outline'}
+                            onClick={() => setActiveView('received')}
+                            className="flex-1 rounded-xl h-11 font-black uppercase text-[9px] tracking-widest"
+                        >
+                            Recebidos
+                        </Button>
+                        <Button 
+                            variant={activeView === 'sent' ? 'default' : 'outline'}
+                            onClick={() => setActiveView('sent')}
+                            className="flex-1 rounded-xl h-11 font-black uppercase text-[9px] tracking-widest"
+                        >
+                            Enviados
+                        </Button>
+                    </div>
+
+                    {activeView === 'received' ? (
+                        <>
+                            {/* Breadcrumbs & Title & Search Container */}
                     <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
                          <div className="space-y-4 flex-1">
                             <div className="flex flex-col">
@@ -394,8 +552,6 @@ export default function ClientPortalView() {
                             </Card>
                         ))}
                     </div>
-
-                    {/* Empty States */}
                     {deliveries.length === 0 && !loading && (
                         <div className="py-32 flex flex-col items-center justify-center text-center space-y-6 opacity-40">
                             <div className="h-24 w-24 rounded-full bg-slate-100 flex items-center justify-center">
@@ -404,6 +560,55 @@ export default function ClientPortalView() {
                             <div className="space-y-2">
                                 <h4 className="text-xl font-black uppercase tracking-tighter text-slate-800">Seu Hub está Vazio</h4>
                                 <p className="text-sm text-slate-400 max-w-xs mx-auto">Assim que enviarmos suas guias e documentos, eles aparecerão aqui organizados automaticamente.</p>
+                            </div>
+                        </div>
+                    )}
+                        </>
+                    ) : (
+                        /* SENT VIEW - WHAT CLIENT UPLOADED */
+                        <div className="space-y-10 animate-in fade-in slide-in-from-right-4 duration-500">
+                             <div className="space-y-2">
+                                <h1 className="text-4xl font-light text-slate-800 tracking-tighter">
+                                    Documentos <span className="font-black text-primary">Enviados</span>
+                                </h1>
+                                <p className="text-[10px] uppercase font-black text-slate-400 tracking-[0.4em]">Arquivos que você mandou p/ nós</p>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                                {myUploads.length === 0 ? (
+                                    <div className="col-span-full py-20 flex flex-col items-center justify-center text-center space-y-4 opacity-40">
+                                        <div className="h-20 w-20 rounded-full bg-slate-100 flex items-center justify-center">
+                                            <FileUp className="h-8 w-8 text-slate-400" />
+                                        </div>
+                                        <p className="text-sm font-black uppercase tracking-widest text-slate-500">Nenhum envio registrado</p>
+                                    </div>
+                                ) : (
+                                    myUploads.map(doc => (
+                                        <Card key={doc.id} className="group rounded-[3.5rem] border-none bg-white p-10 shadow-sm transition-all duration-700 hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-2 flex flex-col justify-between">
+                                            <div className="space-y-6">
+                                                <div className="h-16 w-16 rounded-[2rem] bg-emerald-50 text-emerald-500 flex items-center justify-center">
+                                                    <CheckCircle className="h-8 w-8" />
+                                                </div>
+                                                <div className="space-y-4">
+                                                    <h3 className="text-xl font-black text-slate-800 tracking-tighter line-clamp-2 leading-tight h-14">{doc.fileName}</h3>
+                                                    <div className="flex flex-col gap-2">
+                                                        <div className="flex items-center justify-between py-2 border-b border-slate-50">
+                                                            <span className="text-[9px] font-black uppercase text-slate-300 tracking-widest">Categoria</span>
+                                                            <Badge className="bg-slate-50 text-slate-400 border-none text-[9px] font-black uppercase whitespace-nowrap">{doc.category}</Badge>
+                                                        </div>
+                                                        <div className="flex items-center justify-between py-2">
+                                                            <span className="text-[9px] font-black uppercase text-slate-300 tracking-widest">Data</span>
+                                                            <span className="text-xs font-black text-slate-400">{format(new Date(doc.createdAt), 'dd/MM/yyyy')}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <Button asChild variant="outline" className="w-full h-14 rounded-[2rem] border-slate-100 text-slate-400 hover:text-primary hover:bg-primary/5 font-black uppercase text-[10px] tracking-widest mt-8">
+                                                <a href={doc.fileUrl} target="_blank">Visualizar</a>
+                                            </Button>
+                                        </Card>
+                                    ))
+                                )}
                             </div>
                         </div>
                     )}

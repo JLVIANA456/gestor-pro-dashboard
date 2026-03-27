@@ -23,7 +23,9 @@ import {
   Clock,
   MailOpen,
   Globe,
-  Monitor
+  Monitor,
+  Link2,
+  FolderOpen
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useBranding } from '@/context/BrandingContext';
@@ -75,8 +77,9 @@ const sections = [
   {
     title: 'Portal do Cliente',
     items: [
-      { name: 'Área do cliente', href: '/portal-admin', icon: Monitor },
       { name: 'Hub do Cliente', href: '/portal-entregas', icon: Globe },
+      { name: 'Docs Recebidos', href: '/documentos', icon: FolderOpen },
+      { name: 'Links de Envio', href: '/portal-clientes', icon: Link2 },
       { name: 'Configuração do Portal', href: '/portal-config', icon: Settings },
     ]
   },
