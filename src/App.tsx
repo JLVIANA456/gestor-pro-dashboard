@@ -31,8 +31,6 @@ import ClientPortal from "./pages/ClientPortal";
 import ClientPortalView from "./pages/ClientPortalView";
 import PortalEntregas from "./pages/PortalEntregas";
 import PublicUpload from "./pages/PublicUpload";
-import ClientActivation from "./pages/ClientActivation";
-import ClientPortalConfig from "./pages/ClientPortalConfig";
 import DemandList from "./pages/DemandList";
 import DocumentosRecebidos from "./pages/DocumentosRecebidos";
 
@@ -79,7 +77,6 @@ const AppContent = () => {
     return (
       <Routes>
         <Route path="/upload-publico/:token" element={<PublicUpload />} />
-        <Route path="/ativar-portal/:token" element={<ClientActivation />} />
         <Route path="*" element={<Landing />} />
       </Routes>
     );
@@ -123,9 +120,7 @@ const AppContent = () => {
             <Route path="logs-envios" element={<EmailLogs />} />
             <Route path="portal-clientes" element={<ClientPortal />} />
             <Route path="documentos" element={<DocumentosRecebidos />} />
-            <Route path="portal-config" element={<ClientPortalConfig />} />
             <Route path="portal-entregas" element={<PortalEntregas />} />
-            <Route path="ativar-portal/:token" element={<ClientActivation />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </MainLayout>

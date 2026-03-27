@@ -32,26 +32,28 @@ export default function Login() {
           toast.success('Bem-vindo ao sistema!');
         }
       } else {
-        // Modo Cliente - Login Simples Prático
-        if (password !== '1234') {
+        // Modo Cliente - Login via CNPJ + Senha Padrão
+        if (password !== 'conecta@2025') {
           toast.error('Senha incorreta.');
           setLoading(false);
           return;
         }
 
-        const searchTerm = `%${email}%`;
+        // Limpa o CNPJ (deixa só números para a busca secundária)
+        const cleanCnpj = email.replace(/\D/g, '');
+        
+        // Busca flexível: Tenta encontrar o CNPJ formatado ou apenas números
         const { data, error } = await supabase
           .from('clients')
-          .select('id, razao_social, nome_fantasia')
-          .or(`razao_social.ilike.${searchTerm},nome_fantasia.ilike.${searchTerm}`)
-          .limit(1)
+          .select('id, razao_social, nome_fantasia, cnpj')
+          .or(`cnpj.eq."${email}",cnpj.eq."${cleanCnpj}"`)
           .maybeSingle();
           
         if (error) {
           console.error(error);
           toast.error('Erro ao verificar cliente.');
         } else if (!data) {
-          toast.error('Cliente não localizado. Verifique o nome.');
+          toast.error('CNPJ não localizado. Verifique se digitou corretamente.');
         } else {
           toast.success(`Bem-vindo, ${data.nome_fantasia || data.razao_social}!`);
           localStorage.setItem('client_session_id', data.id);
@@ -154,7 +156,7 @@ export default function Login() {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold uppercase text-slate-400 tracking-[0.2em] ml-1">
-                    {loginMode === 'cliente' ? 'Nome da Sua Empresa' : 'E-mail Corporativo'}
+                    {loginMode === 'cliente' ? 'CNPJ da sua Empresa' : 'E-mail Corporativo'}
                   </label>
                   <div className="group relative">
                     {loginMode === 'cliente' ? (
@@ -162,10 +164,10 @@ export default function Login() {
                     ) : (
                       <Mail className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-primary transition-colors" />
                     )}
-                    <Input
-                      type="text"
-                      placeholder={loginMode === 'cliente' ? "Ex: Empresa XYZ" : "seu@dominio.com.br"}
-                      value={email}
+                      <Input
+                        type="text"
+                        placeholder={loginMode === 'cliente' ? "00.000.000/0000-00" : "seu@dominio.com.br"}
+                        value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
                       className="h-14 pl-14 rounded-2xl border-slate-100 bg-white/50 focus:bg-white focus:ring-4 focus:ring-primary/5 focus:border-primary/20 transition-all font-medium text-slate-600 placeholder:text-slate-300 shadow-sm"

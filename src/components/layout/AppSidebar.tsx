@@ -80,7 +80,6 @@ const sections = [
       { name: 'Hub do Cliente', href: '/portal-entregas', icon: Globe },
       { name: 'Docs Recebidos', href: '/documentos', icon: FolderOpen },
       { name: 'Links de Envio', href: '/portal-clientes', icon: Link2 },
-      { name: 'Configuração do Portal', href: '/portal-config', icon: Settings },
     ]
   },
   {
