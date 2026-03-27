@@ -43,6 +43,7 @@ const sections = [
     items: [
       { name: 'Dashboard', href: '/', icon: LayoutDashboard },
       { name: 'Clientes', href: '/clientes', icon: Users },
+      { name: 'Painel Operacional', href: '/painel-operacional', icon: TableProperties },
     ]
   },
   {

@@ -9,6 +9,7 @@ import { BrandingProvider } from "./context/BrandingContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
+import OperationalPanel from "./pages/OperationalPanel";
 import Reports from "./pages/Reports";
 import Branding from "./pages/Branding";
 import Announcements from "./pages/Announcements";
@@ -102,6 +103,7 @@ const AppContent = () => {
           <Routes>
             <Route path="" element={<Dashboard />} />
             <Route path="clientes" element={<Clients />} />
+            <Route path="painel-operacional" element={<OperationalPanel />} />
             <Route path="contabilidade" element={<Accounting />} />
             <Route path="progresso-contabil" element={<AccountingProgress />} />
             <Route path="honorarios" element={<Honorarios />} />
