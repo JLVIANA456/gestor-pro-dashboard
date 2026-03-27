@@ -8,15 +8,17 @@ import {
     Loader2, 
     CheckCircle2, 
     AlertCircle, 
+    CloudOff,
+    Edit3,
     Send,
     Trash2,
     X,
     Eye,
-    ChevronDown,
-    ChevronUp,
     Mail,
     BrainCircuit,
-    CloudOff
+    Search,
+    ShieldCheck,
+    ChevronDown
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AiService, ExtractedGuideData } from "@/services/aiService";
@@ -27,6 +29,15 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { BrandingService } from "@/services/brandingService";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export interface ProcessedDeliveryFile {
     id: string;
@@ -50,9 +61,14 @@ interface DeliveryAiDropZoneProps {
 
 export function DeliveryAiDropZone({ onSendAll }: DeliveryAiDropZoneProps) {
     const [processedFiles, setProcessedFiles] = useState<ProcessedDeliveryFile[]>([]);
+    const [reviewingFileId, setReviewingFileId] = useState<string | null>(null);
     const { clients } = useClients();
     const { obligations } = useObligations();
     const [clientSearch, setClientSearch] = useState('');
+
+    const reviewingFile = useMemo(() => 
+        processedFiles.find(f => f.id === reviewingFileId),
+    [processedFiles, reviewingFileId]);
 
     const generatePreview = (data: ExtractedGuideData, client: any, publicUrl?: string) => {
         const branding = BrandingService.getBranding();
@@ -450,14 +466,11 @@ export function DeliveryAiDropZone({ onSendAll }: DeliveryAiDropZoneProps) {
                                                     <Button 
                                                         variant="outline" 
                                                         size="sm" 
-                                                        onClick={() => togglePreview(file.id)}
-                                                        className={cn(
-                                                            "h-10 px-6 rounded-xl text-[10px] font-bold uppercase tracking-widest gap-2 transition-all",
-                                                            file.previewVisible ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20" : "border-border/40 hover:border-primary/40"
-                                                        )}
+                                                        onClick={() => setReviewingFileId(file.id)}
+                                                        className="h-10 px-6 rounded-xl text-[10px] font-bold uppercase tracking-widest gap-2 bg-white border-border/40 hover:border-primary/40 hover:bg-primary/5 hover:text-primary transition-all shadow-sm"
                                                     >
-                                                        <Eye className="h-4 w-4" /> 
-                                                        {file.previewVisible ? 'Fechar Review' : 'Editar & Revisar'}
+                                                        <Edit3 className="h-4 w-4" /> 
+                                                        Revisar & Ajustar
                                                     </Button>
                                                 </>
                                             )}
@@ -472,137 +485,233 @@ export function DeliveryAiDropZone({ onSendAll }: DeliveryAiDropZoneProps) {
                                         </div>
                                     </div>
 
-                                    <AnimatePresence>
-                                        {file.previewVisible && file.status === 'completed' && (
-                                            <motion.div 
-                                                initial={{ height: 0, opacity: 0 }}
-                                                animate={{ height: 'auto', opacity: 1 }}
-                                                exit={{ height: 0, opacity: 0 }}
-                                                className="overflow-hidden bg-muted/10 border-t border-border/20"
-                                            >
-                                                <div className="p-8 grid grid-cols-1 lg:grid-cols-2 gap-10 text-left">
-                                                    {/* Coluna 1: Dados & Mensagem */}
-                                                    <div className="space-y-8">
-                                                        <div className="grid grid-cols-2 gap-4">
-                                                            <div className="space-y-2">
-                                                                <label className="text-[10px] uppercase tracking-widest font-black text-primary/60 px-1">Vencimento Manual</label>
-                                                                <input 
-                                                                    type="date"
-                                                                    value={file.data?.dueDate}
-                                                                    onChange={(e) => updateFileData(file.id, 'dueDate', e.target.value)}
-                                                                    className="w-full text-xs font-bold text-foreground px-4 py-3 bg-card rounded-xl border border-border/40 focus:border-primary/40 focus:ring-4 focus:ring-primary/5 focus:outline-none transition-all"
-                                                                />
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                <label className="text-[10px] uppercase tracking-widest font-black text-primary/60 px-1">Valor Manual (R$)</label>
-                                                                <input 
-                                                                    type="number"
-                                                                    step="0.01"
-                                                                    value={file.data?.value}
-                                                                    onChange={(e) => updateFileData(file.id, 'value', e.target.value)}
-                                                                    className="w-full text-xs font-bold text-foreground px-4 py-3 bg-card rounded-xl border border-border/40 focus:border-primary/40 focus:ring-4 focus:ring-primary/5 focus:outline-none transition-all"
-                                                                />
-                                                            </div>
+                                    {/* Modal de Revisão Full Screen */}
+                                    <Dialog open={!!reviewingFileId} onOpenChange={(open) => !open && setReviewingFileId(null)}>
+                                        <DialogContent className="max-w-none w-screen h-screen flex flex-col p-0 rounded-none border-none shadow-none bg-[#FDFDFF]">
+                                            <DialogHeader className="px-10 py-6 border-b border-slate-100 bg-white shadow-sm z-10 shrink-0">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-6 text-left">
+                                                        <div className="h-14 w-14 rounded-[1.25rem] bg-primary/10 flex items-center justify-center text-primary shadow-inner">
+                                                            <BrainCircuit className="h-7 w-7" />
                                                         </div>
-
-                                                        <div className="space-y-2">
-                                                            <div className="flex items-center justify-between px-1">
-                                                                <label className="text-[10px] uppercase tracking-widest font-black text-primary/60">Vincular Cliente Manualmente</label>
-                                                                {!file.client && <span className="text-[8px] text-destructive animate-pulse font-black uppercase">Ação Necessária: Selecione um Cliente</span>}
-                                                            </div>
-                                                            <div className="space-y-3">
-                                                                <input 
-                                                                    type="text"
-                                                                    placeholder="Filtrar cliente por nome ou CNPJ..."
-                                                                    value={clientSearch}
-                                                                    onChange={(e) => setClientSearch(e.target.value)}
-                                                                    className="w-full text-[10px] font-bold uppercase tracking-widest px-4 py-2 bg-muted/30 rounded-lg border border-border/20 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground/30"
-                                                                />
-                                                                <select 
-                                                                    value={file.client?.id || ""}
-                                                                    onChange={(e) => updateFileClient(file.id, e.target.value)}
-                                                                    className={cn(
-                                                                        "w-full text-sm font-bold px-4 py-4 bg-card rounded-xl border focus:outline-none transition-all",
-                                                                        !file.client ? "border-destructive/40 ring-4 ring-destructive/5 text-destructive" : "border-border/40 focus:border-primary/40 focus:ring-4 focus:ring-primary/5 text-foreground"
-                                                                    )}
-                                                                >
-                                                                    <option value="" disabled>Selecione o Cliente Correto...</option>
-                                                                    {filteredClientsForSelect.map(c => (
-                                                                        <option key={c.id} value={c.id}>
-                                                                            {c.nomeFantasia || c.razaoSocial} ({c.cnpj})
-                                                                        </option>
-                                                                    ))}
-                                                                    {filteredClientsForSelect.length === 0 && (
-                                                                        <option disabled>Nenhum cliente encontrado...</option>
-                                                                    )}
-                                                                </select>
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="space-y-2">
-                                                            <label className="text-[10px] uppercase tracking-widest font-black text-muted-foreground/60 px-1">Assunto do Comunicado</label>
-                                                            <input 
-                                                                type="text"
-                                                                value={file.generatedSubject}
-                                                                onChange={(e) => updateFileContent(file.id, 'generatedSubject', e.target.value)}
-                                                                className="w-full text-sm font-medium text-foreground px-4 py-4 bg-card rounded-xl border border-border/40 focus:border-primary/40 focus:ring-4 focus:ring-primary/5 focus:outline-none transition-all"
-                                                                placeholder="Assunto do comunicado..."
-                                                            />
-                                                        </div>
-
-                                                        <div className="space-y-2">
-                                                            <div className="flex items-center justify-between px-1">
-                                                                <label className="text-[10px] uppercase tracking-widest font-black text-muted-foreground/60">Corpo do E-mail</label>
-                                                                <span className="text-[9px] text-primary/40 font-bold uppercase tracking-widest">Suporta HTML/Markdown Cortesia</span>
-                                                            </div>
-                                                            <textarea 
-                                                                value={file.generatedMessage}
-                                                                onChange={(e) => updateFileContent(file.id, 'generatedMessage', e.target.value)}
-                                                                className="w-full text-sm font-light text-foreground leading-relaxed px-5 py-5 bg-card rounded-[1.5rem] border border-border/40 focus:border-primary/40 focus:ring-4 focus:ring-primary/5 focus:outline-none transition-all min-h-[300px] resize-none custom-scrollbar shadow-inner"
-                                                                placeholder="Conteúdo da mensagem..."
-                                                            />
+                                                        <div>
+                                                            <DialogTitle className="text-3xl font-light text-slate-900 tracking-tighter">
+                                                                Revisão <span className="text-primary font-bold italic">Inteligente</span>
+                                                            </DialogTitle>
+                                                            <p className="text-[11px] uppercase font-black tracking-[0.25em] text-slate-400 mt-1">
+                                                                Ajuste fino dos dados extraídos pela inteligência artificial
+                                                            </p>
                                                         </div>
                                                     </div>
-
-                                                    {/* Coluna 2: Preview do Arquivo Original */}
-                                                    <div className="space-y-4">
-                                                        <div className="flex items-center justify-between px-1">
-                                                            <label className="text-[10px] uppercase tracking-widest font-black text-primary/60">Preview do Arquivo</label>
-                                                            <a href={file.publicUrl} target="_blank" className="text-[9px] font-black uppercase text-primary hover:underline">Abrir em nova aba</a>
+                                                    
+                                                    <div className="flex items-center gap-8">
+                                                        <div className="hidden xl:flex flex-col items-end pr-8 border-r border-slate-100">
+                                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Arquivo em Fila</span>
+                                                            <span className="text-sm font-bold text-slate-700 truncate max-w-[300px]">{reviewingFile?.file.name}</span>
                                                         </div>
-                                                        <div className="relative w-full aspect-[1/1.4] bg-white rounded-[2rem] border border-border/40 overflow-hidden shadow-2xl">
-                                                            {!file.publicUrl ? (
-                                                                <div className="h-full flex flex-col items-center justify-center text-muted-foreground/20 italic p-10 text-center">
-                                                                    <CloudOff className="h-10 w-10 mb-4" />
-                                                                    <p className="text-xs">Upload não concluído para gerar preview interno.</p>
+                                                        
+                                                        <div className="flex items-center gap-3">
+                                                            <Button 
+                                                                variant="ghost" 
+                                                                onClick={() => setReviewingFileId(null)}
+                                                                className="rounded-2xl h-14 px-8 text-[11px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all"
+                                                            >
+                                                                Cancelar
+                                                            </Button>
+                                                            <Button 
+                                                                onClick={() => setReviewingFileId(null)}
+                                                                className="rounded-2xl h-14 px-10 bg-primary text-white shadow-[0_15px_30px_-5px_rgba(var(--primary-rgb),0.3)] text-[11px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all"
+                                                            >
+                                                                Confirmar & Salvar
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </DialogHeader>
+
+                                            <div className="flex-1 overflow-hidden flex flex-col md:flex-row bg-[#FDFDFF]">
+                                                {/* Painel de Edição - 40% */}
+                                                <div className="w-full md:w-[450px] lg:w-[500px] xl:w-[600px] border-r border-slate-100 bg-white overflow-y-auto custom-scrollbar flex flex-col">
+                                                    <div className="p-10 space-y-12">
+                                                        {/* Seção 01: Dados Financeiros */}
+                                                        <div className="space-y-6">
+                                                            <div className="flex items-center gap-4">
+                                                                <div className="h-8 w-8 rounded-xl bg-slate-900 flex items-center justify-center text-white text-[10px] font-black">01</div>
+                                                                <h3 className="text-xs font-black text-slate-900 uppercase tracking-[0.3em]">Dados da Guia</h3>
+                                                            </div>
+                                                            
+                                                            <div className="grid grid-cols-2 gap-6 bg-slate-50/50 p-6 rounded-[2rem] border border-slate-100">
+                                                                <div className="space-y-2.5">
+                                                                    <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Vencimento Manual</Label>
+                                                                    <Input 
+                                                                        type="date"
+                                                                        value={reviewingFile?.data?.dueDate || ''}
+                                                                        onChange={(e) => updateFileData(reviewingFile?.id || '', 'dueDate', e.target.value)}
+                                                                        className="h-14 rounded-2xl text-base font-medium bg-white border-slate-200 focus:ring-4 focus:ring-primary/5 transition-all"
+                                                                    />
                                                                 </div>
-                                                            ) : (
-                                                                file.file.type === 'application/pdf' ? (
+                                                                <div className="space-y-2.5">
+                                                                    <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Valor Manual (R$)</Label>
+                                                                    <Input 
+                                                                        type="number"
+                                                                        step="0.01"
+                                                                        value={reviewingFile?.data?.value || ''}
+                                                                        onChange={(e) => updateFileData(reviewingFile?.id || '', 'value', e.target.value)}
+                                                                        className="h-14 rounded-2xl text-base font-medium bg-white border-slate-200 focus:ring-4 focus:ring-primary/5 transition-all"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Seção 02: Vinculação de Cliente */}
+                                                        <div className="space-y-6">
+                                                            <div className="flex items-center gap-4">
+                                                                <div className="h-8 w-8 rounded-xl bg-slate-900 flex items-center justify-center text-white text-[10px] font-black">02</div>
+                                                                <h3 className="text-xs font-black text-slate-900 uppercase tracking-[0.3em]">Identificação</h3>
+                                                            </div>
+                                                            
+                                                            <div className={cn(
+                                                                "p-6 rounded-[2rem] border transition-all space-y-5",
+                                                                !reviewingFile?.client ? "bg-red-50/30 border-red-100" : "bg-slate-50/50 border-slate-100"
+                                                            )}>
+                                                                <div className="relative group">
+                                                                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-primary transition-colors" />
+                                                                    <Input 
+                                                                        placeholder="Filtrar por nome ou CNPJ..."
+                                                                        value={clientSearch}
+                                                                        onChange={(e) => setClientSearch(e.target.value)}
+                                                                        className="h-14 pl-14 rounded-2xl text-sm font-medium bg-white border-slate-200 focus:ring-4 focus:ring-primary/5 transition-all"
+                                                                    />
+                                                                </div>
+                                                                <div className="relative">
+                                                                    <select 
+                                                                        value={reviewingFile?.client?.id || ""}
+                                                                        onChange={(e) => updateFileClient(reviewingFile?.id || '', e.target.value)}
+                                                                        className={cn(
+                                                                            "w-full h-14 rounded-2xl text-sm font-bold px-6 bg-white border transition-all appearance-none cursor-pointer",
+                                                                            !reviewingFile?.client ? "border-red-200 text-red-500 pr-12 shadow-[0_0_15px_-5px_rgba(239,68,68,0.2)]" : "border-slate-200 text-slate-700"
+                                                                        )}
+                                                                    >
+                                                                        <option value="" disabled>Selecione o Cliente Correto...</option>
+                                                                        {filteredClientsForSelect.map(c => (
+                                                                            <option key={c.id} value={c.id}>
+                                                                                {c.nomeFantasia || c.razaoSocial}
+                                                                            </option>
+                                                                        ))}
+                                                                    </select>
+                                                                    <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                                                                </div>
+                                                                {!reviewingFile?.client && (
+                                                                    <p className="text-[10px] text-red-500 font-black uppercase tracking-widest text-center animate-pulse pt-2">
+                                                                        Ação Requerida: Vincule este documento a um cliente
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Seção 03: Comunicação */}
+                                                        <div className="space-y-6">
+                                                            <div className="flex items-center gap-4">
+                                                                <div className="h-8 w-8 rounded-xl bg-slate-900 flex items-center justify-center text-white text-[10px] font-black">03</div>
+                                                                <h3 className="text-xs font-black text-slate-900 uppercase tracking-[0.3em]">Canais de Envio</h3>
+                                                            </div>
+
+                                                            <div className="space-y-6">
+                                                                <div className="space-y-2.5">
+                                                                    <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Assunto do Comunicado</Label>
+                                                                    <Input 
+                                                                        value={reviewingFile?.generatedSubject || ''}
+                                                                        onChange={(e) => updateFileContent(reviewingFile?.id || '', 'generatedSubject', e.target.value)}
+                                                                        className="h-14 rounded-2xl text-sm font-medium bg-white border-slate-200 focus:ring-4 focus:ring-primary/5 transition-all"
+                                                                    />
+                                                                </div>
+                                                                <div className="space-y-2.5">
+                                                                    <div className="flex items-center justify-between px-1">
+                                                                        <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Conteúdo da Mensagem</Label>
+                                                                        <span className="text-[9px] text-primary/40 font-black uppercase tracking-[0.2em]">HTML ok</span>
+                                                                    </div>
+                                                                    <textarea 
+                                                                        value={reviewingFile?.generatedMessage || ''}
+                                                                        onChange={(e) => updateFileContent(reviewingFile?.id || '', 'generatedMessage', e.target.value)}
+                                                                        className="w-full h-80 p-8 rounded-[2.5rem] text-sm font-normal bg-white border border-slate-200 leading-relaxed focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all resize-none shadow-inner"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Painel de Visualização - Flex Expanded */}
+                                                <div className="flex-1 bg-slate-900 flex flex-col p-10 relative overflow-hidden">
+                                                    {/* Background Pattern for Cinematic Feel */}
+                                                    <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
+                                                    
+                                                    <div className="relative z-10 flex flex-col h-full space-y-8">
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-4">
+                                                                <div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center backdrop-blur-md">
+                                                                    <Eye className="h-5 w-5 text-white/80" />
+                                                                </div>
+                                                                <div>
+                                                                    <h4 className="text-white font-light text-lg tracking-tight">Visualização do <span className="font-bold">Original</span></h4>
+                                                                    <p className="text-[10px] text-white/30 uppercase font-black tracking-widest">Renderização em alta definição</p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center gap-4">
+                                                                <a 
+                                                                    href={reviewingFile?.publicUrl} 
+                                                                    target="_blank" 
+                                                                    rel="noopener noreferrer"
+                                                                    className="flex items-center gap-2 text-[10px] font-black uppercase text-white/60 hover:text-white transition-colors"
+                                                                >
+                                                                    <Upload className="h-4 w-4" /> Download
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="flex-1 bg-white rounded-[3rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] overflow-hidden relative border border-white/10 group">
+                                                            {reviewingFile?.publicUrl ? (
+                                                                reviewingFile.file.type === 'application/pdf' ? (
                                                                     <iframe 
-                                                                        src={`${file.publicUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+                                                                        src={`${reviewingFile.publicUrl}#toolbar=0&navpanes=0&view=FitH`}
                                                                         className="w-full h-full border-none"
-                                                                        title="Preview PDF"
+                                                                        title="Preview PDF HD"
                                                                     />
                                                                 ) : (
-                                                                    <img 
-                                                                        src={file.publicUrl} 
-                                                                        alt="Preview" 
-                                                                        className="w-full h-full object-contain"
-                                                                    />
+                                                                    <div className="w-full h-full flex items-center justify-center p-8 overflow-auto custom-scrollbar bg-slate-50">
+                                                                        <img 
+                                                                            src={reviewingFile.publicUrl} 
+                                                                            alt="Preview HD" 
+                                                                            className="max-w-full h-auto object-contain shadow-2xl rounded-lg"
+                                                                        />
+                                                                    </div>
                                                                 )
+                                                            ) : (
+                                                                <div className="h-full flex flex-col items-center justify-center text-slate-300 italic p-12 text-center bg-slate-900">
+                                                                    <Loader2 className="h-12 w-12 mb-4 text-primary animate-spin" />
+                                                                    <p className="text-sm font-light">Carregando visualização do documento...</p>
+                                                                </div>
                                                             )}
+                                                            
+                                                            {/* Watermark/Label Overlay */}
+                                                            <div className="absolute top-8 left-8 bg-slate-900/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Digitalizado via IA v2.0</p>
+                                                            </div>
                                                         </div>
-                                                        <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10 flex items-center gap-3">
-                                                            <AlertCircle className="h-4 w-4 text-primary opacity-40" />
-                                                            <p className="text-[9px] text-primary/60 font-bold uppercase tracking-widest leading-relaxed">
-                                                                Verifique se os dados extraídos pela IA coincidem com os dados visíveis no documento original ao lado.
+                                                        
+                                                        <div className="flex items-center gap-6 bg-white/5 border border-white/5 backdrop-blur-xl p-6 rounded-[2rem]">
+                                                            <div className="h-10 w-10 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
+                                                                <AlertCircle className="h-5 w-5 text-amber-500" />
+                                                            </div>
+                                                            <p className="text-xs text-white/50 font-normal leading-relaxed uppercase tracking-tighter">
+                                                                Esta ferramenta extrai dados financeiros automaticamente. <span className="text-white/80 font-bold">Confirme sempre o valor e vencimento</span> visualizando o documento físico projetado acima para garantir 100% de precisão antes do disparo aos clientes.
                                                             </p>
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
+                                            </div>
+                                        </DialogContent>
+                                    </Dialog>
                                 </motion.div>
                             ))}
                         </div>

@@ -69,7 +69,7 @@ const regimeStyles: Record<TaxRegime, string> = {
 };
 
 export default function Clients() {
-  const { clients, loading, createClient, updateClient, deleteClient, inactivateClient, deleteMultipleClients, importClients } = useClients();
+  const { clients, loading, createClient, updateClient, deleteClient, inactivateClient, reactivateClient, deleteMultipleClients, importClients } = useClients();
   const [viewTab, setViewTab] = useState<'active' | 'inactive'>('active');
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
@@ -399,11 +399,26 @@ export default function Clients() {
                     <DropdownMenuItem onClick={() => handleEdit(client)} className="rounded-lg gap-2 cursor-pointer font-light text-[10px] uppercase tracking-wider">
                       <Edit className="h-4 w-4 text-blue-500/60" /> Editar
                     </DropdownMenuItem>
+                    {client.isActive ? (
+                      <DropdownMenuItem
+                        className="text-amber-600 focus:text-amber-600 rounded-lg gap-2 cursor-pointer font-light text-[10px] uppercase tracking-wider"
+                        onClick={() => handleDeleteClick(client)}
+                      >
+                        <AlertTriangle className="h-4 w-4 opacity-70" /> Inativar
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem
+                        className="text-emerald-600 focus:text-emerald-600 rounded-lg gap-2 cursor-pointer font-light text-[10px] uppercase tracking-wider"
+                        onClick={() => reactivateClient(client.id)}
+                      >
+                        <Plus className="h-4 w-4 opacity-70" /> Ativar
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem
-                      className="text-amber-600 focus:text-amber-600 rounded-lg gap-2 cursor-pointer font-light text-[10px] uppercase tracking-wider"
-                      onClick={() => handleDeleteClick(client)}
+                      className="text-destructive focus:text-destructive rounded-lg gap-2 cursor-pointer font-light text-[10px] uppercase tracking-wider"
+                      onClick={() => handlePermanentDeleteClick(client)}
                     >
-                      <AlertTriangle className="h-4 w-4 opacity-70" /> Inativar
+                      <Trash2 className="h-4 w-4 opacity-70" /> Excluir Total
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -541,13 +556,23 @@ export default function Clients() {
                           <Edit className="h-4 w-4 text-blue-500/60" />
                           Editar
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-amber-600 focus:text-amber-600 rounded-lg gap-2 cursor-pointer font-light text-xs uppercase tracking-wider"
-                          onClick={() => handleDeleteClick(client)}
-                        >
-                          <AlertTriangle className="h-4 w-4 opacity-70" />
-                          Inativar
-                        </DropdownMenuItem>
+                        {client.isActive ? (
+                          <DropdownMenuItem
+                            className="text-amber-600 focus:text-amber-600 rounded-lg gap-2 cursor-pointer font-light text-xs uppercase tracking-wider"
+                            onClick={() => handleDeleteClick(client)}
+                          >
+                            <AlertTriangle className="h-4 w-4 opacity-70" />
+                            Inativar
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem
+                            className="text-emerald-600 focus:text-emerald-600 rounded-lg gap-2 cursor-pointer font-light text-xs uppercase tracking-wider"
+                            onClick={() => reactivateClient(client.id)}
+                          >
+                            <Plus className="h-4 w-4 opacity-70" />
+                            Ativar
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem
                           className="text-destructive focus:text-destructive rounded-lg gap-2 cursor-pointer font-light text-xs uppercase tracking-wider"
                           onClick={() => handlePermanentDeleteClick(client)}
@@ -576,6 +601,8 @@ export default function Clients() {
         open={isViewOpen}
         onOpenChange={setIsViewOpen}
         client={selectedClient}
+        onDelete={handlePermanentDeleteClick}
+        onReactivate={reactivateClient}
       />
       <InactivateClientDialog
         open={isDeleteOpen}

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -282,127 +283,143 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[92vh] overflow-y-auto bg-card border-border">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-light text-foreground">
-            {isEditing ? 'Editar Registro do Cliente' : 'Cadastrar Novo Cliente'}
-          </DialogTitle>
+      <DialogContent className="max-w-6xl max-h-[92vh] overflow-hidden flex flex-col p-0 rounded-[2.5rem] border-none shadow-2xl bg-card">
+        <DialogHeader className="p-8 pb-4 bg-primary/[0.02] border-b border-border/10">
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+              <Plus className="h-6 w-6" />
+            </div>
+            <div>
+              <DialogTitle className="text-2xl font-light text-foreground">
+                {isEditing ? 'Editar Registro do' : 'Cadastrar Novo'} <span className="font-bold text-primary">Cliente</span>
+              </DialogTitle>
+              <p className="text-[10px] uppercase font-bold tracking-[0.2em] text-muted-foreground/60 mt-1">
+                Gestão completa de dados cadastrais e credenciais fiscais
+              </p>
+            </div>
+          </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-8 py-6">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8 pt-6 space-y-12">
           {/* Seção 1: Identificação Corporativa */}
           <div className="space-y-6">
-            <h3 className="text-xs font-normal text-muted-foreground uppercase tracking-[0.2em] border-b border-border/50 pb-2">1. Identificação Corporativa</h3>
+            <div className="flex items-center gap-3 border-b border-border/40 pb-3">
+               <div className="h-6 w-6 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500">
+                  <span className="text-[10px] font-bold">01</span>
+               </div>
+               <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Identificação Corporativa</h3>
+            </div>
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-              <div className="md:col-span-1 space-y-2">
-                <Label className="text-xs font-normal">Razão Social *</Label>
+              <div className="space-y-2.5">
+                <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Razão Social *</Label>
                 <Input
                   placeholder="Nome oficial da empresa"
-                  className="rounded-xl h-11 font-light"
+                  className="rounded-2xl h-14 font-light text-base border-border/40 bg-muted/5 focus-visible:ring-primary/20 transition-all"
                   value={formData.razaoSocial}
                   onChange={(e) => handleInputChange('razaoSocial', e.target.value)}
                   required
                 />
               </div>
-              <div className="md:col-span-1 space-y-2">
-                <Label className="text-xs font-normal">Nome Fantasia</Label>
+              <div className="space-y-2.5">
+                <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Nome Fantasia</Label>
                 <Input
                   placeholder="Nome comercial"
-                  className="rounded-xl h-11 font-light"
+                  className="rounded-2xl h-14 font-light text-base border-border/40 bg-muted/5 focus-visible:ring-primary/20 transition-all"
                   value={formData.nomeFantasia}
                   onChange={(e) => handleInputChange('nomeFantasia', e.target.value)}
                 />
               </div>
-              <div className="md:col-span-1 space-y-2">
-                <Label className="text-xs font-normal">Responsável pela Empresa (Pessoa de Contato)</Label>
+              <div className="space-y-2.5">
+                <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Responsável na Empresa</Label>
                 <Input
-                  placeholder="Nome do responsável direto na empresa"
-                  className="rounded-xl h-11 font-light"
+                  placeholder="Nome do contato principal"
+                  className="rounded-2xl h-14 font-light text-base border-border/40 bg-muted/5 focus-visible:ring-primary/20 transition-all"
                   value={formData.responsavelEmpresa}
                   onChange={(e) => handleInputChange('responsavelEmpresa', e.target.value)}
                 />
               </div>
             </div>
             
-            <div className="grid grid-cols-1">
-              <div className="flex flex-row items-center gap-8 p-4 rounded-xl bg-muted/20 border border-border/50">
-                <div className="flex items-center space-x-2">
+            <div className="bg-slate-50/50 border border-slate-100 p-6 rounded-[2rem]">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-8">
+                <div className="flex items-center space-x-3 group cursor-pointer">
                   <Checkbox 
                     id="hasEmployees" 
                     checked={formData.hasEmployees}
                     onCheckedChange={(checked) => handleInputChange('hasEmployees', checked === true)}
+                    className="h-5 w-5 rounded-lg border-2 border-slate-300 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                   />
-                  <Label htmlFor="hasEmployees" className="text-xs font-light cursor-pointer">Possui Funcionários / Folha de Pagamento</Label>
+                  <Label htmlFor="hasEmployees" className="text-sm font-medium text-slate-600 cursor-pointer group-hover:text-primary transition-colors">Possui Funcionários / Folha</Label>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-3 group cursor-pointer">
                   <Checkbox 
                     id="isServiceTaker" 
                     checked={formData.isServiceTaker}
                     onCheckedChange={(checked) => handleInputChange('isServiceTaker', checked === true)}
+                    className="h-5 w-5 rounded-lg border-2 border-slate-300 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                   />
-                  <Label htmlFor="isServiceTaker" className="text-xs font-light cursor-pointer">Cunho Tomador de Serviços (Retenções)</Label>
+                  <Label htmlFor="isServiceTaker" className="text-sm font-medium text-slate-600 cursor-pointer group-hover:text-primary transition-colors">Tomador de Serviços (Retenções)</Label>
                 </div>
               </div>
             </div>
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
-              <div className="space-y-2">
-                <Label className="text-xs font-normal">CNPJ / CPF *</Label>
+              <div className="space-y-2.5">
+                <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">CNPJ / CPF *</Label>
                 <Input
                   placeholder="00.000.000/0000-00"
-                  className="rounded-xl h-11 font-light"
+                  className="rounded-2xl h-14 font-mono font-normal text-base border-border/40 bg-muted/5 focus-visible:ring-primary/20 transition-all"
                   value={formData.cnpj}
                   onChange={(e) => handleInputChange('cnpj', e.target.value)}
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-normal">Regime Tributário *</Label>
+              <div className="space-y-2.5">
+                <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Regime Tributário *</Label>
                 <Select
                   value={formData.regimeTributario}
                   onValueChange={(value) => handleInputChange('regimeTributario', value)}
                 >
-                  <SelectTrigger className="rounded-xl h-11 font-light">
+                  <SelectTrigger className="rounded-2xl h-14 font-light text-base border-border/40 bg-muted/5 focus-visible:ring-primary/20 transition-all">
                     <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
-                  <SelectContent className="bg-card border-border">
-                    <SelectItem value="simples" className="font-light">Simples Nacional</SelectItem>
-                    <SelectItem value="presumido" className="font-light">Lucro Presumido</SelectItem>
-                    <SelectItem value="real" className="font-light">Lucro Real</SelectItem>
-                    <SelectItem value="domestico" className="font-light">Empregador Doméstico</SelectItem>
+                  <SelectContent className="bg-card border-border rounded-2xl">
+                    <SelectItem value="simples" className="font-light py-3">Simples Nacional</SelectItem>
+                    <SelectItem value="presumido" className="font-light py-3">Lucro Presumido</SelectItem>
+                    <SelectItem value="real" className="font-light py-3">Lucro Real</SelectItem>
+                    <SelectItem value="domestico" className="font-light py-3">Empregador Doméstico</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-normal">Data de Entrada *</Label>
+              <div className="space-y-2.5">
+                <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Data de Entrada *</Label>
                 <Input
                   type="date"
-                  className="rounded-xl h-11 font-light"
+                  className="rounded-2xl h-14 font-light text-base border-border/40 bg-muted/5 focus-visible:ring-primary/20 transition-all"
                   value={formData.dataEntrada}
                   onChange={(e) => handleInputChange('dataEntrada', e.target.value)}
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-normal">Data de Saída</Label>
+              <div className="space-y-2.5">
+                <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Data de Saída</Label>
                 <Input
                   type="date"
-                  className="rounded-xl h-11 font-light"
+                  className="rounded-2xl h-14 font-light text-base border-border/40 bg-muted/5 focus-visible:ring-primary/20 transition-all"
                   value={formData.dataSaida}
                   onChange={(e) => handleInputChange('dataSaida', e.target.value)}
                 />
               </div>
             </div>
 
-            {/* Motivo da Saída (Condicional) */}
             {formData.dataSaida && (
-              <div className="animate-slide-in-up">
-                <div className="space-y-2">
-                  <Label className="text-xs font-normal text-destructive">Motivo da Saída / Baixa *</Label>
+              <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="space-y-2.5">
+                  <Label className="text-[10px] font-bold text-destructive uppercase tracking-widest ml-1">Motivo da Saída / Baixa *</Label>
                   <Input
                     placeholder="Descreva o motivo do cancelamento ou baixa..."
-                    className="rounded-xl h-11 font-light border-destructive/30 focus:border-destructive/50 focus:ring-destructive/10"
+                    className="rounded-2xl h-14 font-light text-base border-destructive/20 bg-destructive/[0.02] focus-visible:ring-destructive/10 transition-all"
                     value={formData.motivoSaida}
                     onChange={(e) => handleInputChange('motivoSaida', e.target.value)}
                     required={!formData.isActive}
@@ -414,55 +431,65 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
 
           {/* Seção 2: Dados Fiscais & Senhas */}
           <div className="space-y-6">
-            <h3 className="text-xs font-normal text-muted-foreground uppercase tracking-[0.2em] border-b border-border/50 pb-2">2. Fiscal & Credenciais</h3>
+            <div className="flex items-center gap-3 border-b border-border/40 pb-3">
+               <div className="h-6 w-6 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500">
+                  <span className="text-[10px] font-bold">02</span>
+               </div>
+               <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Fiscal & Credenciais</h3>
+            </div>
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
-              <div className="md:col-span-1 p-4 rounded-2xl bg-muted/20 border border-border/50 space-y-4">
-                <h4 className="text-[10px] uppercase font-light text-muted-foreground tracking-widest">Prefeitura</h4>
-                <div className="grid grid-cols-1 gap-3">
+              <div className="p-6 rounded-[2.2rem] bg-indigo-50/30 border border-indigo-100/50 space-y-5">
+                <div className="flex items-center justify-between">
+                   <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Prefeitura</h4>
+                </div>
+                <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-light">CCM</Label>
-                    <Input value={formData.ccm} onChange={(e) => handleInputChange('ccm', e.target.value)} className="h-9 text-sm rounded-lg font-light" />
+                    <Label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">CCM</Label>
+                    <Input value={formData.ccm} onChange={(e) => handleInputChange('ccm', e.target.value)} className="h-11 text-sm rounded-xl border-slate-200/60 font-medium" />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-light">Senha Prefeitura</Label>
-                    <Input type="password" value={formData.senhaPrefeitura} onChange={(e) => handleInputChange('senhaPrefeitura', e.target.value)} className="h-9 text-sm rounded-lg font-light" />
+                    <Label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Senha Prefeitura</Label>
+                    <Input type="password" value={formData.senhaPrefeitura} onChange={(e) => handleInputChange('senhaPrefeitura', e.target.value)} className="h-11 text-sm rounded-xl border-slate-200/60 font-medium" />
                   </div>
                 </div>
               </div>
 
-              <div className="md:col-span-1 p-4 rounded-2xl bg-muted/20 border border-border/50 space-y-4">
-                <h4 className="text-[10px] uppercase font-light text-muted-foreground tracking-widest">Estado (SEFAZ)</h4>
-                <div className="grid grid-cols-1 gap-3">
+              <div className="p-6 rounded-[2.2rem] bg-emerald-50/30 border border-emerald-100/50 space-y-5">
+                <h4 className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Estado (SEFAZ)</h4>
+                <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-light">Inscr. Estadual (IE)</Label>
-                    <Input value={formData.ie} onChange={(e) => handleInputChange('ie', e.target.value)} className="h-9 text-sm rounded-lg font-light" />
+                    <Label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Inscr. Estadual (IE)</Label>
+                    <Input value={formData.ie} onChange={(e) => handleInputChange('ie', e.target.value)} className="h-11 text-sm rounded-xl border-slate-200/60 font-medium" />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-light">Senha SEFAZ / Posto</Label>
-                    <Input type="password" value={formData.sefazSenha} onChange={(e) => handleInputChange('sefazSenha', e.target.value)} className="h-9 text-sm rounded-lg font-light" />
+                    <Label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Senha SEFAZ</Label>
+                    <Input type="password" value={formData.sefazSenha} onChange={(e) => handleInputChange('sefazSenha', e.target.value)} className="h-11 text-sm rounded-xl border-slate-200/60 font-medium" />
                   </div>
                 </div>
               </div>
 
-              <div className="md:col-span-1 p-4 rounded-2xl bg-muted/20 border border-border/50 space-y-4">
-                <h4 className="text-[10px] uppercase font-light text-muted-foreground tracking-widest">Simples Nacional</h4>
+              <div className="p-6 rounded-[2.2rem] bg-amber-50/30 border border-amber-100/50 space-y-5">
+                <h4 className="text-[10px] font-black text-amber-500 uppercase tracking-widest">Federal / Simples</h4>
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-light">Código de Acesso / Senha</Label>
-                  <Input type="password" value={formData.simplesNacionalSenha} onChange={(e) => handleInputChange('simplesNacionalSenha', e.target.value)} className="h-9 text-sm rounded-lg font-light" />
+                  <Label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Código / Senha</Label>
+                  <Input type="password" value={formData.simplesNacionalSenha} onChange={(e) => handleInputChange('simplesNacionalSenha', e.target.value)} className="h-11 text-sm rounded-xl border-slate-200/60 font-medium" />
+                </div>
+                <div className="pt-2">
+                   <p className="text-[9px] text-amber-600/60 font-medium leading-relaxed italic">Atalho para acesso direto ao PGDAS e consultas.</p>
                 </div>
               </div>
 
-              <div className="md:col-span-1 p-4 rounded-2xl bg-muted/20 border border-border/50 space-y-4">
-                <h4 className="text-[10px] uppercase font-light text-muted-foreground tracking-widest">Portal e-CAC (Receita)</h4>
-                <div className="grid grid-cols-1 gap-3">
+              <div className="p-6 rounded-[2.2rem] bg-slate-50 border border-slate-200/60 space-y-5">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Portal e-CAC</h4>
+                <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-light">Código de Acesso</Label>
-                    <Input value={formData.ecacCodigoAcesso} onChange={(e) => handleInputChange('ecacCodigoAcesso', e.target.value)} className="h-9 text-sm rounded-lg font-light" />
+                    <Label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Cód. Acesso</Label>
+                    <Input value={formData.ecacCodigoAcesso} onChange={(e) => handleInputChange('ecacCodigoAcesso', e.target.value)} className="h-11 text-sm rounded-xl border-slate-200/60 font-medium" />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-light">Senha e-CAC</Label>
-                    <Input type="password" value={formData.ecacSenha} onChange={(e) => handleInputChange('ecacSenha', e.target.value)} className="h-9 text-sm rounded-lg font-light" />
+                    <Label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Senha e-CAC</Label>
+                    <Input type="password" value={formData.ecacSenha} onChange={(e) => handleInputChange('ecacSenha', e.target.value)} className="h-11 text-sm rounded-xl border-slate-200/60 font-medium" />
                   </div>
                 </div>
               </div>
@@ -471,15 +498,20 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
 
           {/* Seção 3: Certificado Digital */}
           <div className="space-y-6">
-            <h3 className="text-xs font-normal text-muted-foreground uppercase tracking-[0.2em] border-b border-border/50 pb-2">3. Certificado Digital</h3>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-3 p-4 rounded-2xl bg-primary/[0.02] border border-primary/10">
-              <div className="space-y-2">
-                <Label className="text-xs font-normal">Tipo</Label>
+            <div className="flex items-center gap-3 border-b border-border/40 pb-3">
+               <div className="h-6 w-6 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500">
+                  <span className="text-[10px] font-bold">03</span>
+               </div>
+               <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Certificado Digital</h3>
+            </div>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-3 p-8 rounded-[2.5rem] bg-primary/[0.03] border border-primary/10 shadow-inner">
+              <div className="space-y-2.5">
+                <Label className="text-[10px] font-bold text-primary/60 uppercase tracking-widest ml-1">Tipo de Certificado</Label>
                 <Select value={formData.certificadoDigitalTipo} onValueChange={(v) => handleInputChange('certificadoDigitalTipo', v)}>
-                  <SelectTrigger className="h-10 rounded-xl">
+                  <SelectTrigger className="h-14 rounded-2xl text-base border-primary/10 bg-white">
                     <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="rounded-2xl">
                     <SelectItem value="A1">A1 (Arquivo)</SelectItem>
                     <SelectItem value="A3-TOKEN">A3 (Token)</SelectItem>
                     <SelectItem value="A3-CARTAO">A3 (Cartão)</SelectItem>
@@ -487,43 +519,49 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-normal">Data de Vencimento</Label>
-                <Input type="date" className="h-10 rounded-xl font-light" value={formData.certificadoDigitalVencimento} onChange={(e) => handleInputChange('certificadoDigitalVencimento', e.target.value)} />
+              <div className="space-y-2.5">
+                <Label className="text-[10px] font-bold text-primary/60 uppercase tracking-widest ml-1">Vencimento</Label>
+                <Input type="date" className="h-14 rounded-2xl text-base border-primary/10 bg-white" value={formData.certificadoDigitalVencimento} onChange={(e) => handleInputChange('certificadoDigitalVencimento', e.target.value)} />
               </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-normal">Senha do Certificado</Label>
-                <Input type="password" placeholder="••••••••" className="h-10 rounded-xl font-light" value={formData.certificadoDigitalSenha} onChange={(e) => handleInputChange('certificadoDigitalSenha', e.target.value)} />
+              <div className="space-y-2.5">
+                <Label className="text-[10px] font-bold text-primary/60 uppercase tracking-widest ml-1">Senha do Certificado</Label>
+                <Input type="password" placeholder="••••••••" className="h-14 rounded-2xl text-base border-primary/10 bg-white" value={formData.certificadoDigitalSenha} onChange={(e) => handleInputChange('certificadoDigitalSenha', e.target.value)} />
               </div>
             </div>
           </div>
 
           {/* Seção 4: Contato & Status */}
           <div className="space-y-6">
-            <h3 className="text-xs font-normal text-muted-foreground uppercase tracking-[0.2em] border-b border-border/50 pb-2">4. Comunicação & Status</h3>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+            <div className="flex items-center gap-3 border-b border-border/40 pb-3">
+               <div className="h-6 w-6 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500">
+                  <span className="text-[10px] font-bold">04</span>
+               </div>
+               <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Comunicação & Status</h3>
+            </div>
+            
+            <div className="grid grid-cols-1 gap-10 md:grid-cols-3">
               <div className="md:col-span-2 space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-normal">Canais de E-mail *</Label>
+                <div className="flex items-center justify-between ml-1">
+                  <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Canais de E-mail *</Label>
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     onClick={addEmail}
-                    className="text-primary hover:text-primary hover:bg-primary/5 rounded-xl h-7 px-2 text-[9px] font-bold uppercase tracking-widest"
+                    className="text-primary hover:bg-primary/5 rounded-xl h-8 px-3 text-[10px] font-bold uppercase tracking-widest"
                   >
-                    <Plus className="mr-1.5 h-3 w-3" />
-                    Adicionar E-mail
+                    <Plus className="mr-2 h-3.5 w-3.5" />
+                    Novo Canal
                   </Button>
                 </div>
                 <div className="grid grid-cols-1 gap-3">
                   {formData.emails.map((email, index) => (
-                    <div key={index} className="flex gap-2">
+                    <div key={index} className="flex gap-3 animate-in fade-in slide-in-from-left-2 duration-200">
                       <div className="relative flex-1">
                         <Input
                           type="email"
                           placeholder="empresa@exemplo.com"
-                          className="rounded-xl h-11 font-light pr-10"
+                          className="rounded-2xl h-14 font-light text-base border-border/40 bg-muted/5 focus-visible:ring-primary/20 transition-all pr-12"
                           value={email}
                           onChange={(e) => updateEmail(index, e.target.value)}
                           required={index === 0}
@@ -532,9 +570,9 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
                           <button
                             type="button"
                             onClick={() => removeEmail(index)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/30 hover:text-destructive transition-colors"
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-destructive transition-colors"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-5 w-5" />
                           </button>
                         )}
                       </div>
@@ -542,45 +580,56 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
                   ))}
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-normal">Telefone / WhatsApp</Label>
-                <Input
-                  placeholder="(00) 00000-0000"
-                  className="rounded-xl h-11 font-light"
-                  value={formData.telefone}
-                  onChange={(e) => handleInputChange('telefone', e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-normal">Status Operacional</Label>
-                <Select
-                  value={formData.isActive ? 'true' : 'false'}
-                  onValueChange={(value) => handleInputChange('isActive', (value === 'true') as any)}
-                >
-                  <SelectTrigger className="rounded-xl h-11 font-light">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border">
-                    <SelectItem value="true">Ativo</SelectItem>
-                    <SelectItem value="false">Inativo / Encerrado</SelectItem>
-                  </SelectContent>
-                </Select>
+
+              <div className="space-y-8">
+                <div className="space-y-2.5">
+                  <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Telefone / WhatsApp</Label>
+                  <Input
+                    placeholder="(00) 00000-0000"
+                    className="rounded-2xl h-14 font-light text-base border-border/40 bg-muted/5"
+                    value={formData.telefone}
+                    onChange={(e) => handleInputChange('telefone', e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2.5">
+                  <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Status Operacional</Label>
+                  <Select
+                    value={formData.isActive ? 'true' : 'false'}
+                    onValueChange={(value) => handleInputChange('isActive', (value === 'true') as any)}
+                  >
+                    <SelectTrigger className={cn(
+                      "rounded-2xl h-14 font-bold text-base transition-all border-none",
+                      formData.isActive ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"
+                    )}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-2xl">
+                      <SelectItem value="true" className="font-bold text-emerald-600 py-3">Ativo</SelectItem>
+                      <SelectItem value="false" className="font-bold text-red-600 py-3">Inativo / Encerrado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
           </div>
 
           {/* Seção 5: Responsáveis Técnicos */}
           <div className="space-y-6">
-            <h3 className="text-xs font-normal text-muted-foreground uppercase tracking-[0.2em] border-b border-border/50 pb-2">5. Responsáveis Técnicos</h3>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-5 p-4 rounded-2xl bg-secondary/20 border border-border/50">
-
+             <div className="flex items-center gap-3 border-b border-border/40 pb-3">
+               <div className="h-6 w-6 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500">
+                  <span className="text-[10px] font-bold">05</span>
+               </div>
+               <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Responsáveis Técnicos</h3>
+            </div>
+            
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-5 p-6 rounded-[2.5rem] bg-slate-50/50 border border-slate-200/40">
               <div className="space-y-2">
-                <Label className="text-xs font-normal">Dep. Pessoal</Label>
+                <Label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Dep. Pessoal</Label>
                 <Select value={formData.responsavelDp} onValueChange={(v) => handleInputChange('responsavelDp', v)}>
-                  <SelectTrigger className="h-10 rounded-xl">
-                    <SelectValue placeholder="Selecione..." />
+                  <SelectTrigger className="h-11 rounded-xl bg-white border-slate-200">
+                    <SelectValue placeholder="-" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="rounded-xl">
                     {technicians.filter(t => t.department === 'dp').map(tech => (
                       <SelectItem key={tech.id} value={tech.name}>{tech.name}</SelectItem>
                     ))}
@@ -589,12 +638,12 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
               </div>
 
               <div className="space-y-2">
-                <Label className="text-xs font-normal">Dep. Fiscal</Label>
+                <Label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Dep. Fiscal</Label>
                 <Select value={formData.responsavelFiscal} onValueChange={(v) => handleInputChange('responsavelFiscal', v)}>
-                  <SelectTrigger className="h-10 rounded-xl">
-                    <SelectValue placeholder="Selecione..." />
+                  <SelectTrigger className="h-11 rounded-xl bg-white border-slate-200">
+                    <SelectValue placeholder="-" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="rounded-xl">
                     {technicians.filter(t => t.department === 'fiscal').map(tech => (
                       <SelectItem key={tech.id} value={tech.name}>{tech.name}</SelectItem>
                     ))}
@@ -603,12 +652,12 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
               </div>
 
               <div className="space-y-2">
-                <Label className="text-xs font-normal">Dep. Contábil</Label>
+                <Label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Dep. Contábil</Label>
                 <Select value={formData.responsavelContabil} onValueChange={(v) => handleInputChange('responsavelContabil', v)}>
-                  <SelectTrigger className="h-10 rounded-xl">
-                    <SelectValue placeholder="Selecione..." />
+                  <SelectTrigger className="h-11 rounded-xl bg-white border-slate-200">
+                    <SelectValue placeholder="-" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="rounded-xl">
                     {technicians.filter(t => t.department === 'contabil').map(tech => (
                       <SelectItem key={tech.id} value={tech.name}>{tech.name}</SelectItem>
                     ))}
@@ -617,78 +666,82 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
               </div>
 
               <div className="space-y-2">
-                <Label className="text-xs font-normal">Dep. Financeiro</Label>
+                <Label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Financeiro</Label>
                 <Select value={formData.responsavelFinanceiro} onValueChange={(v) => handleInputChange('responsavelFinanceiro', v)}>
-                  <SelectTrigger className="h-10 rounded-xl">
-                    <SelectValue placeholder="Selecione..." />
+                  <SelectTrigger className="h-11 rounded-xl bg-white border-slate-200">
+                    <SelectValue placeholder="-" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="rounded-xl">
                     {technicians.filter(t => t.department === 'financeiro').length > 0 ? (
                       technicians.filter(t => t.department === 'financeiro').map(tech => (
                         <SelectItem key={tech.id} value={tech.name}>{tech.name}</SelectItem>
                       ))
                     ) : (
-                      <SelectItem value="none" disabled>Nenhum funcionário cadastrado</SelectItem>
+                      <SelectItem value="none" disabled>Não cadastrado</SelectItem>
                     )}
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label className="text-xs font-normal">Dep. Qualidade</Label>
+                <Label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Qualidade</Label>
                 <Select value={formData.responsavelQualidade} onValueChange={(v) => handleInputChange('responsavelQualidade', v)}>
-                  <SelectTrigger className="h-10 rounded-xl">
-                    <SelectValue placeholder="Selecione..." />
+                  <SelectTrigger className="h-11 rounded-xl bg-white border-slate-200">
+                    <SelectValue placeholder="-" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="rounded-xl">
                     {technicians.filter(t => t.department === 'qualidade').map(tech => (
                       <SelectItem key={tech.id} value={tech.name}>{tech.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-
             </div>
           </div>
 
           {/* Seção 6: Sócios */}
-          <div className="space-y-6">
-            <div className="flex items-center justify-between border-b border-border/50 pb-2">
-              <h3 className="text-xs font-light text-muted-foreground uppercase tracking-[0.2em]">6. Quadro Societário</h3>
-              <Button type="button" variant="ghost" size="sm" onClick={addSocio} className="text-primary hover:text-primary hover:bg-primary/5 rounded-xl h-8 px-3 text-[10px] font-light uppercase tracking-widest">
-                <Plus className="mr-2 h-3 w-3" />
+          <div className="space-y-6 pb-10">
+            <div className="flex items-center justify-between border-b border-border/40 pb-3">
+               <div className="flex items-center gap-3">
+                  <div className="h-6 w-6 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500">
+                      <span className="text-[10px] font-bold">06</span>
+                  </div>
+                  <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Quadro Societário</h3>
+               </div>
+               <Button type="button" variant="ghost" size="sm" onClick={addSocio} className="text-primary hover:bg-primary/5 rounded-xl h-9 px-4 text-[10px] font-bold uppercase tracking-widest">
+                <Plus className="mr-2 h-4 w-4" />
                 Adicionar Sócio
               </Button>
             </div>
 
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 gap-5">
               {socios.map((socio, index) => (
-                <div key={index} className="group relative flex gap-4 items-end rounded-2xl bg-muted/30 p-5 border border-border/50 transition-all hover:bg-muted/50">
-                  <div className="flex-1 space-y-2">
-                    <Label className="text-[10px] uppercase font-normal text-muted-foreground">Nome do Sócio</Label>
+                <div key={index} className="group relative flex flex-col md:flex-row gap-6 items-start md:items-end rounded-[2.5rem] bg-muted/20 p-8 border border-border/20 transition-all hover:bg-muted/40 hover:border-primary/20">
+                  <div className="flex-1 space-y-2.5 w-full">
+                    <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Nome do Sócio</Label>
                     <Input
                       value={socio.nome}
                       onChange={(e) => updateSocio(index, 'nome', e.target.value)}
-                      placeholder="Nome completo"
-                      className="rounded-xl bg-card border-border/50"
+                      placeholder="Nome completo do sócio..."
+                      className="rounded-2xl h-14 bg-white border-slate-200 text-base"
                     />
                   </div>
-                  <div className="w-48 space-y-2">
-                    <Label className="text-[10px] uppercase font-normal text-muted-foreground">CPF</Label>
+                  <div className="w-full md:w-64 space-y-2.5">
+                    <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">CPF</Label>
                     <Input
                       value={socio.cpf}
                       onChange={(e) => updateSocio(index, 'cpf', e.target.value)}
                       placeholder="000.000.000-00"
-                      className="rounded-xl bg-card border-border/50"
+                      className="rounded-2xl h-14 bg-white border-slate-200 font-mono text-base"
                     />
                   </div>
-                  <div className="w-24 space-y-2">
-                    <Label className="text-[10px] uppercase font-normal text-muted-foreground">Quota %</Label>
+                  <div className="w-full md:w-32 space-y-2.5">
+                    <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Quota %</Label>
                     <Input
                       type="number"
                       value={socio.participacao}
                       onChange={(e) => updateSocio(index, 'participacao', Number(e.target.value))}
-                      className="rounded-xl bg-card border-border/50"
+                      className="rounded-2xl h-14 bg-white border-slate-200 text-center font-bold text-base"
                     />
                   </div>
                   {socios.length > 1 && (
@@ -697,26 +750,29 @@ export function ClientFormDialog({ open, onOpenChange, client, onSave }: ClientF
                       variant="ghost"
                       size="icon"
                       onClick={() => removeSocio(index)}
-                      className="h-10 w-10 text-destructive/40 hover:text-destructive hover:bg-destructive/5 rounded-xl transition-colors"
+                      className="h-14 w-14 text-slate-300 hover:text-destructive hover:bg-destructive/5 rounded-2xl transition-all mb-[1px]"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-6 w-6" />
                     </Button>
                   )}
                 </div>
               ))}
             </div>
           </div>
-
-          {/* Footer Actions */}
-          <div className="flex justify-end gap-3 pt-8 border-t border-border/50">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="rounded-xl px-8 h-12 font-light text-sm">
-              Cancelar
-            </Button>
-            <Button type="submit" className="rounded-xl px-8 h-12 font-light shadow-lg shadow-primary/20">
-              {isEditing ? 'Atualizar Registro' : 'Finalizar Cadastro'}
-            </Button>
-          </div>
         </form>
+
+        {/* Footer Actions */}
+        <div className="p-8 bg-slate-50 border-t border-border/10 flex justify-end gap-4">
+          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="rounded-2xl px-10 h-14 text-slate-500 font-bold uppercase text-[10px] tracking-[0.2em] hover:bg-slate-100 transition-all">
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleSubmit}
+            className="rounded-2xl px-12 h-14 bg-primary text-white shadow-xl shadow-primary/20 font-bold uppercase text-[10px] tracking-[0.2em] hover:scale-[1.02] active:scale-[0.98] transition-all"
+          >
+            {isEditing ? 'Salvar Alterações' : 'Concluir Cadastro'}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

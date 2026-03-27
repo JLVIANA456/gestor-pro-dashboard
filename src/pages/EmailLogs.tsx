@@ -55,7 +55,7 @@ export default function EmailLogs() {
 
     // Apenas guias enviados
     const sentGuides = useMemo(() =>
-        guides.filter(g => g.status === 'sent' && g.sent_at),
+        guides.filter(g => (g.status === 'sent' || g.status === 'completed') && g.sent_at),
         [guides]
     );
 

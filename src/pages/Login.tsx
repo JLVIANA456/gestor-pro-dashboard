@@ -39,14 +39,15 @@ export default function Login() {
           return;
         }
 
-        // Limpa o CNPJ (deixa só números para a busca secundária)
-        const cleanCnpj = email.replace(/\D/g, '');
+        // Limpa o CNPJ (deixa só números para a busca secundária) e trata espaços
+        const trimmedEmail = email.trim();
+        const cleanCnpj = trimmedEmail.replace(/\D/g, '');
         
         // Busca flexível: Tenta encontrar o CNPJ formatado ou apenas números
         const { data, error } = await supabase
           .from('clients')
           .select('id, razao_social, nome_fantasia, cnpj')
-          .or(`cnpj.eq."${email}",cnpj.eq."${cleanCnpj}"`)
+          .in('cnpj', [trimmedEmail, cleanCnpj])
           .maybeSingle();
           
         if (error) {

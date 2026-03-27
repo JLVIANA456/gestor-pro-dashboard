@@ -297,6 +297,36 @@ export function useClients() {
     }
   };
 
+  const reactivateClient = async (id: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('clients')
+        .update({
+          is_active: true,
+          inactivated_at: null,
+          inactivation_reason: null,
+          inactivation_details: null,
+          data_saida: null
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const updatedClient = mapDbToClient(data as unknown as DbClient);
+      setClients(prev => prev.map(c => c.id === id ? updatedClient : c));
+      toast.success('Cliente ativado com sucesso!', {
+        description: `${updatedClient.nomeFantasia} agora está ativo novamente.`
+      });
+      return updatedClient;
+    } catch (error) {
+      console.error('Erro ao ativar cliente:', error);
+      toast.error('Erro ao ativar cliente');
+      throw error;
+    }
+  };
+
   const deleteMultipleClients = async (ids: string[]) => {
     try {
       const { error } = await supabase
@@ -348,6 +378,7 @@ export function useClients() {
     updateClient,
     deleteClient,
     inactivateClient,
+    reactivateClient,
     deleteMultipleClients,
     importClients,
   };

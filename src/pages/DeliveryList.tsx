@@ -485,6 +485,18 @@ export default function DeliveryList() {
                     if (phone) {
                         window.open(`https://web.whatsapp.com/send?phone=55${phone}&text=${encodeURIComponent(fullMessage)}`, '_blank');
                     }
+
+                    // Atualizar todas as guias vinculadas para 'completed' (para registrar no log e dar baixa)
+                    const now = new Date().toISOString();
+                    for (const id of guideIds) {
+                        await updateGuide(id, {
+                            status: 'completed',
+                            sent_at: now,
+                            completed_at: now,
+                            completed_by: 'IA - WhatsApp',
+                            justification: 'Guia processada e enviada via IA (WhatsApp)'
+                        });
+                    }
                 } else if (provider === 'resend') {
                     const branding = BrandingService.getBranding();
                     if (!client.email) {
