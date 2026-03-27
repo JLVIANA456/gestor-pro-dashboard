@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -37,7 +38,27 @@ import DemandList from "./pages/DemandList";
 const queryClient = new QueryClient();
 
 const AppContent = () => {
-  const { session, loading, user } = useAuth();
+  const { session, loading } = useAuth();
+  
+  // Custom simple client auth
+  const [clientSession, setClientSession] = useState<string | null>(null);
+
+  useEffect(() => {
+    const cid = localStorage.getItem('client_session_id');
+    if (cid) setClientSession(cid);
+    
+    // Listen for custom login event
+    const handleStorageChange = () => {
+      setClientSession(localStorage.getItem('client_session_id'));
+    };
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('client-login', handleStorageChange);
+    
+    return () => {
+        window.removeEventListener('storage', handleStorageChange);
+        window.removeEventListener('client-login', handleStorageChange);
+    };
+  }, []);
 
   if (loading) {
     return (
@@ -52,8 +73,8 @@ const AppContent = () => {
     );
   }
 
-  // Se não estiver logado, mostra a Landing (que contém o Login)
-  if (!session) {
+  // Se não estiver logado (nem escritório e nem cliente), mostra a Landing/Login
+  if (!session && !clientSession) {
     return (
       <Routes>
         <Route path="/upload-publico/:token" element={<PublicUpload />} />
@@ -63,8 +84,17 @@ const AppContent = () => {
     );
   }
 
-  // Se for Cliente logado no Portal, a visualização é diferente (se desejar isolar)
-  const isClient = user?.role === 'Cliente';
+  // Se for Cliente logado via Token do LocalStorage
+  const isClient = !!clientSession && !session;
+
+  if (isClient) {
+    return (
+      <Routes>
+        <Route path="/upload-publico/:token" element={<PublicUpload />} />
+        <Route path="/*" element={<ClientPortalView />} />
+      </Routes>
+    );
+  }
 
   return (
     <Routes>
@@ -72,7 +102,7 @@ const AppContent = () => {
       <Route path="/*" element={
         <MainLayout>
           <Routes>
-            <Route path="" element={isClient ? <ClientPortalView /> : <Dashboard />} />
+            <Route path="" element={<Dashboard />} />
             <Route path="clientes" element={<Clients />} />
             <Route path="contabilidade" element={<Accounting />} />
             <Route path="progresso-contabil" element={<AccountingProgress />} />
@@ -93,7 +123,6 @@ const AppContent = () => {
             <Route path="portal-admin" element={<ClientPortalAdmin />} />
             <Route path="portal-config" element={<ClientPortalConfig />} />
             <Route path="portal-entregas" element={<PortalEntregas />} />
-            <Route path="portal-cliente" element={<ClientPortalView />} />
             <Route path="ativar-portal/:token" element={<ClientActivation />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -28,23 +28,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       try {
-        // Use a timeout or race to prevent hanging on table check
-        const { data: portalUser, error: portalError } = await supabase
-          .from('client_portal_users')
-          .select('client_id')
-          .eq('user_id', currentSession.user.id)
-          .maybeSingle();
-
-        if (portalError) {
-          console.warn('Erro ao buscar portal_user (pode ser migração faltando):', portalError);
-        }
-
         setUser({
           id: currentSession.user.id,
           email: currentSession.user.email,
           name: currentSession.user.user_metadata?.name || currentSession.user.email?.split('@')[0],
-          role: portalUser ? 'Cliente' : 'Administrador',
-          clientId: portalUser?.client_id,
+          role: 'Administrador',
           avatar: currentSession.user.user_metadata?.avatar_url
         });
       } catch (error) {

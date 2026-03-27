@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Building2, Lock, Mail, ArrowRight, Loader2, Fingerprint, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { Building2, Lock, Mail, ArrowRight, Loader2, Fingerprint, Eye, EyeOff, ShieldCheck, UserCircle, Briefcase } from 'lucide-react';
 import { useBranding } from '@/context/BrandingContext';
 
 export default function Login() {
@@ -13,21 +13,50 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loginMode, setLoginMode] = useState<'oficina' | 'cliente'>('cliente');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      if (loginMode === 'oficina') {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
-      if (error) {
-        toast.error('Credenciais inválidas ou erro de conexão.');
-      } else if (data.user) {
-        toast.success('Bem-vindo ao sistema!');
+        if (error) {
+          toast.error('Credenciais inválidas ou erro de conexão.');
+        } else if (data.user) {
+          toast.success('Bem-vindo ao sistema!');
+        }
+      } else {
+        // Modo Cliente - Login Simples Prático
+        if (password !== '1234') {
+          toast.error('Senha incorreta.');
+          setLoading(false);
+          return;
+        }
+
+        const searchTerm = `%${email}%`;
+        const { data, error } = await supabase
+          .from('clients')
+          .select('id, razao_social, nome_fantasia')
+          .or(`razao_social.ilike.${searchTerm},nome_fantasia.ilike.${searchTerm}`)
+          .limit(1)
+          .maybeSingle();
+          
+        if (error) {
+          console.error(error);
+          toast.error('Erro ao verificar cliente.');
+        } else if (!data) {
+          toast.error('Cliente não localizado. Verifique o nome.');
+        } else {
+          toast.success(`Bem-vindo, ${data.nome_fantasia || data.razao_social}!`);
+          localStorage.setItem('client_session_id', data.id);
+          window.dispatchEvent(new Event('client-login')); // trigger App state sync
+        }
       }
     } catch (err: any) {
       toast.error('Ocorreu um erro inesperado.');
@@ -63,7 +92,7 @@ export default function Login() {
               <span className="text-primary font-semibold italic">Inteligente & digital.</span>
             </h2>
             <p className="text-slate-400 text-sm font-normal max-w-[280px] leading-relaxed">
-              Acesso exclusivo para clientes e colaboradores JLVIANA Consultoria.
+              Bem-vindo ao portal digital da sua empresa. Acesso exclusivo e seguro aos seus documentos.
             </p>
           </div>
 
@@ -81,37 +110,61 @@ export default function Login() {
 
         {/* Right Side: Form */}
         <div className="md:w-1/2 flex flex-col">
-          <CardHeader className="pt-16 pb-10 text-center space-y-8">
+          <CardHeader className="pt-12 pb-6 text-center space-y-6">
             <div className="flex justify-center">
-              <div className="relative h-20 w-20 rounded-[2rem] bg-white flex items-center justify-center text-primary shadow-2xl shadow-primary/10 ring-1 ring-slate-100">
+              <div className="relative h-16 w-16 rounded-2xl bg-white flex items-center justify-center text-primary shadow-xl shadow-primary/10 ring-1 ring-slate-100">
                 {logoUrl ? (
-                  <img src={logoUrl} alt="Logo" className="h-full w-full object-contain p-3" />
+                  <img src={logoUrl} alt="Logo" className="h-full w-full object-contain p-2" />
                 ) : (
-                  <Building2 className="h-10 w-10" />
+                  <Building2 className="h-8 w-8" />
                 )}
               </div>
             </div>
 
             <div className="space-y-2 px-8">
-              <CardTitle className="text-3xl font-light text-slate-900 tracking-tighter">
+              <CardTitle className="text-2xl font-light text-slate-900 tracking-tighter">
                 Acesse sua <span className="text-primary font-medium">Conta</span>
               </CardTitle>
-              <CardDescription className="text-slate-400 font-semibold uppercase tracking-[0.2em] text-[11px]">
-
-              </CardDescription>
+            </div>
+            
+            <div className="flex justify-center mt-2">
+              <div className="inline-flex bg-slate-100 p-1 rounded-full items-center">
+                <button
+                  type="button"
+                  onClick={() => setLoginMode('cliente')}
+                  className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${loginMode === 'cliente' ? 'bg-white shadow-sm text-primary' : 'text-slate-400 hover:text-slate-600'}`}
+                >
+                  <UserCircle className="inline h-3 w-3 mr-1" />
+                  Sou Cliente
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLoginMode('oficina')}
+                  className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${loginMode === 'oficina' ? 'bg-white shadow-sm text-primary' : 'text-slate-400 hover:text-slate-600'}`}
+                >
+                  <Briefcase className="inline h-3 w-3 mr-1" />
+                  Escritório
+                </button>
+              </div>
             </div>
           </CardHeader>
 
-          <CardContent className="px-12 pb-16 flex-1 flex flex-col justify-center">
+          <CardContent className="px-12 pb-12 flex-1 flex flex-col justify-center">
             <form onSubmit={handleLogin} className="space-y-6">
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase text-slate-400 tracking-[0.2em] ml-1">E-mail Corporativo</label>
+                  <label className="text-[10px] font-bold uppercase text-slate-400 tracking-[0.2em] ml-1">
+                    {loginMode === 'cliente' ? 'Nome da Sua Empresa' : 'E-mail Corporativo'}
+                  </label>
                   <div className="group relative">
-                    <Mail className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-primary transition-colors" />
+                    {loginMode === 'cliente' ? (
+                      <Building2 className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-primary transition-colors" />
+                    ) : (
+                      <Mail className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-primary transition-colors" />
+                    )}
                     <Input
-                      type="email"
-                      placeholder="seu@dominio.com.br"
+                      type="text"
+                      placeholder={loginMode === 'cliente' ? "Ex: Empresa XYZ" : "seu@dominio.com.br"}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required

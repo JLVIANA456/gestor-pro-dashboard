@@ -58,25 +58,19 @@ export default function ClientPortalView() {
     const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
 
-    // Fetch linked clientId for the user
+    // Fetch linked clientId from localStorage
     useEffect(() => {
         const fetchLinkedClient = async () => {
-            if (!user?.id) return;
-            const { data, error } = await (supabase as any)
-                .from('client_portal_users')
-                .select('client_id')
-                .eq('user_id', user.id)
-                .single();
-            
-            if (data) {
-                setClientId(data.client_id);
-                fetchPortalData(data.client_id);
+            const cid = localStorage.getItem('client_session_id');
+            if (cid) {
+                setClientId(cid);
+                fetchPortalData(cid);
             } else {
                 setLoading(false);
             }
         };
         fetchLinkedClient();
-    }, [user]);
+    }, []);
 
     const fetchPortalData = async (cid: string) => {
         try {
@@ -214,7 +208,11 @@ export default function ClientPortalView() {
                             variant="ghost" 
                             size="icon" 
                             className="rounded-2xl h-12 w-12 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all shadow-sm border border-slate-50 bg-white"
-                            onClick={signOut}
+                            onClick={() => {
+                                localStorage.removeItem('client_session_id');
+                                window.dispatchEvent(new Event('client-login')); // triggers App sync to redirect
+                                signOut?.(); 
+                            }}
                         >
                             <LogOut className="h-5 w-5" />
                         </Button>

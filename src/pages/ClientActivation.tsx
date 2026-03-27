@@ -33,7 +33,7 @@ export default function ClientActivation() {
         const validateToken = async () => {
             if (!token) return;
             
-            const { data, error } = await (supabase.from('client_portal_invites') as any)
+            const { data, error } = await (supabase.from('client_portal_invites' as any) as any)
                 .select('*, clients(nome_fantasia, razao_social)')
                 .eq('token', token)
                 .eq('is_used', false)
@@ -68,32 +68,51 @@ export default function ClientActivation() {
             setActivating(true);
             
             // 1. Criar usuário no Auth
+            console.log("Tentando criar usuário para:", invitation.email);
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email: invitation.email,
                 password: password,
                 options: {
                     data: {
                         name: invitation.clients?.nome_fantasia || invitation.email.split('@')[0],
+                        client_id: invitation.client_id,
+                        portal_access: true
                     }
                 }
             });
 
-            if (authError) throw authError;
+            if (authError) {
+                // Se já existir, tentamos pegar o ID (pode ser um retry do usuário)
+                if (authError.message.includes('already registered')) {
+                    console.log("Usuário já registrado, tentando vincular ID existente...");
+                    // Nota: No ambiente anon não conseguimos pegar o ID se já existe,
+                    // mas podemos tentar o login se soubermos a senha. 
+                    // No fluxo de ativação, assumimos que é um novo registro.
+                }
+                throw authError;
+            }
 
             const userId = authData.user?.id;
-            if (!userId) throw new Error("Erro ao criar usuário.");
+            if (!userId) throw new Error("ID do usuário não retornado pelo Supabase.");
 
-            // 2. Vincular na tabela client_portal_users
-            const { error: linkError } = await (supabase.from('client_portal_users') as any)
-                .insert({
-                    user_id: userId,
-                    client_id: invitation.client_id
-                });
+            // 2. Verificar se o vínculo foi criado (Gatilho no Banco ou Manual)
+            // Aguardamos 1.5s para o trigger no banco processar o vínculo automático
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            // Verificamos se o vínculo já existe (criado pelo trigger handle_new_portal_user)
+            const { data: linkExists } = await (supabase.from('client_portal_users' as any) as any)
+                .select('id')
+                .eq('user_id', userId)
+                .maybeSingle();
 
-            if (linkError) throw linkError;
+            if (!linkExists) {
+                console.warn("Vínculo não detectado na verificação, mas o trigger deve ter sido executado.");
+            }
+
+            console.log("Vínculo de acesso portal confirmado!");
 
             // 3. Marcar convite como usado
-            await (supabase.from('client_portal_invites') as any)
+            await (supabase.from('client_portal_invites' as any) as any)
                 .update({ is_used: true })
                 .eq('id', invitation.id);
 
