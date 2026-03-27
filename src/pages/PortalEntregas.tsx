@@ -96,8 +96,7 @@ export default function PortalEntregas() {
             { name: 'Impostos e Guias', icon: 'Folder', sort_order: 1 },
             { name: 'Folha de Pagamento', icon: 'Folder', sort_order: 2 },
             { name: 'Documentos Contábeis', icon: 'Folder', sort_order: 3 },
-            { name: 'Contrato e Alvarás', icon: 'Folder', sort_order: 4 },
-            { name: 'Outros Documentos', icon: 'Folder', sort_order: 5 }
+            { name: 'Outros Documentos', icon: 'Folder', sort_order: 4 }
         ];
 
         const createPromise = (async () => {
