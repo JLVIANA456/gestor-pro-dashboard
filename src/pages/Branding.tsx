@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Palette, Building2, RotateCcw, Check, Users, Plus, Trash2, Edit, Loader2, BrainCircuit, Mail, Settings, MessageSquare, Lock, FileText, Calendar, Save } from 'lucide-react';
+import { Palette, Building2, RotateCcw, Check, Users, Plus, Trash2, Edit, Loader2, BrainCircuit, Mail, Settings, MessageSquare, Lock, FileText, Calendar, Save, Bell, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTechnicians, Department } from '@/hooks/useTechnicians';

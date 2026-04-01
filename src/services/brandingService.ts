@@ -17,6 +17,11 @@ export interface EmailBranding {
     textColor?: string;
     sidebarColor?: string;
     officeName?: string;
+    fiscalEmail?: string;
+    dpEmail?: string;
+    contabilEmail?: string;
+    qualityEmail?: string;
+    boardEmail?: string;
 }
 
 const DEFAULT_BRANDING: EmailBranding = {
@@ -49,7 +54,12 @@ Atenciosamente,
     cardBackgroundColor: '#ffffff',
     textColor: '#334155',
     sidebarColor: '#000000',
-    officeName: 'JLVIANA Consultoria Contábil'
+    officeName: 'JLVIANA Consultoria Contábil',
+    fiscalEmail: '',
+    dpEmail: '',
+    contabilEmail: '',
+    qualityEmail: '',
+    boardEmail: ''
 };
 
 const SINGLETON_ID = '00000000-0000-0000-0000-000000000000';
@@ -85,7 +95,12 @@ export const BrandingService = {
                 buttonTextColor: '#ffffff',
                 backgroundColor: '#f8fafc',
                 cardBackgroundColor: '#ffffff',
-                textColor: '#334155'
+                textColor: '#334155',
+                fiscalEmail: data.fiscal_email || DEFAULT_BRANDING.fiscalEmail,
+                dpEmail: data.dp_email || DEFAULT_BRANDING.dpEmail,
+                contabilEmail: data.contabil_email || DEFAULT_BRANDING.contabilEmail,
+                qualityEmail: data.quality_email || DEFAULT_BRANDING.qualityEmail,
+                boardEmail: data.board_email || DEFAULT_BRANDING.boardEmail
             };
         } catch (e) {
             console.error("Error in fetchBranding:", e);
@@ -124,6 +139,11 @@ export const BrandingService = {
                 reply_to_email: branding.replyToEmail,
                 delivery_email_body: branding.deliveryEmailBody,
                 delivery_email_subject: branding.deliveryEmailSubject,
+                fiscal_email: branding.fiscalEmail,
+                dp_email: branding.dpEmail,
+                contabil_email: branding.contabilEmail,
+                quality_email: branding.qualityEmail,
+                board_email: branding.boardEmail,
                 updated_at: new Date().toISOString()
             });
 

@@ -19,7 +19,11 @@ import {
     X,
     SlidersHorizontal,
     Eye,
-    EyeOff
+    EyeOff,
+    RefreshCw,
+    Zap,
+    Loader2,
+    History as HistoryIcon
 } from 'lucide-react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -54,6 +58,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { 
     Form,
     FormControl,
@@ -63,7 +69,6 @@ import {
     FormMessage,
     FormDescription,
 } from "@/components/ui/form";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
@@ -74,6 +79,7 @@ import { useBranding } from '@/context/BrandingContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useForm, FormProvider } from 'react-hook-form';
+import { format } from 'date-fns';
 
 export default function Obligations() {
     const { officeName } = useBranding();
@@ -91,7 +97,6 @@ export default function Obligations() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingObligation, setEditingObligation] = useState<Obligation | null>(null);
     const [companySearch, setCompanySearch] = useState('');
-
     const clearAllFilters = () => {
         setSearchTerm('');
         setFilterDept('all');
@@ -599,7 +604,6 @@ export default function Obligations() {
                     </Table>
                 </CardContent>
             </Card>
-
             {/* Modal for Create/Edit */}
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogContent className="sm:max-w-[850px] max-h-[90vh] overflow-y-auto rounded-[2rem] p-0 border-none shadow-2xl">

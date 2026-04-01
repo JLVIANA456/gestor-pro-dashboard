@@ -89,6 +89,8 @@ const sections = [
       { name: 'Lista de Demandas', href: '/lista-demandas', icon: ClipboardCheck },
       { name: 'Lista de Entrega', href: '/lista-entrega', icon: Inbox },
       { name: 'Obrigações', href: '/obrigacoes', icon: ClipboardCheck },
+      { name: 'Vencimentos', href: '/vencimentos', icon: Clock },
+      { name: 'Alertas', href: '/alertas', icon: Bell },
       { name: 'Gestão de Tarefas', href: '/gestao-tarefas', icon: ShieldCheck },
       { name: 'Calendário', href: '/calendario', icon: CalendarIcon },
       { name: 'Comunicados', href: '/comunicados', icon: Send },
@@ -108,7 +110,6 @@ const sections = [
     title: 'Configurações',
     items: [
       { name: 'Personalizar', href: '/personalizar', icon: Palette },
-      { name: 'Alertas', href: '/alertas', icon: Bell },
     ]
   }
 ];

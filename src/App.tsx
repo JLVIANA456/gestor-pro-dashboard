@@ -40,6 +40,7 @@ import DPDepartament from "./pages/DPDepartament";
 import DPDemands from "./pages/DPDemands";
 import DPDispatches from "./pages/DPDispatches";
 import ClientChecklist from "./pages/ClientChecklist";
+import Deadlines from "./pages/Deadlines";
 
 const queryClient = new QueryClient();
 
@@ -123,9 +124,10 @@ const AppContent = () => {
             <Route path="lista-entrega" element={<DeliveryList />} />
             <Route path="lista-demandas" element={<DemandList />} />
             <Route path="calendario" element={<FiscalCalendar />} />
-            <Route path="gestao-tarefas" element={<TaskManagement />} />
             <Route path="obrigacoes" element={<Obligations />} />
+            <Route path="vencimentos" element={<Deadlines />} />
             <Route path="alertas" element={<Alerts />} />
+            <Route path="gestao-tarefas" element={<TaskManagement />} />
             <Route path="personalizar" element={<Branding />} />
             <Route path="comunicados" element={<Announcements />} />
             <Route path="comunicados-recorrentes" element={<RecurringAnnouncements />} />
