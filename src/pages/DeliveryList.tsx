@@ -33,7 +33,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useClients } from '@/hooks/useClients';
 import { useDeliveryList, AccountingGuide } from '@/hooks/useDeliveryList';
@@ -52,7 +52,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 
 export default function DeliveryList() {
-    const [selectedMonth, setSelectedMonth] = useState(() => format(new Date(), 'yyyy-MM'));
+    const [selectedMonth, setSelectedMonth] = useState(() => format(subMonths(new Date(), 1), 'yyyy-MM'));
     const {
         guides,
         loading,
@@ -118,30 +118,73 @@ export default function DeliveryList() {
         return result;
     }, []);
 
-    // Group guides by client_id
-    const guidesByClient = useMemo(() => {
-        const map: Record<string, AccountingGuide[]> = {};
-        guides.forEach(g => {
-            if (!map[g.client_id]) map[g.client_id] = [];
-            map[g.client_id].push(g);
-        });
-        return map;
-    }, [guides]);
+    // 1. Unified Progress Engine (Identical to DemandList)
+    const clientProgress = useMemo(() => {
+        const progress: Record<string, { total: number; completed: number; pending: number; tasks: any[] }> = {};
+        if (!clients || !Array.isArray(clients)) return progress;
 
-    // Filtered guides by client based on competency
-    const filteredGuidesByClient = useMemo(() => {
-        if (competencyFilter === 'all') return guidesByClient;
-        const map: Record<string, AccountingGuide[]> = {};
-        for (const clientId in guidesByClient) {
-            const filtered = guidesByClient[clientId].filter(g => g.competency === competencyFilter);
-            if (filtered.length > 0) {
-                map[clientId] = filtered;
-            } else {
-                map[clientId] = [];
-            }
-        }
-        return map;
-    }, [guidesByClient, competencyFilter]);
+        clients.forEach(client => {
+            if (!client?.isActive) return;
+            
+            // Calculate Theoretical Active Scope
+            const activeObligations = (obligations || []).filter(obl => {
+                if (!obl?.is_active || obl.periodicity === 'eventual') return false;
+                const explicitCompanies = obl.company_ids || [];
+                let appliesByDefault = false;
+                
+                if (explicitCompanies.length > 0) {
+                    appliesByDefault = explicitCompanies.includes(client.id);
+                } else {
+                    const obsRegimes = obl.tax_regimes || [];
+                    const clientRegime = (client.regimeTributario || '').toLowerCase();
+                    appliesByDefault = obsRegimes.length === 0 ||
+                        obsRegimes.some((r: string) => (r || '').toLowerCase() === 'all') ||
+                        (clientRegime && obsRegimes.some((r: string) => (r || '').toLowerCase() === clientRegime));
+                }
+                
+                const override = (clientObligations || []).find(co => co.client_id === client.id && co.obligation_id === obl.id);
+                return override ? override.status === 'enabled' : appliesByDefault;
+            });
+
+            const clientGuides = (guides || []).filter(g => g.client_id === client.id);
+            const unifiedTasks: any[] = [];
+            let completedCount = 0;
+
+            activeObligations.forEach(obl => {
+                const oblNameNormal = (obl.name || '').toLowerCase();
+                const existingGuide = clientGuides.find(g => (g.type || '').toLowerCase() === oblNameNormal);
+                
+                if (existingGuide) {
+                    if (existingGuide.status === 'sent' || existingGuide.status === 'completed') {
+                        completedCount++;
+                    }
+                    unifiedTasks.push({
+                        ...existingGuide,
+                        dept: obl.department,
+                        is_virtual: false
+                    });
+                } else {
+                    unifiedTasks.push({
+                        id: `virtual-${client.id}-${obl.id}`,
+                        client_id: client.id,
+                        type: obl.name,
+                        status: 'pending',
+                        dept: obl.department,
+                        is_virtual: true,
+                        due_date: null
+                    });
+                }
+            });
+
+            progress[client.id] = {
+                total: activeObligations.length,
+                completed: completedCount,
+                pending: Math.max(0, activeObligations.length - completedCount),
+                tasks: unifiedTasks
+            };
+        });
+        return progress;
+    }, [clients, obligations, clientObligations, guides]);
 
     const activeClients = useMemo(() => {
         return clients.filter(c => {
@@ -152,27 +195,17 @@ export default function DeliveryList() {
             );
             const matchesRegime = selectedRegime === 'all' || c.regimeTributario === selectedRegime;
 
-            const clientGuides = filteredGuidesByClient[c.id] || [];
-
-            // If competency is filtered, only show clients that have at least one guide for it
-            if (competencyFilter !== 'all' && clientGuides.length === 0) return false;
-
-            const hasNoGuides = clientGuides.length === 0;
-            const hasGuidesMissingFile = clientGuides.some(g => !g.file_url && g.status === 'pending');
-            const hasGuidesReadyToSend = clientGuides.some(g => g.file_url && g.status === 'pending');
-            const hasScheduled = clientGuides.some(g => g.status === 'scheduled');
-            const isCompleted = clientGuides.length > 0 && clientGuides.every(g => g.status === 'sent' || g.status === 'completed');
+            const stats = clientProgress[c.id] || { total: 0, completed: 0, pending: 0 };
+            const isCompleted = stats.total > 0 && stats.completed === stats.total;
 
             const matchesStatus =
                 filterStatus === 'all' ||
-                (filterStatus === 'pending_guide' && (hasNoGuides || hasGuidesMissingFile)) ||
-                (filterStatus === 'pending_send' && hasGuidesReadyToSend) ||
-                (filterStatus === 'scheduled' && hasScheduled) ||
+                (filterStatus === 'pending_guide' && stats.pending > 0) ||
                 (filterStatus === 'completed' && isCompleted);
 
             return matchesSearch && matchesRegime && matchesStatus;
         }).sort((a, b) => (a.nomeFantasia || a.razaoSocial).localeCompare(b.nomeFantasia || b.razaoSocial));
-    }, [clients, searchQuery, selectedRegime, filterStatus, filteredGuidesByClient, competencyFilter]);
+    }, [clients, searchQuery, selectedRegime, filterStatus, clientProgress]);
 
     const handleGenerateCycle = async () => {
         if (isGenerating) return;
@@ -714,14 +747,6 @@ export default function DeliveryList() {
         setIsClientModalOpen(true);
     };
 
-    const getClientStats = (clientId: string) => {
-        const clientGuides = filteredGuidesByClient[clientId] || [];
-        const total = clientGuides.length;
-        const sent = clientGuides.filter(g => g.status === 'sent').length;
-        const scheduled = clientGuides.filter(g => g.status === 'scheduled').length;
-        const pending = total - sent - scheduled;
-        return { total, sent, scheduled, pending, clientGuides };
-    };
 
     const handleSendAllPending = async () => {
         const pendingGuides = guides.filter(g => g.status === 'pending');
@@ -1075,18 +1100,22 @@ export default function DeliveryList() {
 
                             <div className="flex items-center gap-8 shrink-0 bg-primary/[0.03] px-8 py-3 rounded-[2rem] border border-primary/10 shadow-sm ml-auto md:ml-0">
                                 <div className="flex items-center gap-3">
-                                    <span className="text-2xl font-light text-foreground">{guides.length}</span>
+                                    <span className="text-2xl font-light text-foreground">
+                                        {Object.values(clientProgress).reduce((acc, curr) => acc + curr.total, 0)}
+                                    </span>
                                     <div className="flex flex-col">
                                         <span className="text-[8px] uppercase font-bold tracking-[0.2em] text-muted-foreground/60 leading-tight">Total</span>
-                                        <span className="text-[8px] uppercase font-bold tracking-[0.2em] text-muted-foreground leading-tight">Guias</span>
+                                        <span className="text-[8px] uppercase font-bold tracking-[0.2em] text-muted-foreground leading-tight">Obrigações</span>
                                     </div>
                                 </div>
                                 <div className="w-px h-8 bg-primary/10" />
                                 <div className="flex items-center gap-3">
-                                    <span className="text-2xl font-light text-emerald-600">{guides.filter(g => g.status === 'sent').length}</span>
+                                    <span className="text-2xl font-light text-emerald-600">
+                                        {Object.values(clientProgress).reduce((acc, curr) => acc + curr.completed, 0)}
+                                    </span>
                                     <div className="flex flex-col">
-                                        <span className="text-[8px] uppercase font-bold tracking-[0.2em] text-emerald-600/60 leading-tight">Guias</span>
-                                        <span className="text-[8px] uppercase font-bold tracking-[0.2em] text-emerald-600 leading-tight">Enviadas</span>
+                                        <span className="text-[8px] uppercase font-bold tracking-[0.2em] text-emerald-600/60 leading-tight">Total</span>
+                                        <span className="text-[8px] uppercase font-bold tracking-[0.2em] text-emerald-600 leading-tight">Concluídas</span>
                                     </div>
                                 </div>
                             </div>
@@ -1102,7 +1131,7 @@ export default function DeliveryList() {
                     ) : viewMode === 'grid' ? (
                         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 animate-slide-in-up stagger-2">
                             {activeClients.map((client) => {
-                                const stats = getClientStats(client.id);
+                                const stats = clientProgress[client.id] || { total: 0, completed: 0, pending: 0, tasks: [] };
                                 return (
                                     <div
                                         key={client.id}
@@ -1148,7 +1177,7 @@ export default function DeliveryList() {
                                                         className={cn("transition-all duration-1000", stats.pending > 0 ? "text-amber-500/40" : "text-emerald-500/40")}
                                                         strokeWidth="3"
                                                         strokeDasharray={150}
-                                                        strokeDashoffset={150 - (150 * (stats.sent / (stats.total || 1)))}
+                                                        strokeDashoffset={150 - (150 * (stats.completed / (stats.total || 1)))}
                                                         strokeLinecap="round"
                                                         stroke="currentColor"
                                                         fill="transparent"
@@ -1156,7 +1185,7 @@ export default function DeliveryList() {
                                                     />
                                                 </svg>
                                                 <span className="absolute text-[10px] font-black text-foreground/40">
-                                                    {Math.round((stats.sent / (stats.total || 1)) * 100)}%
+                                                    {Math.round((stats.completed / (stats.total || 1)) * 100)}%
                                                 </span>
                                             </div>
                                         </div>
@@ -1164,12 +1193,12 @@ export default function DeliveryList() {
                                         {/* Stats Bento Grid */}
                                         <div className="relative grid grid-cols-2 gap-4 mb-12">
                                             <div className="bg-white/30 border border-white/50 rounded-[2rem] p-6 flex flex-col items-center justify-center group/item transition-all hover:bg-white/60">
-                                                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-amber-600/40 mb-3">Pendente</span>
+                                                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-amber-600/40 mb-3">Pendentes</span>
                                                 <p className="text-4xl font-extralight text-amber-600 group-hover/item:scale-110 transition-transform duration-500">{stats.pending}</p>
                                             </div>
                                             <div className="bg-white/30 border border-white/50 rounded-[2rem] p-6 flex flex-col items-center justify-center group/item transition-all hover:bg-white/60">
-                                                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-600/40 mb-3">Concluído</span>
-                                                <p className="text-4xl font-extralight text-emerald-600 group-hover/item:scale-110 transition-transform duration-500">{stats.sent}</p>
+                                                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-600/40 mb-3">Concluídas</span>
+                                                <p className="text-4xl font-extralight text-emerald-600 group-hover/item:scale-110 transition-transform duration-500">{stats.completed}</p>
                                             </div>
                                         </div>
 
@@ -1180,15 +1209,15 @@ export default function DeliveryList() {
                                                 <span className="text-[9px] font-bold text-primary/60">{stats.total} Atividades</span>
                                             </div>
                                             <div className="flex flex-wrap gap-2.5">
-                                                {stats.clientGuides.length === 0 ? (
+                                                {stats.tasks.length === 0 ? (
                                                     <div className="text-[10px] font-medium text-muted-foreground/30 italic">Sem tarefas para este ciclo.</div>
                                                 ) : (
-                                                    stats.clientGuides.map((g) => (
+                                                    stats.tasks.map((g) => (
                                                         <div
                                                             key={g.id}
                                                             className={cn(
                                                                 "h-1.5 flex-1 min-w-[30px] rounded-full transition-all duration-700",
-                                                                g.status === 'sent' ? "bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]" :
+                                                                (g.status === 'sent' || g.status === 'completed') ? "bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]" :
                                                                     g.status === 'scheduled' ? "bg-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.3)]" :
                                                                         g.file_url ? "bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.3)]" :
                                                                             "bg-amber-500/20"
@@ -1222,7 +1251,7 @@ export default function DeliveryList() {
                                 </TableHeader>
                                 <TableBody>
                                     {activeClients.map((client) => {
-                                        const stats = getClientStats(client.id);
+                                        const stats = clientProgress[client.id] || { total: 0, completed: 0, pending: 0, tasks: [] };
                                         return (
                                             <TableRow
                                                 key={client.id}
@@ -1254,8 +1283,8 @@ export default function DeliveryList() {
                                                 <TableCell className="p-6 text-center">
                                                     <span className={cn(
                                                         "text-sm font-light",
-                                                        stats.sent > 0 ? "text-emerald-500 font-medium" : "text-muted-foreground/40"
-                                                    )}>{stats.sent}</span>
+                                                        stats.completed > 0 ? "text-emerald-500 font-medium" : "text-muted-foreground/40"
+                                                    )}>{stats.completed}</span>
                                                 </TableCell>
                                                 <TableCell className="p-6 text-right">
                                                     <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg group-hover:bg-primary/10 group-hover:text-primary">
@@ -1385,13 +1414,12 @@ export default function DeliveryList() {
                 </TabsContent>
             </Tabs>
 
-            {/* Client Detail Modal */}
             <ClientGuidesModal
                 open={isClientModalOpen}
                 onOpenChange={setIsClientModalOpen}
                 client={selectedClient}
                 referenceMonth={selectedMonth}
-                guides={selectedClient ? (filteredGuidesByClient[selectedClient.id] || []) : []}
+                guides={selectedClient ? (clientProgress[selectedClient.id]?.tasks || []) : []}
                 onUpdate={() => fetchGuides(selectedMonth)}
             />
 
@@ -1401,9 +1429,6 @@ export default function DeliveryList() {
                 referenceMonth={selectedMonth}
                 onSuccess={() => fetchGuides(selectedMonth)}
             />
-
-
-            {/* COMPOSER DIALOGS (if any) */}
         </div>
     );
 }

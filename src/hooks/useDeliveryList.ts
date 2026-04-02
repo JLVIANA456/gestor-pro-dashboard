@@ -139,8 +139,18 @@ export function useDeliveryList(referenceMonth?: string) {
 
   const updateGuideStatus = async (id: string, status: DeliveryStatus, sentAt?: string) => {
     try {
-      const updateData: any = { status, updated_at: new Date().toISOString() };
+      // Interceptador de Baixa Automática: Se for marcado como 'sent', força para 'completed'
+      const finalStatus = status === 'sent' ? 'completed' : status;
+      const updateData: any = { 
+        status: finalStatus, 
+        updated_at: new Date().toISOString() 
+      };
+      
       if (sentAt) updateData.sent_at = sentAt;
+      if (finalStatus === 'completed') {
+          updateData.completed_at = new Date().toISOString();
+          updateData.completed_by = 'Sistema (Auto-Baixa)';
+      }
 
       // @ts-ignore
       const { data, error } = await sb
@@ -164,10 +174,18 @@ export function useDeliveryList(referenceMonth?: string) {
 
   const updateGuide = async (id: string, updates: Partial<AccountingGuide>) => {
     try {
+      // Interceptador de Baixa Automática em updates parciais
+      const finalUpdates = { ...updates };
+      if (finalUpdates.status === 'sent' || (finalUpdates.sent_at && !finalUpdates.status)) {
+          finalUpdates.status = 'completed';
+          finalUpdates.completed_at = new Date().toISOString();
+          finalUpdates.completed_by = 'Sistema (Auto-Baixa)';
+      }
+
       // @ts-ignore
       const { data, error } = await sb
         .from('accounting_guides')
-        .update({ ...updates, updated_at: new Date().toISOString() })
+        .update({ ...finalUpdates, updated_at: new Date().toISOString() })
         .eq('id', id)
         .select()
         .single();

@@ -41,6 +41,7 @@ import DPDemands from "./pages/DPDemands";
 import DPDispatches from "./pages/DPDispatches";
 import ClientChecklist from "./pages/ClientChecklist";
 import Deadlines from "./pages/Deadlines";
+import FiscalInstallments from "./pages/FiscalInstallments";
 
 const queryClient = new QueryClient();
 
@@ -136,6 +137,7 @@ const AppContent = () => {
             <Route path="documentos" element={<DocumentosRecebidos />} />
             <Route path="portal-entregas" element={<PortalEntregas />} />
             <Route path="checklist-clientes" element={<ClientChecklist />} />
+            <Route path="fiscal/parcelamentos" element={<FiscalInstallments />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </MainLayout>

@@ -26,7 +26,9 @@ import {
   Monitor,
   Link2,
   FolderOpen,
-  Calculator
+  Calculator,
+  Target,
+  Activity
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useBranding } from '@/context/BrandingContext';
@@ -84,14 +86,20 @@ const sections = [
     ]
   },
   {
+    title: 'Módulo Fiscal',
+    items: [
+      { name: 'Parcelamentos', href: '/fiscal/parcelamentos', icon: Banknote },
+    ]
+  },
+  {
     title: 'Módulo Gestão',
     items: [
-      { name: 'Lista de Demandas', href: '/lista-demandas', icon: ClipboardCheck },
-      { name: 'Lista de Entrega', href: '/lista-entrega', icon: Inbox },
-      { name: 'Obrigações', href: '/obrigacoes', icon: ClipboardCheck },
+      { name: 'Obrigações', href: '/obrigacoes', icon: FileText },
+      { name: 'Gestão de Tarefas', href: '/gestao-tarefas', icon: ShieldCheck },
+      { name: 'Lista de Entregas', href: '/lista-entrega', icon: Send },
+      { name: 'Lista de Demandas', href: '/lista-demandas', icon: Target },
       { name: 'Vencimentos', href: '/vencimentos', icon: Clock },
       { name: 'Alertas', href: '/alertas', icon: Bell },
-      { name: 'Gestão de Tarefas', href: '/gestao-tarefas', icon: ShieldCheck },
       { name: 'Calendário', href: '/calendario', icon: CalendarIcon },
       { name: 'Comunicados', href: '/comunicados', icon: Send },
       { name: 'Recorrentes', href: '/comunicados-recorrentes', icon: Clock },
