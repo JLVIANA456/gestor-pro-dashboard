@@ -114,6 +114,9 @@ export function DeliveryAiDropZone({ onSendAll }: DeliveryAiDropZoneProps) {
         } else if (data.category === 'inss') {
             subject = `Guia de INSS / Previdência - ${client?.nomeFantasia || client?.nome_fantasia || data.companyName}`;
             templateTitle = "Guia de INSS";
+        } else if (data.type === 'ISS') {
+            subject = `Guia de ISS - ${client?.nomeFantasia || client?.nome_fantasia || data.companyName}`;
+            templateTitle = "Guia de ISS";
         } else if (data.type === 'DAS') {
             subject = `Guia DAS / Simples Nacional - ${client?.nomeFantasia || client?.nome_fantasia || data.companyName}`;
             templateTitle = "Guia de Pagamento DAS";
@@ -226,6 +229,22 @@ export function DeliveryAiDropZone({ onSendAll }: DeliveryAiDropZoneProps) {
                 data.dueDate = null as any; 
                 // Remove a extensão .pdf (independente de maiúsculas/minúsculas)
                 data.type = fileObj.file.name.replace(/\.[^/.]+$/, "");
+            } else if (lowerFileName.includes('iss')) {
+                data.type = 'ISS';
+                data.category = 'guia';
+                
+                // Extração via Regex: 366 ISS -02-2026 vencimento 13-03-2026.pdf
+                // 1. Tenta extrair competência (padrão MM-YYYY ou MM/YYYY)
+                const compMatch = lowerFileName.match(/(\d{2})[-/](\d{4})/);
+                if (compMatch) {
+                    data.referenceMonth = `${compMatch[1]}/${compMatch[2]}`;
+                }
+
+                // 2. Tenta extrair vencimento após a palavra 'vencimento'
+                const dueMatch = lowerFileName.match(/vencimento\s+(\d{2})[-/](\d{2})[-/](\d{4})/);
+                if (dueMatch) {
+                    data.dueDate = `${dueMatch[3]}-${dueMatch[2]}-${dueMatch[1]}`; // ISO YYYY-MM-DD
+                }
             } else if (isFolhaOrFerias || (isDemonstrativo && isFGTS)) {
                 data.category = 'folha';
                 data.value = "0"; // Força valor zero para aparecer o traço '-'

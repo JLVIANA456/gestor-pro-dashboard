@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import * as z from 'zod';
 import { useClients } from '@/hooks/useClients';
 import { useTechnicians } from '@/hooks/useTechnicians';
 import { useDPDispatches, DispatchChannel, DispatchProcess, DispatchStatus } from '@/hooks/useDPDispatches';
+import { useDPTasks } from '@/hooks/useDPTasks';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -30,8 +31,7 @@ import { cn } from '@/lib/utils';
 const formSchema = z.object({
     clientId: z.string().min(1, 'Cliente é obrigatório'),
     colaboradorNome: z.string().optional().nullable(),
-    tipoProcesso: z.string().min(1, 'Tipo de processo é obrigatório'),
-    tipoDocumento: z.string().min(1, 'Tipo de documento é obrigatório'),
+    tipoProcesso: z.string().min(1, 'Tipo de documento é obrigatório'),
     descricao: z.string().optional().nullable(),
     canal: z.enum(['email', 'portal', 'whatsapp', 'manual']),
     destinatario: z.string().min(1, 'Destinatário (Email/Tel) é obrigatório'),
@@ -40,6 +40,9 @@ const formSchema = z.object({
     responsavelId: z.string().optional().nullable(),
     mensagem: z.string().optional().nullable(),
     observacoes: z.string().optional().nullable(),
+    valor: z.string().optional().nullable(),
+    dataVencimento: z.string().optional().nullable(),
+    demandId: z.string().optional().nullable(),
 });
 
 interface DPDispatchModalProps {
@@ -54,6 +57,7 @@ export function DPDispatchModal({ isOpen, onClose, onSuccess, initialMessage, in
     const { clients } = useClients();
     const { technicians } = useTechnicians();
     const { createDispatch, sendEmailDirect } = useDPDispatches();
+    const { tasks, updateTask } = useDPTasks();
     const dpTechnicians = technicians.filter(t => t.department === 'dp');
     const [openClient, setOpenClient] = useState(false);
     const [submitting, setSubmitting] = useState(false);
@@ -65,7 +69,6 @@ export function DPDispatchModal({ isOpen, onClose, onSuccess, initialMessage, in
             clientId: '',
             colaboradorNome: '',
             tipoProcesso: 'folha',
-            tipoDocumento: 'Holerite',
             descricao: '',
             canal: 'email',
             destinatario: '',
@@ -74,6 +77,9 @@ export function DPDispatchModal({ isOpen, onClose, onSuccess, initialMessage, in
             responsavelId: null,
             mensagem: '',
             observacoes: '',
+            valor: '',
+            dataVencimento: '',
+            demandId: null,
         },
     });
 
@@ -83,7 +89,7 @@ export function DPDispatchModal({ isOpen, onClose, onSuccess, initialMessage, in
             form.setValue('mensagem', initialMessage);
         }
         if (isOpen && initialTitle) {
-            form.setValue('tipoDocumento', initialTitle);
+            form.setValue('tipoProcesso', initialTitle);
             form.setValue('descricao', initialTitle);
         }
     }, [isOpen, initialMessage, initialTitle, form]);
@@ -103,6 +109,23 @@ export function DPDispatchModal({ isOpen, onClose, onSuccess, initialMessage, in
             }
         }
     }, [watchedClientId, watchedCanal, clients, form]);
+
+    const watchedColaborador = form.watch('colaboradorNome');
+    const filteredTasks = useMemo(() => {
+        if (!watchedClientId) return [];
+        return tasks.filter(t => 
+            t.clientId === watchedClientId && 
+            t.status === 'PENDENTE' &&
+            (!watchedColaborador || t.colaboradorNome.toLowerCase().includes(watchedColaborador.toLowerCase()))
+        );
+    }, [tasks, watchedClientId, watchedColaborador]);
+
+    // Auto-select demand if there is only one match
+    useEffect(() => {
+        if (filteredTasks.length === 1 && !form.getValues('demandId')) {
+            form.setValue('demandId', filteredTasks[0].id);
+        }
+    }, [filteredTasks, form]);
 
     const convertFileToBase64 = (file: File): Promise<{ filename: string; content: string }> => {
         return new Promise((resolve, reject) => {
@@ -154,17 +177,27 @@ export function DPDispatchModal({ isOpen, onClose, onSuccess, initialMessage, in
                     empresaNome: clients.find(c => c.id === values.clientId)?.nomeFantasia
                         || clients.find(c => c.id === values.clientId)?.razaoSocial,
                     colaboradorNome: values.colaboradorNome,
-                    canal: values.canal,
+                    canal: 'email',
                     destinatario: values.destinatario,
-                    tipoDocumento: values.tipoDocumento,
+                    tipoDocumento: values.tipoProcesso,
                     tipoProcesso: values.tipoProcesso,
                     mensagem: values.mensagem || null,
                     dataPrevista: values.dataPrevista,
                     anexoUrl: uploadedFiles.length > 0 ? uploadedFiles[0].publicUrl : null,
-                    status: 'pendente'
+                    status: 'pendente',
+                    valor: values.valor ? parseFloat(values.valor.replace(',', '.')) : null,
+                    dataVencimento: values.dataVencimento || null
                 } as any;
                 
                 await sendEmailDirect(dispatchObj, uploadedFiles);
+
+                // "Dar baixa" na demanda se houver uma selecionada
+                if (values.demandId) {
+                    await updateTask(values.demandId, {
+                        status: 'CONCLUIDO',
+                        dataEnvio: new Date().toISOString()
+                    });
+                }
             }
 
             onClose();
@@ -266,14 +299,41 @@ export function DPDispatchModal({ isOpen, onClose, onSuccess, initialMessage, in
 
                             <FormField
                                 control={form.control}
+                                name="demandId"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-[10px] uppercase tracking-[0.2em] font-medium opacity-50 mb-2">Vincular à Demanda Diária (Baixa Auto)</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value || "none"}>
+                                            <FormControl>
+                                                <SelectTrigger className="h-14 rounded-2xl bg-blue-500/5 border-blue-500/20 px-6 font-light text-base text-blue-700">
+                                                    <SelectValue placeholder="Selecione demanda para baixar..." />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent className="rounded-2xl border-border bg-card p-2">
+                                                <SelectItem value="none" className="rounded-xl py-3">Não vincular demanda</SelectItem>
+                                                {filteredTasks.map(t => (
+                                                    <SelectItem key={t.id} value={t.id} className="rounded-xl py-3 cursor-pointer">
+                                                        {t.tipoProcesso.toUpperCase()} — (Prazo: {format(parseISO(t.prazo), 'dd/MM')})
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <p className="text-[9px] text-blue-600/60 font-medium">✨ Ao enviar, a tarefa será marcada como concluída.</p>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <FormField
+                                control={form.control}
                                 name="tipoProcesso"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-[10px] uppercase tracking-[0.2em] font-medium opacity-50 mb-2">Processo DP</FormLabel>
+                                        <FormLabel className="text-[10px] uppercase tracking-[0.2em] font-medium opacity-50 mb-2">Tipo do Documento</FormLabel>
                                         <Select onValueChange={field.onChange} value={field.value}>
                                             <FormControl>
                                                 <SelectTrigger className="h-14 rounded-2xl bg-muted/10 border-border/40 px-6 font-light text-base">
-                                                    <SelectValue placeholder="Selecione o processo" />
+                                                    <SelectValue placeholder="Selecione o documento" />
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent className="rounded-2xl border-border bg-card p-2">
@@ -292,12 +352,12 @@ export function DPDispatchModal({ isOpen, onClose, onSuccess, initialMessage, in
 
                             <FormField
                                 control={form.control}
-                                name="tipoDocumento"
+                                name="valor"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-[10px] uppercase tracking-[0.2em] font-medium opacity-50 mb-2">Tipo de Documento</FormLabel>
+                                        <FormLabel className="text-[10px] uppercase tracking-[0.2em] font-medium opacity-50 mb-2">Valor do Documento (R$)</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="Ex: Aviso de Férias, Guia FGTS" className="h-14 rounded-2xl bg-muted/10 border-border/40 px-6 font-light text-base" {...field} />
+                                            <Input placeholder="Ex: 1250,50" className="h-14 rounded-2xl bg-muted/10 border-border/40 px-6 font-light text-base" {...field} value={field.value || ''} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -306,39 +366,16 @@ export function DPDispatchModal({ isOpen, onClose, onSuccess, initialMessage, in
 
                             <FormField
                                 control={form.control}
-                                name="canal"
+                                name="dataVencimento"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-[10px] uppercase tracking-[0.2em] font-medium opacity-50 mb-2">Canal de Envio</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value}>
-                                            <FormControl>
-                                                <SelectTrigger className="h-14 rounded-2xl bg-muted/10 border-border/40 px-6 font-light text-base">
-                                                    <SelectValue placeholder="Escolha o canal" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent className="rounded-2xl border-border bg-card p-2">
-                                                <SelectItem value="email" className="rounded-xl py-3">
-                                                    <div className="flex items-center gap-2 pr-10">
-                                                        <Mail className="h-4 w-4 text-blue-500" /> E-mail (Vincular Resend)
-                                                    </div>
-                                                </SelectItem>
-                                                <SelectItem value="whatsapp" className="rounded-xl py-3">
-                                                    <div className="flex items-center gap-2">
-                                                        <Phone className="h-4 w-4 text-emerald-500" /> WhatsApp (Link Direto)
-                                                    </div>
-                                                </SelectItem>
-                                                <SelectItem value="portal" className="rounded-xl py-3">
-                                                    <div className="flex items-center gap-2">
-                                                        <Check className="h-4 w-4 text-primary" /> Área do Cliente
-                                                    </div>
-                                                </SelectItem>
-                                                <SelectItem value="manual" className="rounded-xl py-3">
-                                                    <div className="flex items-center gap-2">
-                                                        <Check className="h-4 w-4 text-muted-foreground" /> Entrega Manual
-                                                    </div>
-                                                </SelectItem>
-                                            </SelectContent>
-                                        </Select>
+                                        <FormLabel className="text-[10px] uppercase tracking-[0.2em] font-medium opacity-50 mb-2">Data de Vencimento</FormLabel>
+                                        <FormControl>
+                                            <div className="relative">
+                                                <Input type="date" className="h-14 rounded-2xl bg-muted/10 border-border/40 px-6 font-light text-base" {...field} value={field.value || ''} />
+                                                <Clock className="absolute right-6 top-1/2 -translate-y-1/2 h-4 w-4 opacity-20" />
+                                            </div>
+                                        </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -417,11 +454,11 @@ export function DPDispatchModal({ isOpen, onClose, onSuccess, initialMessage, in
                                 name="mensagem"
                                 render={({ field }) => (
                                     <FormItem className="md:col-span-2">
-                                        <FormLabel className="text-[10px] uppercase tracking-[0.2em] font-medium opacity-50 mb-2">Mensagem do Disparo / Corpo do E-mail</FormLabel>
+                                        <FormLabel className="text-[11px] uppercase tracking-[0.2em] font-black text-red-600 mb-2">🚀 Notas Adicionais do DP (Corpo do E-mail)</FormLabel>
                                         <FormControl>
                                             <Textarea 
                                                 placeholder="Escreva a mensagem que o cliente ou colaborador irá receber..." 
-                                                className="min-h-[180px] rounded-2xl bg-muted/10 border-border/40 p-6 font-light text-base resize-none leading-relaxed" 
+                                                className="min-h-[220px] rounded-[2rem] bg-red-50/50 border-red-200 p-8 font-bold text-black text-lg shadow-inner focus:ring-red-500/20 focus:border-red-500 transition-all leading-relaxed" 
                                                 {...field} 
                                                 value={field.value || ''}
                                             />

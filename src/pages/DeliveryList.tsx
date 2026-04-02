@@ -394,14 +394,40 @@ export default function DeliveryList() {
 
                                 const allFolders = (clientFolders as any[]) || [];
 
-                                // 1.1 Identificar/Criar Pasta Raiz (Categoria)
-                                let rootCategoryName = 'Outros Documentos';
-                                if (item.data?.category === 'folha') {
-                                    rootCategoryName = 'Folha de Pagamento';
-                                } else if (item.data?.category === 'guia' || item.data?.category === 'inss') {
-                                    rootCategoryName = 'Impostos e Guias';
+                                // 1. Definir Hierarquia de Pastas (Departamento > Categoria > Ano > Mês)
+                                
+                                // 1.1 Identificar o Departamento
+                                let deptName = 'FISCAL';
+                                const typeToMatch = (item.matchedObligationName || item.data?.type || '').toLowerCase();
+                                
+                                // Regra prioritária para DP (Folha e Adiantamentos)
+                                if (item.data?.category === 'folha' || item.data?.category === 'adiantamento' || typeToMatch.includes('folha') || typeToMatch.includes('fgts')) {
+                                    deptName = 'DP';
+                                } else if (item.data?.category === 'contabil') {
+                                    deptName = 'CONTÁBIL';
                                 } else {
-                                    rootCategoryName = guideTypeToMatch || 'Outros Documentos';
+                                    // Busca o departamento na configuração da obrigação
+                                    const obs = obligations.find(o => o.name.toLowerCase() === typeToMatch);
+                                    if (obs?.department) {
+                                        const d = obs.department.toUpperCase();
+                                        if (d.includes('CONTABIL') || d.includes('CONTÁBIL')) deptName = 'CONTÁBIL';
+                                        else if (d.includes('DP') || d.includes('PESSOAL')) deptName = 'DP';
+                                        else deptName = 'FISCAL';
+                                    }
+                                }
+
+                                // 1.2 Identificar a Categoria dentro do Departamento (Refinado)
+                                let categoryName = 'Outros Departamentos';
+                                const categorySlug = item.data?.category || 'outro';
+
+                                if (categorySlug === 'folha') {
+                                    categoryName = 'Folha de Pagamento';
+                                } else if (categorySlug === 'adiantamento') {
+                                    categoryName = 'Adiantamentos';
+                                } else if (categorySlug === 'guia' || categorySlug === 'inss') {
+                                    categoryName = 'Impostos e Guias';
+                                } else if (categorySlug === 'contabil' && deptName === 'CONTÁBIL') {
+                                    categoryName = 'Documentos Contábeis';
                                 }
 
                                 // Helper function to get or create folder in the hierarchical context
@@ -431,15 +457,19 @@ export default function DeliveryList() {
                                     return folder;
                                 };
 
-                                const rootFolder = await getOrCreateFolder(rootCategoryName, null, 
-                                    item.data?.category === 'folha' ? 'Users' : 
-                                    (item.data?.category === 'guia' || item.data?.category === 'inss' ? 'Receipt' : 'Folder')
+                                // 1.3 Criar Hierarquia em 4 Níveis
+                                // Nível 1: Departamento (Raiz)
+                                const deptFolder = await getOrCreateFolder(deptName, null, 'Building2');
+                                
+                                // Nível 2: Categoria (Subpasta do Depto)
+                                const catFolder = await getOrCreateFolder(categoryName, deptFolder?.id || null, 
+                                    categoryName === 'Impostos e Guias' ? 'Receipt' : 'Folder'
                                 );
                                 
-                                // 1.2 Identificar/Criar Pasta do Ano
-                                const yearFolder = await getOrCreateFolder(folderYear, rootFolder?.id || null, 'Calendar');
+                                // Nível 3: Ano
+                                const yearFolder = await getOrCreateFolder(folderYear, catFolder?.id || null, 'Calendar');
 
-                                // 1.3 Identificar/Criar Pasta do Mês
+                                // Nível 4: Mês
                                 const monthFolder = await getOrCreateFolder(folderMonthName, yearFolder?.id || null, 'Clock');
 
                                 // 2. Inserir em client_deliveries (Aba Hub do Cliente)

@@ -12,7 +12,7 @@ export interface ExtractedGuideData {
   dueDate: string;
   referenceMonth: string;
   type: string;
-  category: 'folha' | 'guia' | 'extrato' | 'inss' | 'adiantamento' | 'outro';
+  category: 'folha' | 'guia' | 'extrato' | 'inss' | 'adiantamento' | 'contabil' | 'outro';
   hasInterests: boolean;
 }
 
@@ -75,10 +75,10 @@ export class AiService {
                 - NUNCA use 'FGTS Digital' para estes demonstrativos.
               * Outros exemplos: DAS, FGTS Digital (Guia de Pagamento comum), FOLHA DE PAGAMENTO MENSAL (pode ser chamado de 'Extrato Mensal'), RECIBO DE FOLHA MENSAL, RELAÇÃO GERAL DE LÍQUIDOS.
               * Diferencie 'Recibo de Pagamento' (vouchers) de 'Folha de Pagamento' (resumo).
-            - category: Classifique em um destes: 'folha' (para holerites, resumo de folha, rescisão, demonstrativo fgts rescisório, programação de férias, pro-labore e relação de líquidos, extrato mensal), 'guia' (para DAS, DARF, ISS, ICMS, e FGTS DIgital comum), 'inss' (para previdência), 'extrato' ou 'outro'.
+            - category: Classifique em um destes: 'folha' (holerites, pro-labore, folha mensal), 'adiantamento' (adiantamento salarial), 'guia' (DAS, DARF, ISS, ICMS, FGTS Digital), 'inss' (previdência), 'contabil' (balancetes, balanços, relatórios contábeis), 'extrato' ou 'outro'.
             - hasInterests: true se houver multa ou juros calculados no valor total.
             
-            Nota importante: Em relatórios de folha (como Relação de Líquidos), o nome da empresa e o CNPJ estão quase sempre no cabeçalho superior esquerdo. Documentos de 'Demonstrativo FGTS Rescisório' e 'Extrato Mensal' devem ser classificados na categoria 'folha'.`
+            Nota importante: Em relatórios de folha (como Relação de Líquidos), o nome da empresa e o CNPJ estão quase sempre no cabeçalho superior esquerdo. Documentos de 'Demonstrativo FGTS Rescisório', 'Extrato Mensal' e 'Adiantamento' devem ser classificados com suas respectivas categorias ('folha' ou 'adiantamento'). Balancetes e documentos de fechamento devem ser 'contabil'.`
           },
           {
             role: "user",

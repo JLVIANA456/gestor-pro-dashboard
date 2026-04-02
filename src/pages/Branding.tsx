@@ -176,7 +176,7 @@ export default function Branding() {
     return (
         <div className="space-y-8 animate-slide-in-up">
             <div className="flex flex-col gap-2">
-                <h1 className="text-3xl font-light tracking-tight text-foreground">Gestão do <span className="text-primary font-normal">Escritório</span></h1>
+                <h1 className="text-3xl font-light tracking-tight text-foreground">Configurações do <span className="text-primary font-normal">Sistema</span></h1>
                 <p className="text-xs font-normal text-muted-foreground uppercase tracking-[0.2em]">Unificamos Identidade Visual, Inteligência Artificial e Comunicação</p>
             </div>
 

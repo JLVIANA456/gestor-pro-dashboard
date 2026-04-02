@@ -68,7 +68,7 @@ const sections = [
     items: [
       { name: 'Departamento Pessoal', href: '/departamento-pessoal', icon: Users },
       { name: 'Entrega Demanda Diária', href: '/dp/demanda-diaria', icon: CalendarIcon },
-      { name: 'Disparos e Envios', href: '/dp/envios', icon: Send },
+      { name: 'Envios DP', href: '/dp/envios', icon: Send },
     ]
   },
   {
@@ -107,9 +107,9 @@ const sections = [
     ]
   },
   {
-    title: 'Configurações',
+    title: 'Sistema',
     items: [
-      { name: 'Personalizar', href: '/personalizar', icon: Palette },
+      { name: 'Config. do sistema', href: '/personalizar', icon: Settings },
     ]
   }
 ];

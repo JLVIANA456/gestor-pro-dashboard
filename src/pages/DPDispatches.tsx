@@ -112,7 +112,7 @@ export default function DPDispatches() {
                         <TableHead className="py-6 text-[10px] uppercase tracking-[0.2em] font-normal">Empresa / Colaborador</TableHead>
                         <TableHead className="py-6 text-[10px] uppercase tracking-[0.2em] font-normal">Documento / Processo</TableHead>
                         <TableHead className="py-6 text-[10px] uppercase tracking-[0.2em] font-normal">Data Planejada</TableHead>
-                        <TableHead className="py-6 text-[10px] uppercase tracking-[0.2em] font-normal">Destinatário</TableHead>
+                        <TableHead className="py-6 text-[10px] uppercase tracking-[0.2em] font-normal text-center">Valor / Vencimento</TableHead>
                         <TableHead className="py-6 text-[10px] uppercase tracking-[0.2em] font-normal text-center">Status</TableHead>
                         <TableHead className="py-6 pr-10 text-[10px] uppercase tracking-[0.2em] font-normal text-right">Ações</TableHead>
                     </TableRow>
@@ -154,8 +154,15 @@ export default function DPDispatches() {
                                         {d.dataPrevista ? format(parseISO(d.dataPrevista), 'dd MMM yyyy', { locale: ptBR }) : '—'}
                                     </span>
                                 </TableCell>
-                                <TableCell className="py-4">
-                                    <span className="text-[12px] font-medium text-muted-foreground truncate max-w-[160px] block">{d.destinatario || '—'}</span>
+                                <TableCell className="text-center py-4">
+                                    <div className="flex flex-col gap-1 items-center">
+                                        <span className="text-xs font-bold text-red-600">
+                                            {d.valor ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(d.valor) : '—'}
+                                        </span>
+                                        <span className="text-[10px] text-muted-foreground uppercase">
+                                            Venc: {d.dataVencimento ? format(parseISO(d.dataVencimento), 'dd/MM/yyyy') : '—'}
+                                        </span>
+                                    </div>
                                 </TableCell>
                                 <TableCell className="text-center py-4">
                                     {getStatusBadge(d.status)}
@@ -208,7 +215,7 @@ export default function DPDispatches() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-6">
                 <div>
                     <h1 className="text-5xl font-light tracking-tight text-foreground flex items-center gap-4">
-                        Disparos e Envios <span className="text-red-600 font-normal">DP</span>
+                        Envios <span className="text-red-600 font-normal">DP</span>
                         <div className="h-2 w-2 rounded-full bg-red-600 animate-pulse mt-2" />
                     </h1>
                     <p className="text-xs font-normal text-muted-foreground uppercase tracking-[0.3em] mt-3">Central de Comunicação — Resend & WhatsApp Marketing DP</p>

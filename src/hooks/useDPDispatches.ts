@@ -31,6 +31,8 @@ export interface DPDispatch {
     observacoes: string | null;
     errorMessage: string | null;
     resendId: string | null;
+    valor: number | null;
+    dataVencimento: string | null;
     criadoEm: string;
 }
 
@@ -73,6 +75,8 @@ export function useDPDispatches() {
                 observacoes: item.observacoes,
                 errorMessage: item.error_message,
                 resendId: item.resend_id,
+                valor: item.valor,
+                dataVencimento: item.data_vencimento,
                 criadoEm: item.criado_em,
             }));
 
@@ -93,7 +97,7 @@ export function useDPDispatches() {
                     client_id: payload.clientId,
                     colaborador_nome: payload.colaboradorNome,
                     tipo_processo: payload.tipoProcesso,
-                    tipo_documento: payload.tipoDocumento,
+                    tipo_documento: payload.tipoDocumento || payload.tipoProcesso,
                     descricao: payload.descricao,
                     canal: payload.canal,
                     destinatario: payload.destinatario,
@@ -102,7 +106,9 @@ export function useDPDispatches() {
                     responsavel_id: payload.responsavelId,
                     anexo_url: payload.anexoUrl,
                     mensagem: payload.mensagem,
-                    observacoes: payload.observacoes
+                    observacoes: payload.observacoes,
+                    valor: payload.valor,
+                    data_vencimento: payload.dataVencimento
                 }] as any)
                 .select()
                 .single();
@@ -161,66 +167,59 @@ export function useDPDispatches() {
                 return;
             }
 
-            toast.info(`Preparando disparo seguro para ${dispatch.destinatario}...`);
+            const docNameMapper: Record<string, string> = {
+                'admissao': 'Admissão',
+                'rescisao': 'Rescisão',
+                'ferias': 'Férias',
+                'folha': 'Folha / Holerite',
+                'beneficios': 'Benefícios',
+                'esocial': 'eSocial / Guias',
+                'vale': 'Vale / Adiantamento',
+                'outros': 'Outros Documentos'
+            };
 
-            // Buscar Branding oficial para manter a estrutura da 'Lista de Entregas'
+            const displayDocName = docNameMapper[dispatch.tipoDocumento.toLowerCase()] || dispatch.tipoDocumento;
+            const toEmail = dispatch.destinatario.trim();
+            const subject = `${displayDocName} — ${dispatch.colaboradorNome || dispatch.empresaNome || 'Empresa'}`;
+
+            toast.info(`Preparando disparo seguro para ${toEmail}...`);
+
             const branding = await BrandingService.fetchBranding();
-
             const companyName = dispatch.empresaNome || 'Empresa';
-            const formattedMonth = format(new Date(), 'MMMM/yyyy', { locale: ptBR });
-            
-            // Lógica de Assunto e Título (Cópia fiel da Lista de Entregas ajustada para DP)
-            let subject = "";
-            let templateTitlePrefix = "Documento(s) de";
-            let templateTitleSuffix = "Departamento Pessoal";
-            
-            const isAdiantamento = dispatch.tipoDocumento.toLowerCase().includes('adiantamento') || (dispatch.tipoProcesso === 'folha' && dispatch.tipoDocumento.toLowerCase().includes('adiantamento'));
-            const isFolhaMensal = dispatch.tipoProcesso === 'folha' && !isAdiantamento;
-            
-            if (isAdiantamento) {
-                subject = `Folha Adiantamento - ${dispatch.colaboradorNome || companyName}`;
-                templateTitlePrefix = "Folha";
-                templateTitleSuffix = "Adiantamento";
-            } else if (isFolhaMensal) {
-                subject = `Folha Mensal e Documentos - ${dispatch.colaboradorNome || companyName}`;
-                templateTitlePrefix = "Folha de Pagamento e";
-                templateTitleSuffix = "Impostos";
-            } else {
-                // Título dinâmico BASEADO NO DOCUMENTO conforme solicitado (Ex: Admissão, Rescisão)
-                subject = `${dispatch.tipoDocumento}${dispatch.colaboradorNome ? ` - ${dispatch.colaboradorNome}` : ''}`;
-                templateTitlePrefix = "Documento(s) de";
-                templateTitleSuffix = dispatch.tipoDocumento;
-            }
 
-            if (!subject || subject.trim() === "") {
-                subject = `Comunicado: Novos Documentos - ${companyName}`;
-            }
+            const formatCurrency = (val: number | null) => {
+              if (val === null || val === undefined) return '—';
+              return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+            };
 
-            // Construir HTML de Documentos (Iterando sobre arquivos carregados)
+            const formatDate = (dateStr: string | null) => {
+              if (!dateStr) return '—';
+              return format(parseISO(dateStr), 'dd/MM/yyyy');
+            };
+
             let documentsRows = '';
-            
             if (uploadedFiles && uploadedFiles.length > 0) {
                 uploadedFiles.forEach(file => {
                     documentsRows += `
                         <tr>
-                            <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #1e293b; font-weight: 500;">${file.filename}</td>
-                            <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">${formattedMonth}</td>
+                            <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #1e293b; font-weight: 500;">${displayDocName} — <span style="font-size: 11px; color: #64748b;">${file.filename}</span></td>
+                            <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #ef4444; font-weight: 700; text-align: center;">${formatCurrency(dispatch.valor)}</td>
+                            <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #1e293b; text-align: center;">${formatDate(dispatch.dataVencimento)}</td>
                             <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; text-align: right;">
-                                <a href="${file.publicUrl}" style="display: inline-block; padding: 6px 12px; background-color: ${branding.primaryColor}10; color: ${branding.primaryColor}; text-decoration: none; border-radius: 6px; font-size: 10px; font-weight: 800; text-transform: uppercase;">PDF</a>
+                                <a href="${file.publicUrl}" style="display: inline-block; padding: 6px 12px; background-color: ${branding.primaryColor}10; color: ${branding.primaryColor}; text-decoration: none; border-radius: 6px; font-size: 10px; font-weight: 800; text-transform: uppercase;">Baixar</a>
                             </td>
                         </tr>
                     `;
                 });
             } else {
-                // Fallback para o anexo principal do dispatch caso uploadedFiles falhe ou não seja enviado
-                const hasAnexo = dispatch.anexoUrl && dispatch.anexoUrl !== '';
                 documentsRows = `
                     <tr>
-                        <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #1e293b; font-weight: 500;">${dispatch.tipoDocumento}</td>
-                        <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">${formattedMonth}</td>
+                        <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #1e293b; font-weight: 500;">${displayDocName}</td>
+                        <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #ef4444; font-weight: 700; text-align: center;">${formatCurrency(dispatch.valor)}</td>
+                        <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #1e293b; text-align: center;">${formatDate(dispatch.dataVencimento)}</td>
                         <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; text-align: right;">
-                            ${hasAnexo ? `
-                                <a href="${dispatch.anexoUrl}" style="display: inline-block; padding: 6px 12px; background-color: ${branding.primaryColor}10; color: ${branding.primaryColor}; text-decoration: none; border-radius: 6px; font-size: 10px; font-weight: 800; text-transform: uppercase;">PDF</a>
+                            ${dispatch.anexoUrl ? `
+                                <a href="${dispatch.anexoUrl}" style="display: inline-block; padding: 6px 12px; background-color: ${branding.primaryColor}10; color: ${branding.primaryColor}; text-decoration: none; border-radius: 6px; font-size: 10px; font-weight: 800; text-transform: uppercase;">Baixar</a>
                             ` : '<span style="color: #94a3b8; font-size: 11px;">Sem anexo</span>'}
                         </td>
                     </tr>
@@ -232,8 +231,9 @@ export function useDPDispatches() {
                     <thead>
                         <tr style="background-color: #f8fafc;">
                             <th style="padding: 12px; text-align: left; font-size: 11px; border-bottom: 1px solid #e2e8f0; color: #64748b; text-transform: uppercase; font-weight: 800;">DOCUMENTO</th>
-                            <th style="padding: 12px; text-align: left; font-size: 11px; border-bottom: 1px solid #e2e8f0; color: #64748b; text-transform: uppercase; font-weight: 800;">Competência</th>
-                            <th style="padding: 12px; text-align: right; font-size: 11px; border-bottom: 1px solid #e2e8f0; color: #64748b; text-transform: uppercase; font-weight: 800;">Baixar</th>
+                            <th style="padding: 12px; text-align: center; font-size: 11px; border-bottom: 1px solid #e2e8f0; color: #64748b; text-transform: uppercase; font-weight: 800;">Valor</th>
+                            <th style="padding: 12px; text-align: center; font-size: 11px; border-bottom: 1px solid #e2e8f0; color: #64748b; text-transform: uppercase; font-weight: 800;">Vencimento</th>
+                            <th style="padding: 12px; text-align: right; font-size: 11px; border-bottom: 1px solid #e2e8f0; color: #64748b; text-transform: uppercase; font-weight: 800;">Ação</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -242,17 +242,21 @@ export function useDPDispatches() {
                 </table>`;
 
             const customMessageBlock = dispatch.mensagem
-                ? `<div style="background-color: #fef2f2; border-left: 4px solid ${branding.primaryColor}; padding: 16px; margin: 24px 0; border-radius: 4px;">
-                     <p style="margin: 0; color: #7f1d1d; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Notas Adicionais do DP:</p>
-                     <p style="margin: 8px 0 0 0; color: #991b1b; font-size: 15px; line-height: 1.5; font-weight: 300; white-space: pre-line;">${dispatch.mensagem}</p>
+                ? `<div style="background-color: #fee2e2; border: 1px solid #fecaca; padding: 24px; margin: 32px 0; border-radius: 16px;">
+                     <p style="margin: 0 0 12px 0; color: #b91c1c; font-size: 14px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 800;">🚀 Notas Adicionais do DP:</p>
+                     <div style="color: #000000; font-size: 16px; line-height: 1.7; font-weight: 400; white-space: pre-line;">
+                       ${dispatch.mensagem?.replace(/\n/g, '<br/>')}
+                     </div>
                    </div>`
                 : '';
 
             const htmlContent = `
                 <div style="font-family: 'Inter', system-ui, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px; border: 1px solid #f0f0f0; border-radius: 30px; background-color: #ffffff;">
                     <div style="text-align: center; margin-bottom: 35px;">
-                        <h1 style="color: #1a1a1a; font-size: 26px; font-weight: 300; margin: 0; letter-spacing: -0.02em;">${templateTitlePrefix} <span style="color: ${branding.primaryColor}; font-weight: 800;">${templateTitleSuffix}</span></h1>
-                        <p style="font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 8px;">Documento Processado com Sucesso</p>
+                        <h1 style="margin: 0; color: #1e293b; font-size: 28px; font-weight: 300; letter-spacing: -0.02em;">
+                            Documento(s) de <span style="color: ${branding.primaryColor}; font-weight: 700;">${displayDocName}</span>
+                        </h1>
+                        <p style="margin: 8px 0 0 0; color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; font-weight: 700;">DOCUMENTO PROCESSADO COM SUCESSO</p>
                     </div>
                     
                     <div style="line-height: 1.6; color: #475569; font-size: 15px; margin-bottom: 35px;">
