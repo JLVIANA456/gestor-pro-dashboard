@@ -28,7 +28,8 @@ import {
   FolderOpen,
   Calculator,
   Target,
-  Activity
+  Activity,
+  ListTodo
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useBranding } from '@/context/BrandingContext';
@@ -97,7 +98,7 @@ const sections = [
       { name: 'Obrigações', href: '/obrigacoes', icon: FileText },
       { name: 'Gestão de Tarefas', href: '/gestao-tarefas', icon: ShieldCheck },
       { name: 'Lista de Entregas', href: '/lista-entrega', icon: Send },
-      { name: 'Lista de Demandas', href: '/lista-demandas', icon: Target },
+      { name: 'Lista de Demandas', href: '/lista-demandas', icon: ListTodo },
       { name: 'Vencimentos', href: '/vencimentos', icon: Clock },
       { name: 'Alertas', href: '/alertas', icon: Bell },
       { name: 'Calendário', href: '/calendario', icon: CalendarIcon },

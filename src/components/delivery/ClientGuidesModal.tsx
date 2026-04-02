@@ -53,7 +53,6 @@ export function ClientGuidesModal({
     const { updateGuide, deleteGuide, deleteGuidesBulk } = useDeliveryList(referenceMonth);
     const [guideSearch, setGuideSearch] = useState('');
     const [isNewGuideOpen, setIsNewGuideOpen] = useState(false);
-    const [uploadingId, setUploadingId] = useState<string | null>(null);
 
     const filteredGuides = useMemo(() => {
         return guides.filter(g => 
@@ -68,41 +67,6 @@ export function ClientGuidesModal({
             completed: filteredGuides.filter(g => g.status === 'completed' || g.status === 'sent' || g.status === 'scheduled')
         };
     }, [filteredGuides]);
-
-    const handleFileChange = async (guideId: string, event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-
-        try {
-            setUploadingId(guideId);
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${client.id}/${guideId}_${Date.now()}.${fileExt}`;
-            const filePath = `guides/${fileName}`;
-
-            const { error: uploadError } = await supabase.storage
-                .from('accounting_documents')
-                .upload(filePath, file);
-
-            if (uploadError) throw uploadError;
-
-            const { data: { publicUrl } } = supabase.storage
-                .from('accounting_documents')
-                .getPublicUrl(filePath);
-
-            await updateGuide(guideId, {
-                file_url: publicUrl,
-                status: 'pending' // Mantém pending até o envio em lote
-            });
-
-            toast.success('Arquivo anexado com sucesso!');
-            onUpdate();
-        } catch (error) {
-            console.error('Erro no upload:', error);
-            toast.error('Erro ao fazer upload do arquivo.');
-        } finally {
-            setUploadingId(null);
-        }
-    };
 
     const handleDelete = async (id: string) => {
         if (!confirm('Deseja excluir esta tarefa?')) return;
@@ -218,30 +182,6 @@ export function ClientGuidesModal({
                         </div>
                     )}
 
-                    {!isCompleted && !guide.file_url && (
-                        <div className="relative">
-                            <input
-                                type="file"
-                                id={`file-${guide.id}`}
-                                className="hidden"
-                                accept=".pdf"
-                                onChange={(e) => !guide.is_virtual && handleFileChange(guide.id, e)}
-                                disabled={uploadingId === guide.id || guide.is_virtual}
-                            />
-                            <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                disabled={guide.is_virtual}
-                                className="rounded-xl h-10 px-4 gap-2 text-[9px] uppercase font-black tracking-widest text-primary hover:bg-primary/5 border border-dashed border-primary/20"
-                                asChild
-                            >
-                                <label htmlFor={`file-${guide.id}`} className={cn(guide.is_virtual ? "cursor-not-allowed opacity-50" : "cursor-pointer")}>
-                                    {uploadingId === guide.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Paperclip className="h-3 w-3" />}
-                                    Anexar PDF
-                                </label>
-                            </Button>
-                        </div>
-                    )}
 
                     {isCompleted ? (
                         <Button

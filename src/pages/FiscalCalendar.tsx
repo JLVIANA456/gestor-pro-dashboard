@@ -51,6 +51,10 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useBranding } from '@/context/BrandingContext';
 
+import { useClients, Client } from '@/hooks/useClients';
+import { useObligations } from '@/hooks/useObligations';
+import { useClientObligations } from '@/hooks/useClientObligations';
+
 // ── Fases ────────────────────────────────────────────────────────
 const START_OFFSET  = 10; // D-10
 const FINISH_OFFSET = 5;  // D-5
@@ -75,6 +79,7 @@ interface EnrichedGuide extends AccountingGuide {
     startDate: Date;
     finishDate: Date;
     dueDate: Date;
+    is_virtual?: boolean;
 }
 
 export default function FiscalCalendar() {
@@ -84,25 +89,120 @@ export default function FiscalCalendar() {
     const [taskSearch, setTaskSearch] = useState('');
 
     const referenceMonth = format(currentDate, 'yyyy-MM');
-    const { guides, loading } = useDeliveryList(referenceMonth);
+    const { guides, loading: guidesLoading } = useDeliveryList(referenceMonth);
+    const { clients = [], loading: clientsLoading } = useClients();
+    const { obligations = [], loading: obsLoading } = useObligations();
+    const { clientObligations = [], loading: coLoading } = useClientObligations();
+
+    const loading = guidesLoading || clientsLoading || obsLoading || coLoading;
 
     const enrichedGuides = useMemo((): EnrichedGuide[] => {
-        return guides
-            .filter(g => {
-                if (!g.due_date) return false;
-                if (taskSearch) return (g.type || '').toLowerCase().includes(taskSearch.toLowerCase());
-                return true;
-            })
-            .map(g => {
-                const due = parseISO(g.due_date!);
-                return {
-                    ...g,
-                    dueDate: due,
-                    startDate: subDays(due, START_OFFSET),
-                    finishDate: subDays(due, FINISH_OFFSET),
-                };
+        const unified: EnrichedGuide[] = [];
+        const [y, m] = referenceMonth.split('-').map(Number);
+        const refDate = new Date(y, m - 1, 1);
+
+        clients.forEach(client => {
+            if (!client?.isActive) return;
+
+            // Calculate Active Obligations for this client
+            const activeObligations = (obligations || []).filter(obl => {
+                if (!obl?.is_active || obl.periodicity === 'eventual') return false;
+                
+                const explicitCompanies = obl.company_ids || [];
+                let appliesByDefault = false;
+                
+                if (explicitCompanies.length > 0) {
+                  appliesByDefault = explicitCompanies.includes(client.id);
+                } else {
+                  const obsRegimes = obl.tax_regimes || [];
+                  const clientRegime = (client.regimeTributario || '').toLowerCase();
+                  appliesByDefault = obsRegimes.length === 0 ||
+                    obsRegimes.some((r: string) => (r || '').toLowerCase() === 'all') ||
+                    (clientRegime && obsRegimes.some((r: string) => (r || '').toLowerCase() === clientRegime));
+                }
+                
+                const override = (clientObligations || []).find(co => co.client_id === client.id && co.obligation_id === obl.id);
+                return override ? override.status === 'enabled' : appliesByDefault;
             });
-    }, [guides, taskSearch]);
+
+            const clientGuides = (guides || []).filter(g => g.client_id === client.id);
+
+            activeObligations.forEach(obl => {
+                if (!obl) return;
+                const oblNameNormal = (obl.name || '').toLowerCase();
+                const existingGuide = clientGuides.find(g => (g.type || '').toLowerCase() === oblNameNormal);
+                
+                // Determine Due Date
+                let dueDateObj: Date;
+                if (existingGuide && existingGuide.due_date) {
+                    dueDateObj = parseISO(existingGuide.due_date);
+                } else {
+                    const override = (clientObligations || []).find(co => co.client_id === client.id && co.obligation_id === obl.id);
+                    const finalDueDay = override?.custom_due_day || obl.default_due_day || 10;
+                    dueDateObj = new Date(y, m - 1, finalDueDay);
+                }
+
+                if (taskSearch && !oblNameNormal.includes(taskSearch.toLowerCase())) {
+                    return;
+                }
+
+                if (existingGuide) {
+                    unified.push({
+                        ...existingGuide,
+                        client,
+                        is_virtual: false,
+                        dueDate: dueDateObj,
+                        startDate: subDays(dueDateObj, START_OFFSET),
+                        finishDate: subDays(dueDateObj, FINISH_OFFSET),
+                    });
+                } else {
+                    // Inject Virtual Task
+                    unified.push({
+                        id: `virtual-${client.id}-${obl.id}`,
+                        client_id: client.id,
+                        client,
+                        type: obl.name,
+                        status: 'pending',
+                        dept: obl.department,
+                        is_virtual: true,
+                        file_url: null,
+                        scheduled_for: null,
+                        sent_at: null,
+                        delivered_at: null,
+                        opened_at: null,
+                        due_date: format(dueDateObj, 'yyyy-MM-dd'),
+                        reference_month: referenceMonth,
+                        competency: null,
+                        dueDate: dueDateObj,
+                        startDate: subDays(dueDateObj, START_OFFSET),
+                        finishDate: subDays(dueDateObj, FINISH_OFFSET),
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString(),
+                    });
+                }
+            });
+        });
+
+        // Add standalone existing tasks (like eventuals) globally
+        guides.forEach(g => {
+            if (unified.find(u => u.id === g.id)) return;
+            if (!g.due_date) return;
+            if (taskSearch && !(g.type || '').toLowerCase().includes(taskSearch.toLowerCase())) return;
+            
+            const due = parseISO(g.due_date);
+            const client = clients.find(c => c.id === g.client_id);
+            unified.push({
+                ...g,
+                client,
+                is_virtual: false,
+                dueDate: due,
+                startDate: subDays(due, START_OFFSET),
+                finishDate: subDays(due, FINISH_OFFSET),
+            });
+        });
+
+        return unified.sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
+    }, [guides, taskSearch, clients, obligations, clientObligations, referenceMonth]);
 
     const dayMap = useMemo(() => {
         const map: Record<string, { guide: EnrichedGuide; phase: Phase }[]> = {};
@@ -137,11 +237,11 @@ export default function FiscalCalendar() {
 
     const stats = useMemo(() => {
         const total = enrichedGuides.length;
-        const sent = enrichedGuides.filter(g => g.status === 'sent').length;
+        const sent = enrichedGuides.filter(g => g.status === 'sent' || g.status === 'completed').length;
         const pending = total - sent;
         const today = new Date();
         const urgent = enrichedGuides.filter(g => {
-            if (g.status === 'sent') return false;
+            if (g.status === 'sent' || g.status === 'completed') return false;
             const diff = (g.dueDate.getTime() - today.getTime()) / 86400000;
             return diff >= 0 && diff <= 3;
         }).length;
@@ -337,11 +437,12 @@ function DaySheet({ day, entries }: { day: Date; entries: { guide: EnrichedGuide
         return entries.filter(e => {
             const matchesSearch = !search || (e.guide.type || '').toLowerCase().includes(search.toLowerCase());
             const matchesPhase = filterPhase === 'all' || e.phase === filterPhase;
+            const isConcluido = e.guide.status === 'sent' || e.guide.status === 'completed';
             const matchesStatus =
                 filterStatus === 'all' ? true
-                : filterStatus === 'sent' ? e.guide.status === 'sent'
-                : filterStatus === 'ready' ? !!e.guide.file_url && e.guide.status !== 'sent'
-                : /* pending */ !e.guide.file_url && e.guide.status !== 'sent';
+                : filterStatus === 'sent' ? isConcluido
+                : filterStatus === 'ready' ? !!e.guide.file_url && !isConcluido
+                : /* pending */ !e.guide.file_url && !isConcluido;
             return matchesSearch && matchesPhase && matchesStatus;
         });
     }, [entries, search, filterPhase, filterStatus]);
@@ -354,9 +455,9 @@ function DaySheet({ day, entries }: { day: Date; entries: { guide: EnrichedGuide
     }, [entries]);
 
     const statusCounts = useMemo(() => ({
-        sent:    entries.filter(e => e.guide.status === 'sent').length,
-        ready:   entries.filter(e => !!e.guide.file_url && e.guide.status !== 'sent').length,
-        pending: entries.filter(e => !e.guide.file_url && e.guide.status !== 'sent').length,
+        sent:    entries.filter(e => e.guide.status === 'sent' || e.guide.status === 'completed').length,
+        ready:   entries.filter(e => !!e.guide.file_url && (e.guide.status !== 'sent' && e.guide.status !== 'completed')).length,
+        pending: entries.filter(e => !e.guide.file_url && (e.guide.status !== 'sent' && e.guide.status !== 'completed')).length,
     }), [entries]);
 
     return (
@@ -468,17 +569,22 @@ function DaySheet({ day, entries }: { day: Date; entries: { guide: EnrichedGuide
                     ) : (
                         filtered.map((e, idx) => {
                             const cfg = PHASE_CONFIG[e.phase];
-                            const statusLabel = e.guide.status === 'sent' ? 'Enviado' : e.guide.file_url ? 'Pronto' : 'Pendente';
-                            const statusCls = e.guide.status === 'sent'
+                            const statusLabel = (e.guide.status === 'sent' || e.guide.status === 'completed') ? 'Concluído' : e.guide.file_url ? 'Pronto' : 'Pendente';
+                            const statusCls = (e.guide.status === 'sent' || e.guide.status === 'completed')
                                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                                 : e.guide.file_url
                                 ? 'bg-amber-50 text-amber-700 border-amber-200'
                                 : 'bg-slate-50 text-slate-500 border-slate-200';
+                            
+                            const clientName = e.guide.client?.nome_fantasia || e.guide.client?.razao_social || 'Cliente não encontrado';
 
                             return (
                                 <div
                                     key={`${e.guide.id}-${idx}`}
-                                    className="bg-background border border-border/20 rounded-2xl p-4 flex items-center gap-4 hover:shadow-md transition-all"
+                                    className={cn(
+                                        "bg-background border rounded-2xl p-4 flex items-center gap-4 hover:shadow-md transition-all",
+                                        (e.guide.status === 'sent' || e.guide.status === 'completed') ? "border-emerald-100 bg-emerald-50/20" : "border-border/20"
+                                    )}
                                 >
                                     {/* Phase icon */}
                                     <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center shrink-0", cfg.bg, cfg.text)}>
@@ -487,12 +593,22 @@ function DaySheet({ day, entries }: { day: Date; entries: { guide: EnrichedGuide
 
                                     {/* Details */}
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-semibold text-foreground truncate">{e.guide.type}</p>
-                                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-primary/70 bg-primary/5 px-2 py-0.5 rounded-md truncate max-w-[200px] sm:max-w-[300px]">
+                                                {clientName}
+                                            </span>
+                                        </div>
+                                        <p className={cn(
+                                            "text-sm font-semibold truncate",
+                                            (e.guide.status === 'sent' || e.guide.status === 'completed') ? "text-muted-foreground line-through decoration-emerald-500/30" : "text-foreground"
+                                        )}>
+                                            {e.guide.type}
+                                        </p>
+                                        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                                             <Badge className={cn("text-[9px] font-bold px-2 h-4 border rounded-full", cfg.bg, cfg.text, cfg.border, "border-none")}>
                                                 {cfg.label}
                                             </Badge>
-                                            <span className="text-[10px] text-muted-foreground/50 font-medium">
+                                            <span className="text-[10px] text-muted-foreground/50 font-medium tracking-wide">
                                                 Vence {format(e.guide.dueDate, "dd/MM", { locale: ptBR })}
                                             </span>
                                         </div>

@@ -125,13 +125,13 @@ export default function DeliveryList() {
 
         clients.forEach(client => {
             if (!client?.isActive) return;
-            
+
             // Calculate Theoretical Active Scope
             const activeObligations = (obligations || []).filter(obl => {
                 if (!obl?.is_active || obl.periodicity === 'eventual') return false;
                 const explicitCompanies = obl.company_ids || [];
                 let appliesByDefault = false;
-                
+
                 if (explicitCompanies.length > 0) {
                     appliesByDefault = explicitCompanies.includes(client.id);
                 } else {
@@ -141,7 +141,7 @@ export default function DeliveryList() {
                         obsRegimes.some((r: string) => (r || '').toLowerCase() === 'all') ||
                         (clientRegime && obsRegimes.some((r: string) => (r || '').toLowerCase() === clientRegime));
                 }
-                
+
                 const override = (clientObligations || []).find(co => co.client_id === client.id && co.obligation_id === obl.id);
                 return override ? override.status === 'enabled' : appliesByDefault;
             });
@@ -153,7 +153,7 @@ export default function DeliveryList() {
             activeObligations.forEach(obl => {
                 const oblNameNormal = (obl.name || '').toLowerCase();
                 const existingGuide = clientGuides.find(g => (g.type || '').toLowerCase() === oblNameNormal);
-                
+
                 if (existingGuide) {
                     if (existingGuide.status === 'sent' || existingGuide.status === 'completed') {
                         completedCount++;
@@ -260,17 +260,17 @@ export default function DeliveryList() {
 
                     const explicitCompanies = obligation.company_ids || [];
                     let appliesByDefault = false;
-                    
+
                     if (explicitCompanies.length > 0) {
                         appliesByDefault = explicitCompanies.includes(client.id);
                     } else {
                         const obsRegimes = obligation.tax_regimes || [];
                         const clientRegime = client.regimeTributario?.toLowerCase() || '';
-                        appliesByDefault = obsRegimes.length === 0 || 
-                                     obsRegimes.some((r: string) => r.toLowerCase() === 'all') || 
-                                     (clientRegime && obsRegimes.some((r: string) => r.toLowerCase() === clientRegime));
+                        appliesByDefault = obsRegimes.length === 0 ||
+                            obsRegimes.some((r: string) => r.toLowerCase() === 'all') ||
+                            (clientRegime && obsRegimes.some((r: string) => r.toLowerCase() === clientRegime));
                     }
-                    
+
                     const override = clientObligations.find(co => co.client_id === client.id && co.obligation_id === obligation.id);
                     const isEligible = override ? override.status === 'enabled' : appliesByDefault;
 
@@ -359,7 +359,7 @@ export default function DeliveryList() {
         for (const clientId in filesByClient) {
             const clientFiles = filesByClient[clientId];
             const client = clientFiles[0].client;
-            
+
             try {
                 const guideIds: string[] = [];
                 const consolidatedData: any[] = [];
@@ -368,7 +368,7 @@ export default function DeliveryList() {
                 for (const item of clientFiles) {
                     let guideRecord: any = null;
                     const guideTypeToMatch = item.matchedObligationName || item.data?.type || '';
-                    
+
                     const existingGuide = guides.find(g =>
                         g.client_id === item.client.id &&
                         g.type.toLowerCase() === guideTypeToMatch.toLowerCase() &&
@@ -417,7 +417,7 @@ export default function DeliveryList() {
                                 const monthNum = m || selectedMonth.split('-')[1];
                                 const monthName = monthNum ? format(new Date(2000, parseInt(monthNum) - 1, 1), 'MMMM', { locale: ptBR }) : '';
                                 const folderMonthName = monthNum ? `${monthNum} - ${monthName.charAt(0).toUpperCase() + monthName.slice(1)}` : 'Mês Indefinido';
-                                
+
                                 const competencyShort = (m && y) ? `${y}-${m}` : selectedMonth;
 
                                 // 1. Buscar folders existentes para o cliente
@@ -428,11 +428,11 @@ export default function DeliveryList() {
                                 const allFolders = (clientFolders as any[]) || [];
 
                                 // 1. Definir Hierarquia de Pastas (Departamento > Categoria > Ano > Mês)
-                                
+
                                 // 1.1 Identificar o Departamento
                                 let deptName = 'FISCAL';
                                 const typeToMatch = (item.matchedObligationName || item.data?.type || '').toLowerCase();
-                                
+
                                 // Regra prioritária para DP (Folha e Adiantamentos)
                                 if (item.data?.category === 'folha' || item.data?.category === 'adiantamento' || typeToMatch.includes('folha') || typeToMatch.includes('fgts')) {
                                     deptName = 'DP';
@@ -465,8 +465,8 @@ export default function DeliveryList() {
 
                                 // Helper function to get or create folder in the hierarchical context
                                 const getOrCreateFolder = async (name: string, parentId: string | null = null, icon: string = 'Folder') => {
-                                    let folder = allFolders.find(f => 
-                                        f.name.toLowerCase() === name.toLowerCase() && 
+                                    let folder = allFolders.find(f =>
+                                        f.name.toLowerCase() === name.toLowerCase() &&
                                         f.parent_id === parentId
                                     );
 
@@ -481,7 +481,7 @@ export default function DeliveryList() {
                                             })
                                             .select()
                                             .single();
-                                        
+
                                         if (!error && newFolder) {
                                             folder = newFolder;
                                             allFolders.push(newFolder);
@@ -493,12 +493,12 @@ export default function DeliveryList() {
                                 // 1.3 Criar Hierarquia em 4 Níveis
                                 // Nível 1: Departamento (Raiz)
                                 const deptFolder = await getOrCreateFolder(deptName, null, 'Building2');
-                                
+
                                 // Nível 2: Categoria (Subpasta do Depto)
-                                const catFolder = await getOrCreateFolder(categoryName, deptFolder?.id || null, 
+                                const catFolder = await getOrCreateFolder(categoryName, deptFolder?.id || null,
                                     categoryName === 'Impostos e Guias' ? 'Receipt' : 'Folder'
                                 );
-                                
+
                                 // Nível 3: Ano
                                 const yearFolder = await getOrCreateFolder(folderYear, catFolder?.id || null, 'Calendar');
 
@@ -533,7 +533,7 @@ export default function DeliveryList() {
                     consolidatedData.forEach(d => {
                         const numVal = parseFloat(d.value);
                         const isNoValue = isNaN(numVal) || numVal === 0 || d.category === 'folha' || d.category === 'adiantamento';
-                        
+
                         if (isNoValue) {
                             fullMessage += `• ${d.type} (${d.referenceMonth}): - Vencimento: -\n`;
                         } else {
@@ -597,7 +597,7 @@ export default function DeliveryList() {
                         const val = isNoValue ? '-' : numVal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
                         const due = isNoValue ? '-' : new Date(d.dueDate).toLocaleDateString('pt-BR');
                         const displayRefMonth = (d.referenceMonth === 'null' || !d.referenceMonth) ? selectedMonth : d.referenceMonth;
-                        
+
                         guidesHtml += `
                             <tr>
                                 <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #1e293b; font-weight: 500;">${d.type}</td>
@@ -947,7 +947,7 @@ export default function DeliveryList() {
                         <div>
                             <h2 className="text-xl font-light text-foreground flex items-center gap-3">
                                 <Send className="h-5 w-5 text-primary opacity-60" />
-                                1. Enviar Guias em Lote
+                                1. Enviar Guias
                             </h2>
                             <p className="text-xs text-muted-foreground font-light mt-1">Arraste seus PDFs aqui. A IA identificará o cliente e preencherá a tarefa automaticamente.</p>
                         </div>
