@@ -75,6 +75,7 @@ export default function PortalEntregas() {
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
     const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
+    const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
     const [newFolderName, setNewFolderName] = useState('');
     const [folderToRename, setFolderToRename] = useState<PortalFolder | null>(null);
     const [uploadData, setUploadData] = useState({
@@ -93,10 +94,10 @@ export default function PortalEntregas() {
 
     const createDefaultFolders = async (clientId: string) => {
         const defaults = [
-            { name: 'Impostos e Guias', icon: 'Folder', sort_order: 1 },
-            { name: 'Folha de Pagamento', icon: 'Folder', sort_order: 2 },
-            { name: 'Documentos Contábeis', icon: 'Folder', sort_order: 3 },
-            { name: 'Outros Documentos', icon: 'Folder', sort_order: 4 }
+            { name: 'DP', icon: 'Building2', sort_order: 1 },
+            { name: 'FISCAL', icon: 'Building2', sort_order: 2 },
+            { name: 'CONTÁBIL', icon: 'Building2', sort_order: 3 },
+            { name: 'OUTROS', icon: 'Folder', sort_order: 4 }
         ];
 
         const createPromise = (async () => {
@@ -200,6 +201,61 @@ export default function PortalEntregas() {
             fetchFolders(selectedClientId);
         } catch (error: any) {
             toast.error("Erro ao criar pasta: " + error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDeleteFolder = async (folderId: string) => {
+        const folderDeliveries = deliveries.filter(d => d.folderId === folderId);
+        const folderSubfolders = folders.filter(f => f.parentId === folderId);
+
+        if (folderDeliveries.length > 0 || folderSubfolders.length > 0) {
+            if (!window.confirm("Esta pasta contém arquivos ou subpastas. Se você excluí-la, todos os itens serão movidos para a raiz (sem pasta). Deseja continuar?")) return;
+        }
+
+        try {
+            setLoading(true);
+            // 1. Move files and subfolders to root before deleting
+            if (folderDeliveries.length > 0) {
+                await (supabase as any).from('client_deliveries').update({ folder_id: null }).eq('folder_id', folderId);
+            }
+            if (folderSubfolders.length > 0) {
+                await (supabase as any).from('client_portal_folders').update({ parent_id: null }).eq('parent_id', folderId);
+            }
+
+            // 2. Delete the folder
+            const { error } = await (supabase as any).from('client_portal_folders')
+                .delete()
+                .eq('id', folderId);
+
+            if (error) throw error;
+            
+            toast.success("Pasta excluída com sucesso!");
+            fetchFolders(selectedClientId!);
+            fetchDeliveries(selectedClientId!);
+        } catch (error: any) {
+            toast.error("Erro ao excluir pasta: " + error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleMoveFolder = async (folderId: string, newParentId: string | null) => {
+        try {
+            setLoading(true);
+            const { error } = await (supabase as any).from('client_portal_folders')
+                .update({ parent_id: newParentId })
+                .eq('id', folderId);
+
+            if (error) throw error;
+            
+            toast.success("Pasta movida com sucesso!");
+            setIsMoveModalOpen(false);
+            setFolderToRename(null);
+            fetchFolders(selectedClientId!);
+        } catch (error: any) {
+            toast.error("Erro ao mover pasta: " + error.message);
         } finally {
             setLoading(false);
         }
@@ -335,6 +391,55 @@ export default function PortalEntregas() {
 
                     <div className="flex items-center gap-3">
                          <Button 
+                            variant="ghost"
+                            className="h-14 rounded-2xl px-6 gap-3 text-red-400 font-black uppercase text-[10px] tracking-widest hover:bg-red-50 hover:text-red-500 transition-all border border-dashed border-red-100"
+                            onClick={async () => {
+                                if (!window.confirm("Deseja migrar as pastas atuais para o novo padrão de Departamentos (DP, FISCAL, CONTÁBIL)? Arquivos existentes serão preservados.")) return;
+                                
+                                try {
+                                    setLoading(true);
+                                    // 1. Criar Departamentos Raiz
+                                    const { data: deptFolders, error: deptError } = await (supabase as any).from('client_portal_folders')
+                                        .insert([
+                                            { client_id: selectedClientId, name: 'DP', icon: 'Building2', sort_order: 1 },
+                                            { client_id: selectedClientId, name: 'FISCAL', icon: 'Building2', sort_order: 2 },
+                                            { client_id: selectedClientId, name: 'CONTÁBIL', icon: 'Building2', sort_order: 3 }
+                                        ])
+                                        .select();
+                                    
+                                    if (deptError) throw deptError;
+
+                                    const dpId = deptFolders.find((f: any) => f.name === 'DP')?.id;
+                                    const fiscalId = deptFolders.find((f: any) => f.name === 'FISCAL')?.id;
+                                    const contabilId = deptFolders.find((f: any) => f.name === 'CONTÁBIL')?.id;
+
+                                    // 2. Mover antigas para dentro se existirem
+                                    for (const folder of folders) {
+                                        let newParentId = null;
+                                        if (folder.name === 'Folha de Pagamento') newParentId = dpId;
+                                        else if (folder.name === 'Impostos e Guias') newParentId = fiscalId;
+                                        else if (folder.name === 'Documentos Contábeis') newParentId = contabilId;
+                                        
+                                        if (newParentId) {
+                                            await (supabase as any).from('client_portal_folders')
+                                                .update({ parent_id: newParentId })
+                                                .eq('id', folder.id);
+                                        }
+                                    }
+
+                                    toast.success("Estrutura migrada com sucesso!");
+                                    fetchFolders(selectedClientId!);
+                                } catch (err: any) {
+                                    toast.error("Erro na migração: " + err.message);
+                                } finally {
+                                    setLoading(false);
+                                }
+                            }}
+                         >
+                            <Trash2 className="h-4 w-4" />
+                            Redefinir Padrão
+                         </Button>
+                         <Button 
                             className="h-14 rounded-2xl px-8 gap-3 bg-white border border-slate-100 shadow-sm text-slate-600 font-black uppercase text-[10px] tracking-widest hover:bg-slate-50 transition-all"
                             onClick={() => setIsFolderModalOpen(true)}
                          >
@@ -357,14 +462,21 @@ export default function PortalEntregas() {
                     {/* Folders List */}
                     <div className="lg:col-span-4 space-y-4">
                         <div className="flex items-center justify-between px-4">
-                            <p className="text-[10px] uppercase font-black text-slate-400 tracking-widest uppercase">Pastas Disponíveis</p>
+                            <div className="flex flex-col">
+                                <p className="text-[10px] uppercase font-black text-slate-400 tracking-widest uppercase">Navegação de Pastas</p>
+                                {currentParentId && (
+                                    <p className="text-[9px] font-bold text-primary mt-0.5">
+                                        {folders.find(f => f.id === currentParentId)?.name}
+                                    </p>
+                                )}
+                            </div>
                             {currentParentId && (
                                 <button 
                                     onClick={() => {
                                         const parentFolder = folders.find(f => f.id === currentParentId);
                                         setCurrentParentId(parentFolder?.parentId || null);
                                     }}
-                                    className="text-[9px] font-black uppercase text-primary hover:underline flex items-center gap-1"
+                                    className="text-[9px] font-black uppercase text-primary hover:underline flex items-center gap-1 bg-primary/5 px-3 py-1 rounded-full"
                                 >
                                     <ArrowLeft className="h-3 w-3" /> Voltar
                                 </button>
@@ -426,22 +538,55 @@ export default function PortalEntregas() {
                                             selectedFolderId === folder.id ? "translate-x-1" : "opacity-0 group-hover:opacity-100"
                                         )} />
                                     </button>
-                                    <Button 
-                                        variant="ghost" 
-                                        size="icon" 
-                                        className={cn(
-                                            "h-10 w-10 rounded-xl transition-all",
-                                            selectedFolderId === folder.id ? "text-white/40 hover:text-white" : "text-slate-300 hover:text-primary"
-                                        )}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setFolderToRename(folder);
-                                            setNewFolderName(folder.name);
-                                            setIsRenameModalOpen(true);
-                                        }}
-                                    >
-                                        <Pencil className="h-4 w-4" />
-                                    </Button>
+                                    <div className="flex items-center gap-1">
+                                        <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className={cn(
+                                                "h-10 w-10 rounded-xl transition-all",
+                                                selectedFolderId === folder.id ? "text-white/40 hover:text-white" : "text-slate-300 hover:text-primary"
+                                            )}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setFolderToRename(folder);
+                                                setNewFolderName(folder.name);
+                                                setIsRenameModalOpen(true);
+                                            }}
+                                        >
+                                            <Pencil className="h-4 w-4" />
+                                        </Button>
+                                        <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className={cn(
+                                                "h-10 w-10 rounded-xl transition-all",
+                                                selectedFolderId === folder.id ? "text-white/40 hover:text-white" : "text-slate-300 hover:text-primary"
+                                            )}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setFolderToRename(folder); // Reuse this state to know which folder to move
+                                                setIsMoveModalOpen(true);
+                                            }}
+                                        >
+                                            <Globe className="h-4 w-4" />
+                                        </Button>
+                                        <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className={cn(
+                                                "h-10 w-10 rounded-xl transition-all",
+                                                selectedFolderId === folder.id ? "text-white/40 hover:text-white" : "text-slate-300 hover:text-red-500"
+                                            )}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (confirm(`Deseja excluir a pasta "${folder.name}"?`)) {
+                                                    handleDeleteFolder(folder.id);
+                                                }
+                                            }}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -714,6 +859,53 @@ export default function PortalEntregas() {
                                 disabled={!uploadData.file || loading}
                             >
                                 {loading ? "Enviando..." : "Publicar no Portal"}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+                {/* Modal Mover Pasta */}
+                <Dialog open={isMoveModalOpen} onOpenChange={setIsMoveModalOpen}>
+                    <DialogContent className="rounded-[3rem] border-none bg-white p-10 max-w-md shadow-2xl">
+                        <DialogHeader>
+                            <DialogTitle className="text-2xl font-light text-slate-800">
+                                Mover <span className="text-primary font-medium">Pasta</span>
+                            </DialogTitle>
+                            <DialogDescription className="text-[10px] uppercase font-black tracking-widest text-slate-400 mt-2">
+                                Selecione o local de destino para <strong>{folderToRename?.name}</strong>.
+                            </DialogDescription>
+                        </DialogHeader>
+                        
+                        <ScrollArea className="max-h-[300px] py-4 pr-4">
+                            <div className="space-y-2">
+                                <Button 
+                                    variant="outline" 
+                                    className="w-full justify-start h-12 rounded-xl text-[10px] font-black uppercase tracking-widest border-slate-100 hover:bg-primary/5 hover:text-primary"
+                                    onClick={() => handleMoveFolder(folderToRename!.id, null)}
+                                >
+                                    <Globe className="h-4 w-4 mr-2" /> Raiz (Sem Departamento)
+                                </Button>
+                                {folders
+                                    .filter(f => f.id !== folderToRename?.id && !f.parentId) // Only root folders as destinations for now to avoid cycles
+                                    .map(folder => (
+                                        <Button 
+                                            key={folder.id}
+                                            variant="outline" 
+                                            className="w-full justify-start h-12 rounded-xl text-[10px] font-black uppercase tracking-widest border-slate-100 hover:bg-primary/5 hover:text-primary"
+                                            onClick={() => handleMoveFolder(folderToRename!.id, folder.id)}
+                                        >
+                                            <Folder className="h-4 w-4 mr-2" /> {folder.name}
+                                        </Button>
+                                    ))}
+                            </div>
+                        </ScrollArea>
+
+                        <DialogFooter>
+                            <Button 
+                                variant="ghost" 
+                                className="rounded-2xl h-12 w-full text-[10px] font-black uppercase tracking-widest text-slate-400"
+                                onClick={() => setIsMoveModalOpen(false)}
+                            >
+                                Cancelar
                             </Button>
                         </DialogFooter>
                     </DialogContent>
