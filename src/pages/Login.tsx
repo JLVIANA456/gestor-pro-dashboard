@@ -80,34 +80,48 @@ export default function Login() {
       </div>
 
       <Card className="max-w-5xl w-full border border-white/40 shadow-[0_40px_100px_-15px_rgba(0,0,0,0.12)] rounded-[3.5rem] bg-white/70 backdrop-blur-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-1000 flex flex-col md:flex-row min-h-[650px]">
-        {/* Left Side: Brand/Marketing */}
-        <div className="md:w-1/2 bg-slate-50 relative overflow-hidden p-12 flex flex-col justify-between text-slate-900 border-r border-slate-100">
-          <div className="absolute inset-0 opacity-40" style={{ backgroundImage: 'radial-gradient(hsl(var(--primary)) 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
-          <div className="absolute top-[-20%] right-[-20%] w-[400px] h-[400px] bg-primary/10 rounded-full blur-[100px]" />
-          <div className="absolute bottom-[-10%] left-[-10%] w-[300px] h-[300px] bg-primary/5 rounded-full blur-[80px]" />
+        {/* Left Side — Photo Background */}
+        <div className="md:w-1/2 relative overflow-hidden flex flex-col justify-between"
+          style={{
+            backgroundImage: 'url(/login-bg.jpg)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
+        >
+          {/* Dark overlay for text legibility */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/10" />
 
-          <div className="relative z-10">
-            <div className="h-16 w-16 rounded-2xl bg-white flex items-center justify-center text-primary mb-8 border border-slate-100 shadow-sm">
-              <ShieldCheck className="h-8 w-8" />
-            </div>
-            <h2 className="text-4xl font-light tracking-tight leading-tight mb-4">
-              Sua contabilidade <br />
-              <span className="text-primary font-semibold italic">Inteligente & digital.</span>
-            </h2>
-            <p className="text-slate-500 text-sm font-normal max-w-[280px] leading-relaxed">
-              Bem-vindo ao portal digital da sua empresa. Acesso exclusivo e seguro aos seus documentos.
-            </p>
-          </div>
+          {/* Top red accent line */}
+          <div className="absolute top-0 left-0 right-0 h-[3px] bg-red-500 z-20" />
 
-          <div className="relative z-10 space-y-4">
-            <div className="flex -space-x-3">
-              {[1, 2, 3, 4].map(i => (
-                <div key={i} className="h-10 w-10 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-400">
-                  U{i}
-                </div>
-              ))}
+          {/* Content over image */}
+          <div className="relative z-10 flex flex-col justify-between h-full p-12 pt-16 pb-12">
+
+            {/* Brand mark */}
+            <div className="flex items-center gap-2.5">
+              <div className="h-6 w-6 rounded-md bg-red-500 flex items-center justify-center shadow-md">
+                <ShieldCheck className="h-3.5 w-3.5 text-white" />
+              </div>
+              <span className="text-xs font-semibold tracking-[0.2em] text-white/70 uppercase font-sans">JLConecta</span>
             </div>
-            <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-slate-400 italic font-sans">+500 empresas gerenciadas hoje</p>
+
+            {/* Bottom headline over dark gradient */}
+            <div className="space-y-3">
+              <h2 className="text-4xl font-semibold leading-[1.1] tracking-tight text-white font-sans drop-shadow-md">
+                Sua contabilidade<br />
+                <span className="text-red-400 font-bold">inteligente</span>{' '}
+                <span className="text-white/60 font-light">&amp; digital.</span>
+              </h2>
+              <p className="text-sm text-white/60 max-w-[240px] leading-relaxed font-sans font-normal">
+                Acesso exclusivo ao portal digital da sua empresa.
+              </p>
+              <div className="flex items-center gap-2 pt-4">
+                <div className="h-1.5 w-6 rounded-full bg-red-500" />
+                <span className="text-[11px] text-white/50 font-sans font-medium tracking-widest uppercase">
+                  Acesso seguro e criptografado
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
