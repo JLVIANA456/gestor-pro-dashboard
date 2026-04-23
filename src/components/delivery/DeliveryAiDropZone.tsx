@@ -234,30 +234,37 @@ export function DeliveryAiDropZone({ onSendAll, mode = 'standard' }: DeliveryAiD
                                    isRelatorioLiquidos ||
                                    (isDemonstrativo && isFGTS);
 
-            const isRecalculo = mode === 'recalculo' || lowerFileName.includes('recalculo');
+            const isRecalculo = mode === 'recalculo' || lowerFileName.includes('recalculo') || lowerType.includes('recalculo');
             
             if (isRecalculo) {
                 data.category = 'guia';
-                if (lowerFileName.includes('irpj')) {
-                    if (lowerFileName.includes('mensal')) {
+                // Concatenamos nome do arquivo e tipo extraído para uma busca mais robusta
+                const searchString = `${lowerFileName} ${lowerType}`;
+                
+                if (searchString.includes('irpj')) {
+                    if (searchString.includes('mensal')) {
                         data.type = 'Recalculo DARF IRPJ MENSAL';
-                    } else if (lowerFileName.includes('trimestral') || lowerFileName.includes('trimestre')) {
-                        data.type = 'Recalculo DARF IRPJ TRIMESTRAL';
                     } else {
                         data.type = 'Recalculo DARF IRPJ TRIMESTRAL';
                     }
-                } else if (lowerFileName.includes('das')) {
+                } else if (searchString.includes('das')) {
                     data.type = 'Recalculo DAS MENSAL';
-                } else if (lowerFileName.includes('pis')) {
+                } else if (searchString.includes('pis')) {
                     data.type = 'Recalculo DARF PIS';
-                } else if (lowerFileName.includes('cofins')) {
+                } else if (searchString.includes('cofins')) {
                     data.type = 'Recalculo DARF COFINS';
-                } else if (lowerFileName.includes('csll')) {
+                } else if (searchString.includes('csll')) {
                     data.type = 'Recalculo DARF CSLL TRIMESTRAL';
-                } else if (lowerFileName.includes('dctf')) {
+                } else if (searchString.includes('dctf')) {
                     data.type = 'Recalculo DCTF';
+                } else if (searchString.includes('fgts')) {
+                    data.type = 'Recalculo FGTS Digital';
+                } else if (searchString.includes('iss')) {
+                    data.type = 'Recalculo ISS';
                 } else {
-                    data.type = 'Recalculo';
+                    // Se não achou palavra chave específica, tenta usar o que a IA extraiu, mas prefixado com "Recalculo"
+                    const baseType = data.type.replace(/recalculo/gi, '').trim();
+                    data.type = `Recalculo ${baseType || 'Guia'}`;
                 }
             } else if (lowerFileName.includes('retirada de lucros')) {
                 data.type = 'DARF - DARF IR S RETIRADA DE LUCROS';
