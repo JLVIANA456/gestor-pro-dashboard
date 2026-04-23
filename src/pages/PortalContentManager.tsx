@@ -4,8 +4,6 @@ import { useClients } from '@/hooks/useClients';
 import {
     Search,
     Building2,
-    FileText,
-    FolderOpen,
     Link2,
     BookOpen,
     Video,
@@ -13,7 +11,6 @@ import {
     Plus,
     Trash2,
     Inbox,
-    X,
     LayoutDashboard,
     ShieldCheck,
     Clock,
@@ -30,13 +27,11 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
-    DialogHeader,
     DialogTitle,
-    DialogDescription,
     DialogFooter,
 } from '@/components/ui/dialog';
 import { motion, AnimatePresence } from 'framer-motion';
